@@ -72,7 +72,7 @@ export default function CoachPage() {
   const [wellness, setWellness] = useState<WellnessEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'periodization' | 'prescription' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'requests'>('menu');
+  const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'periodization' | 'prescription' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'assessment_anamnesis'>('menu');
   const [requests, setRequests] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
@@ -359,6 +359,12 @@ export default function CoachPage() {
                 subtitle="Dobra Cutânea e Perímetros" 
                 icon={<Scale className="w-8 h-8 text-rose-500" />} 
                 onClick={() => setActiveModule('assessment_anthropometric')} 
+              />
+              <MenuButton 
+                title="Anamnese" 
+                subtitle="Histórico e Saúde" 
+                icon={<FileText className="w-8 h-8 text-blue-400" />} 
+                onClick={() => setActiveModule('assessment_anamnesis')} 
               />
             </div>
           </div>
