@@ -61,10 +61,18 @@ export async function getWellness(): Promise<WellnessEntry[]> {
   return db.wellness.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 export async function registerProfile(profile: any) {
-  const athleteId = profile.fullName.toLowerCase().replace(/\s+/g, '-');
+  const athlete_id = profile.fullName.toLowerCase().replace(/\s+/g, '-');
   const data = {
-    ...profile,
-    athleteId
+    athlete_id,
+    full_name: profile.fullName,
+    email: profile.email,
+    birth_date: profile.birthDate,
+    gender: profile.gender,
+    height: profile.height,
+    weight: profile.weight,
+    sport: profile.sport,
+    goal: profile.goal,
+    experience_level: profile.experienceLevel
   };
 
   try {
@@ -76,4 +84,22 @@ export async function registerProfile(profile: any) {
     console.error('Action error (registerProfile):', error);
     throw error;
   }
+}
+
+export async function submitRegistrationRequest(request: any) {
+  const { data, error } = await supabase.from('registration_requests').insert([request]).select().single();
+  if (error) {
+    console.error('Error submitting registration request:', error);
+    throw error;
+  }
+  return data;
+}
+
+export async function getRegistrationRequests() {
+  const { data, error } = await supabase.from('registration_requests').select('*').order('created_at', { ascending: false });
+  if (error) {
+    console.error('Error fetching registration requests:', error);
+    throw error;
+  }
+  return data;
 }

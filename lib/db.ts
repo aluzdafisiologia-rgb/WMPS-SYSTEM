@@ -28,17 +28,17 @@ export interface WellnessEntry {
 
 export interface Profile {
   id?: string;
-  athleteId: string;
-  fullName: string;
+  athlete_id: string;
+  full_name: string;
   email: string;
-  birthDate: string;
-  gender: 'male' | 'female' | 'other';
+  birth_date: string;
+  gender: string;
   height: number;
   weight: number;
   sport: string;
-  goal: 'performance' | 'hypertrophy' | 'health' | 'weight-loss';
-  experienceLevel: 'beginner' | 'intermediate' | 'advanced' | 'elite';
-  createdAt?: string;
+  goal: string;
+  experience_level: string;
+  created_at?: string;
 }
 
 export interface Database {
@@ -64,7 +64,7 @@ export async function getDb(): Promise<Database> {
 }
 
 export async function saveProfile(profile: Profile) {
-  const { data, error } = await supabase.from('profiles').upsert([profile], { onConflict: 'athleteId' }).select().single();
+  const { data, error } = await supabase.from('profiles').upsert([profile], { onConflict: 'athlete_id' }).select().single();
   if (error) {
     console.error('Supabase error (profiles):', error);
     throw error;
