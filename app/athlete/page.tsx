@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -228,7 +228,7 @@ export default function AthletePage() {
             <div className="bento-card bg-slate-800 border-slate-700 shadow-xl overflow-hidden p-0">
               <div className={activeTab === 'workout' ? "bg-blue-600 px-8 py-4" : "bg-emerald-600 px-8 py-4"}>
                  <h2 className="text-sm font-black text-white uppercase tracking-widest italic">
-                   {activeTab === 'workout' ? 'Nova Sessão de Treino' : 'Formulário Wellness'}
+                   {activeTab === 'workout' ? 'Nova SessÃ£o de Treino' : 'Formulário Wellness'}
                  </h2>
               </div>
               
@@ -393,11 +393,14 @@ export default function AthletePage() {
                        />
                     </div>
 
-                    <div className="p-4 bg-slate-900 rounded-xl border border-blue-500/30">
-                       <p className="text-[10px] font-black uppercase text-blue-400 mb-2 italic">Dica WMPS</p>
-                       <p className="text-xs text-slate-400 font-medium italic leading-relaxed">
-                         O Wellness pré-treino ajuda seu professor a ajustar a carga do dia baseado em seu estado de recuperação atual.
-                       </p>
+                    <div className="flex items-center gap-4 bg-slate-800/50 p-2 pl-4 rounded-xl border border-slate-700">
+                      <div className="text-right">
+                        <p className="text-[10px] text-slate-500 uppercase font-black tracking-tighter">Ãrea do Aluno</p>
+                        <p className="text-sm font-bold text-white">Treino & Saúde</p>
+                      </div>
+                      <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center font-black text-white italic">
+                        {formData.athleteName ? formData.athleteName.substring(0, 2).toUpperCase() : 'AL'}
+                      </div>
                     </div>
 
                     <button
@@ -406,7 +409,7 @@ export default function AthletePage() {
                       className="w-full py-5 rounded-xl font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 italic bg-emerald-600 hover:bg-emerald-500 text-white shadow-xl shadow-emerald-500/20 active:scale-[0.98] disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed"
                     >
                       <Save className="w-5 h-5" />
-                      {isSubmitting ? 'Salvando...' : 'Finalizar Wellness'}
+                      {isSubmitting ? 'Salvando...' : 'Finalizar Bem-Estar'}
                     </button>
                   </form>
                 )}
@@ -433,7 +436,7 @@ export default function AthletePage() {
               className="bg-emerald-500 text-white p-4 rounded-xl flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest"
             >
               <CheckCircle2 className="w-5 h-5" />
-              {activeTab === 'workout' ? 'Treino Salvo com Sucesso' : 'Wellness Enviado com Sucesso'}
+              {activeTab === 'workout' ? 'Treino Salvo com Sucesso' : 'Bem-Estar Enviado com Sucesso'}
             </motion.div>
           )}
         </AnimatePresence>

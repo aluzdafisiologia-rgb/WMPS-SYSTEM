@@ -57,7 +57,7 @@ export async function getRegistrationRequests() {
 
 export async function logWorkout(formData: any) {
   try {
-    if (!supabase) throw new Error('DB offline');
+    if (!supabase) throw new Error('Banco de dados indisponível');
     const athlete_id = formData.athleteName.toLowerCase().replace(/\s+/g, '-');
     
     await supabase.from('sessions').insert([{
@@ -79,7 +79,7 @@ export async function logWorkout(formData: any) {
 
 export async function logWellness(formData: any) {
   try {
-    if (!supabase) throw new Error('DB offline');
+    if (!supabase) throw new Error('Banco de dados indisponível');
     const athlete_id = formData.athleteName.toLowerCase().replace(/\s+/g, '-');
 
     await supabase.from('wellness').insert([{

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion } from 'motion/react';
@@ -57,7 +57,7 @@ const HOOPER_SCALE = {
   2: { label: 'Ruim', abbr: 'R', color: 'text-orange-500' },
   3: { label: 'Bom', abbr: 'B', color: 'text-emerald-500' },
   4: { label: 'Muito Bom', abbr: 'MB', color: 'text-blue-500' },
-  5: { label: 'Ótimo', abbr: 'OT', color: 'text-blue-400' }
+  5: { label: 'Ã“timo', abbr: 'OT', color: 'text-blue-400' }
 };
 
 const WELLNESS_CLASS = (score: number) => {
@@ -230,7 +230,7 @@ export default function CoachPage() {
         message = 'ACWR EXPLOSIVO';
       } else if (metric.acwr > 1.3 || metric.wellness < 50) {
         riskLevel = 'medium';
-        message = 'ATENÇÃO CARGA';
+        message = 'ATENÃ‡ÃƒO CARGA';
       } else if (metric.acwr < 0.8 && metric.load > 0) {
         riskLevel = 'medium';
         message = 'UNDER-TRAINING';
@@ -278,8 +278,8 @@ export default function CoachPage() {
         </div>
         <div className="flex items-center gap-4 bg-slate-800/50 p-2 pl-4 rounded-xl border border-slate-700">
           <div className="text-right">
-            <p className="text-[10px] text-slate-500 uppercase font-black tracking-tighter">Coach Hub</p>
-            <p className="text-sm font-bold text-white">Monitoring Active</p>
+            <p className="text-[10px] text-slate-500 uppercase font-black tracking-tighter">Ãrea do Professor</p>
+            <p className="text-sm font-bold text-white">Monitoramento Ativo</p>
           </div>
           <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center font-black text-white italic">WM</div>
         </div>
@@ -329,7 +329,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar ao Hub
+              Voltar ao Menu
             </button>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-6">
@@ -341,7 +341,7 @@ export default function CoachPage() {
               />
               <MenuButton 
                 title="Avaliação de Potência" 
-                subtitle="Ciclagem e Explosão" 
+                subtitle="Ciclagem e ExplosÃ£o" 
                 icon={<Zap className="w-8 h-8 text-yellow-500" />} 
                 onClick={() => setActiveModule('assessment_power')} 
               />
@@ -379,7 +379,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar ao Hub
+              Voltar ao Menu
             </button>
 
             {/* Risk Alerts */}
@@ -413,8 +413,8 @@ export default function CoachPage() {
 
         {/* Top Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <StatCard title="Carga MÃ©dia Equipe" value={`${teamStats.avgLoad} AU`} icon={<TrendingUp className="w-5 h-5 text-blue-400" />} color="bg-slate-900 border border-slate-800" />
-          <StatCard title="DistÃ¢ncia Total" value={`${athleteMetrics.reduce((acc, m) => acc + m.distance, 0).toFixed(1)} km`} icon={<Activity className="w-5 h-5 text-emerald-400" />} color="bg-slate-900 border border-slate-800" />
+          <StatCard title="Carga MÃƒÂ©dia Equipe" value={`${teamStats.avgLoad} AU`} icon={<TrendingUp className="w-5 h-5 text-blue-400" />} color="bg-slate-900 border border-slate-800" />
+          <StatCard title="DistÃƒÂ¢ncia Total" value={`${athleteMetrics.reduce((acc, m) => acc + m.distance, 0).toFixed(1)} km`} icon={<Activity className="w-5 h-5 text-emerald-400" />} color="bg-slate-900 border border-slate-800" />
           <StatCard title="Volume Total" value={`${athleteMetrics.reduce((acc, m) => acc + m.volume, 0)} kg`} icon={<Activity className="w-5 h-5 text-yellow-400" />} color="bg-slate-900 border border-slate-800" />
           <div className="bento-card bg-blue-600 border-none flex flex-col justify-center">
              <p className="text-[9px] font-black text-white/50 uppercase italic mb-1 tracking-widest">Carga Semanal Acumulada</p>
@@ -430,16 +430,16 @@ export default function CoachPage() {
              <div className="flex justify-between items-center mb-10">
                 <div>
                    <p className="label-caps italic mb-1">Carga por Atleta</p>
-                   <h3 className="text-xl font-black text-white uppercase italic">Comparativo vs MÃ©dia da Equipe</h3>
+                   <h3 className="text-xl font-black text-white uppercase italic">Comparativo vs MÃƒÂ©dia da Equipe</h3>
                 </div>
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded bg-blue-500"></span>
-                    <span className="text-[9px] font-black uppercase text-slate-500">Abaixo MÃ©d.</span>
+                    <span className="text-[9px] font-black uppercase text-slate-500">Abaixo MÃƒÂ©d.</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded bg-red-500"></span>
-                    <span className="text-[9px] font-black uppercase text-slate-500">Acima MÃ©d.</span>
+                    <span className="text-[9px] font-black uppercase text-slate-500">Acima MÃƒÂ©d.</span>
                   </div>
                 </div>
              </div>
@@ -451,7 +451,7 @@ export default function CoachPage() {
                     <XAxis dataKey="name" stroke="#64748b" fontSize={10} fontWeight={800} tickLine={false} axisLine={false} />
                     <YAxis stroke="#64748b" fontSize={10} fontWeight={800} tickLine={false} axisLine={false} />
                     <Tooltip cursor={{ fill: '#334155', opacity: 0.4 }} contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
-                    <ReferenceLine y={teamStats.avgLoad} stroke="#ef4444" strokeDasharray="5 5" label={{ position: 'right', value: 'ReferÃªncia', fill: '#ef4444', fontSize: 10, fontWeight: 900 }} />
+                    <ReferenceLine y={teamStats.avgLoad} stroke="#ef4444" strokeDasharray="5 5" label={{ position: 'right', value: 'ReferÃƒÂªncia', fill: '#ef4444', fontSize: 10, fontWeight: 900 }} />
                     <Bar dataKey="avg" radius={[4, 4, 0, 0]} barSize={40}>
                       {athleteComparisonData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.avg > teamStats.avgLoad ? '#ef4444' : '#3b82f6'} />
@@ -528,7 +528,7 @@ export default function CoachPage() {
                     <Info className="w-4 h-4 text-slate-500" />
                     <p className="label-caps italic uppercase">Painel de Controle Interno</p>
                   </div>
-                  <h3 className="text-xl font-black text-white uppercase italic">Ãndice de Hooper & Bem-Estar Geral</h3>
+                  <h3 className="text-xl font-black text-white uppercase italic">ÃƒÂndice de Hooper & Bem-Estar Geral</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                    {['OT', 'MB', 'B', 'R', 'P'].map((s) => (
@@ -625,7 +625,7 @@ export default function CoachPage() {
           <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8">
              <div className="bento-card bg-slate-800/20 border-slate-700">
                 <div className="flex items-center justify-between mb-8">
-                   <p className="label-caps italic">HistÃ³rico Recente</p>
+                   <p className="label-caps italic">HistÃƒÂ³rico Recente</p>
                    <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
                       <input 
@@ -692,7 +692,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para AvaliaÃƒÂ§ÃƒÂµes
             </button>
             
             <StrengthAssessmentModule />
@@ -704,7 +704,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para AvaliaÃƒÂ§ÃƒÂµes
             </button>
             
             <PowerAssessmentModule />
@@ -716,7 +716,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para AvaliaÃƒÂ§ÃƒÂµes
             </button>
             
             <AnthropometricAssessmentModule />
@@ -728,7 +728,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para AvaliaÃƒÂ§ÃƒÂµes
             </button>
             
             <EnduranceAssessmentModule />
@@ -740,7 +740,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para AvaliaÃƒÂ§ÃƒÂµes
             </button>
             
             <AgilityAssessmentModule />
@@ -752,7 +752,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para AvaliaÃƒÂ§ÃƒÂµes
             </button>
             
             <FlexibilityAssessmentModule />
@@ -775,8 +775,8 @@ export default function CoachPage() {
                <Info className="w-10 h-10 text-slate-500" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white uppercase italic">MÃ³dulo em Desenvolvimento</h3>
-              <p className="text-slate-500 text-sm font-medium mt-2">Esta funcionalidade estarÃ¡ disponÃ­vel em breve no WMPS.</p>
+              <h3 className="text-xl font-black text-white uppercase italic">MÃƒÂ³dulo em Desenvolvimento</h3>
+              <p className="text-slate-500 text-sm font-medium mt-2">Esta funcionalidade estarÃƒÂ¡ disponÃƒÂ­vel em breve no WMPS.</p>
             </div>
             <button 
               onClick={() => {
@@ -801,7 +801,7 @@ export default function CoachPage() {
                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest italic">Monitoramento de Risco Ativo</span>
               </div>
               <div className="hidden sm:block h-4 w-px bg-slate-800"></div>
-              <p className="hidden sm:block text-[10px] text-slate-600 font-bold italic">ClassificaÃ§Ã£o Hooper baseada em P, R, B, MB, OT.</p>
+              <p className="hidden sm:block text-[10px] text-slate-600 font-bold italic">ClassificaÃƒÂ§ÃƒÂ£o Hooper baseada em P, R, B, MB, OT.</p>
            </div>
            <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.1em] text-center sm:text-right">
              William Moreira Performance System V1.0 <span className="mx-2 text-slate-700 hidden sm:inline">|</span> <br className="sm:hidden" />
@@ -911,7 +911,7 @@ function StrengthAssessmentModule() {
 
           <div className="space-y-6">
             <div className="space-y-3">
-              <label className="label-caps italic text-xs">ExercÃ­cio Avaliado</label>
+              <label className="label-caps italic text-xs">ExercÃƒÂ­cio Avaliado</label>
               <select 
                 value={exercise}
                 onChange={(e) => setExercise(e.target.value)}
@@ -935,7 +935,7 @@ function StrengthAssessmentModule() {
                 />
               </div>
               <div className="space-y-3">
-                <label className="label-caps italic text-xs">Reps (MÃ¡x 10)</label>
+                <label className="label-caps italic text-xs">Reps (MÃƒÂ¡x 10)</label>
                 <input 
                   type="number"
                   placeholder="0"
@@ -947,7 +947,7 @@ function StrengthAssessmentModule() {
             </div>
 
             <div className="space-y-3">
-              <label className="label-caps italic text-xs">Protocolo / EquaÃ§Ã£o</label>
+              <label className="label-caps italic text-xs">Protocolo / EquaÃƒÂ§ÃƒÂ£o</label>
               <div className="grid grid-cols-2 gap-2">
                 <button 
                   onClick={() => setFormula('brzycki')}
@@ -971,10 +971,10 @@ function StrengthAssessmentModule() {
             <div className="pt-4 p-6 bg-blue-600/10 border border-blue-500/20 rounded-2xl">
               <div className="flex items-center gap-2 mb-2">
                 <Info className="w-4 h-4 text-blue-400" />
-                <span className="text-[10px] font-black text-blue-400 uppercase italic">ReferÃªncia CientÃ­fica</span>
+                <span className="text-[10px] font-black text-blue-400 uppercase italic">ReferÃƒÂªncia CientÃƒÂ­fica</span>
               </div>
               <p className="text-[9px] text-blue-400/70 font-bold uppercase leading-relaxed">
-                As equaÃ§Ãµes de prediÃ§Ã£o de 1RM sÃ£o recomendadas para atÃ© 10 repetiÃ§Ãµes. Protocolos acimade 10 reps podem apresentar maior margem de erro.
+                As equaÃƒÂ§ÃƒÂµes de prediÃƒÂ§ÃƒÂ£o de 1RM sÃƒÂ£o recomendadas para atÃƒÂ© 10 repetiÃƒÂ§ÃƒÂµes. Protocolos acimade 10 reps podem apresentar maior margem de erro.
               </p>
             </div>
           </div>
@@ -986,7 +986,7 @@ function StrengthAssessmentModule() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bento-card border-none bg-blue-600 p-8 flex flex-col justify-between overflow-hidden relative">
              <div className="relative z-10">
-                <p className="text-[10px] font-black text-white/60 uppercase italic tracking-[0.2em] mb-2">Estimativa de Carga MÃ¡xima</p>
+                <p className="text-[10px] font-black text-white/60 uppercase italic tracking-[0.2em] mb-2">Estimativa de Carga MÃƒÂ¡xima</p>
                 <h3 className="text-5xl font-black text-white italic">{Math.round(oneRM)}<span className="text-xl ml-2 opacity-50 underline decoration-white/20">KG</span></h3>
              </div>
              <Dumbbell className="absolute -right-8 -bottom-8 w-48 h-48 opacity-10 rotate-12" />
@@ -1007,8 +1007,8 @@ function StrengthAssessmentModule() {
                       <h4 className="text-xs font-black text-white uppercase italic">{formula === 'brzycki' ? 'ACSM (Brzycki)' : 'NSCA (Epley)'}</h4>
                       <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 leading-tight">
                         {formula === 'brzycki' 
-                          ? 'EquaÃ§Ã£o linear baseada na reduÃ§Ã£o percentual por repetiÃ§Ã£o. Amplamente utilizada em contextos clÃ­nicos e de saÃºde.' 
-                          : 'Abordagem baseada no percentual de 1RM por repetiÃ§Ã£o (3% por rep). Preferida pela NSCA para atletas de forÃ§a.'}
+                          ? 'EquaÃƒÂ§ÃƒÂ£o linear baseada na reduÃƒÂ§ÃƒÂ£o percentual por repetiÃƒÂ§ÃƒÂ£o. Amplamente utilizada em contextos clÃƒÂ­nicos e de saÃƒÂºde.' 
+                          : 'Abordagem baseada no percentual de 1RM por repetiÃƒÂ§ÃƒÂ£o (3% por rep). Preferida pela NSCA para atletas de forÃƒÂ§a.'}
                       </p>
                    </div>
                 </div>
@@ -1019,7 +1019,7 @@ function StrengthAssessmentModule() {
         <div className="bento-card bg-slate-900 border-slate-800 p-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <p className="label-caps italic mb-1">PrescriÃ§Ã£o</p>
+              <p className="label-caps italic mb-1">PrescriÃƒÂ§ÃƒÂ£o</p>
               <h3 className="text-xl font-black text-white uppercase italic">Zonas de Treinamento e Intensidade</h3>
             </div>
             <div className="flex gap-2">
@@ -1046,9 +1046,9 @@ function StrengthAssessmentModule() {
           </div>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-slate-800">
-             <IntensityZone label="ForÃ§a MÃ¡xima" range="85-100%" reps="1-6" color="text-red-500" />
+             <IntensityZone label="ForÃƒÂ§a MÃƒÂ¡xima" range="85-100%" reps="1-6" color="text-red-500" />
              <IntensityZone label="Hipertrofia" range="70-85%" reps="6-12" color="text-yellow-500" />
-             <IntensityZone label="ResistÃªncia" range="50-70%" reps="15+" color="text-emerald-500" />
+             <IntensityZone label="ResistÃƒÂªncia" range="50-70%" reps="15+" color="text-emerald-500" />
           </div>
         </div>
       </div>
@@ -1075,14 +1075,14 @@ function PowerAssessmentModule() {
       // Sayers Equation (Watts) - Peak Power
       const peakPower = (60.7 * v) + (45.3 * m) - 2055;
       const relativePower = peakPower / m;
-      return { peakPower, relativePower, label: 'PotÃªncia de Pico (Vertical)', unit: 'W' };
+      return { peakPower, relativePower, label: 'PotÃƒÂªncia de Pico (Vertical)', unit: 'W' };
     } else if (testType === 'horizontal_jump') {
       const v = parseFloat(value);
       if (!v) return null;
       // Power estimation from horizontal jump
       const distM = v / 100;
       const estPower = 2.21 * m * Math.sqrt(9.81 * distM);
-      return { peakPower: estPower, relativePower: estPower / m, label: 'PotÃªncia Estimada (Horizontal)', unit: 'W' };
+      return { peakPower: estPower, relativePower: estPower / m, label: 'PotÃƒÂªncia Estimada (Horizontal)', unit: 'W' };
     } else if (testType === 'medball') {
       const v = parseFloat(value); // distance in meters
       if (!v) return null;
@@ -1090,7 +1090,7 @@ function PowerAssessmentModule() {
       // The system uses a 3kg med ball as standard; relative power = W/kg body mass
       const ballMass = 3; // kg (standard med ball for upper body test)
       const estPower = ballMass * 9.81 * v;
-      return { peakPower: estPower, relativePower: estPower / m, label: 'PotÃªncia Estimada (MS â€” Med Ball 3kg)', unit: 'W' };
+      return { peakPower: estPower, relativePower: estPower / m, label: 'PotÃƒÂªncia Estimada (MS ââ‚¬â€ Med Ball 3kg)', unit: 'W' };
     } else if (testType === 'sprint') {
       const v = parseFloat(value);
       if (!v) return null;
@@ -1098,7 +1098,7 @@ function PowerAssessmentModule() {
       const dist = 40;
       const v_avg = dist / v;
       const power = 0.5 * m * v_avg * v_avg / v;
-      return { peakPower: power, relativePower: power / m, label: 'PotÃªncia AnaerÃ³bica (Sprint)', unit: 'W' };
+      return { peakPower: power, relativePower: power / m, label: 'PotÃƒÂªncia AnaerÃƒÂ³bica (Sprint)', unit: 'W' };
     } else if (testType === 'ssc_analytics') {
       const sj = parseFloat(sjHeight);
       const cmj = parseFloat(cmjHeight);
@@ -1108,7 +1108,7 @@ function PowerAssessmentModule() {
       return { 
         peakPower: eur, 
         relativePower: sscDiff, 
-        label: 'AnÃ¡lise de Ciclo (SSC)', 
+        label: 'AnÃƒÂ¡lise de Ciclo (SSC)', 
         isAnalytics: true,
         eur,
         sscDiff
@@ -1121,7 +1121,7 @@ function PowerAssessmentModule() {
       return { 
         peakPower: rsi, 
         relativePower: rsi, 
-        label: 'Ãndice de ForÃ§a Reativa (RSI)', 
+        label: 'ÃƒÂndice de ForÃƒÂ§a Reativa (RSI)', 
         isRsi: true,
         rsiValue: rsi
       };
@@ -1134,8 +1134,8 @@ function PowerAssessmentModule() {
       <div className="lg:col-span-4 space-y-6">
         <div className="bento-card bg-slate-900/50 border-slate-800 p-8">
           <div className="mb-8">
-            <p className="label-caps italic mb-1">AvaliaÃ§Ã£o BioenergÃ©tica</p>
-            <h3 className="text-xl font-black text-white uppercase italic">Capacidade de PotÃªncia</h3>
+            <p className="label-caps italic mb-1">AvaliaÃƒÂ§ÃƒÂ£o BioenergÃƒÂ©tica</p>
+            <h3 className="text-xl font-black text-white uppercase italic">Capacidade de PotÃƒÂªncia</h3>
           </div>
 
           <div className="space-y-6">
@@ -1144,11 +1144,11 @@ function PowerAssessmentModule() {
               <div className="grid grid-cols-1 gap-2">
                 {[
                   { id: 'jump', title: 'Salto Vertical (MIII)', subtitle: 'Sayers Equation' },
-                  { id: 'horizontal_jump', title: 'Salto Horizontal', subtitle: 'PotÃªncia de ExplosÃ£o' },
+                  { id: 'horizontal_jump', title: 'Salto Horizontal', subtitle: 'PotÃƒÂªncia de ExplosÃƒÂ£o' },
                   { id: 'medball', title: 'MedBall Throw (MS)', subtitle: 'Membros Superiores' },
-                  { id: 'sprint', title: 'Sprint 40m', subtitle: 'Protocolo AnaerÃ³bico' },
-                  { id: 'ssc_analytics', title: 'AnÃ¡lise EUR & SSC%', subtitle: 'CMJ vs SJ Analytics' },
-                  { id: 'rsi', title: 'Ãndice ForÃ§a Reativa', subtitle: 'RSI (RelaÃ§Ã£o H/TC)' }
+                  { id: 'sprint', title: 'Sprint 40m', subtitle: 'Protocolo AnaerÃƒÂ³bico' },
+                  { id: 'ssc_analytics', title: 'AnÃƒÂ¡lise EUR & SSC%', subtitle: 'CMJ vs SJ Analytics' },
+                  { id: 'rsi', title: 'ÃƒÂndice ForÃƒÂ§a Reativa', subtitle: 'RSI (RelaÃƒÂ§ÃƒÂ£o H/TC)' }
                 ].map(t => (
                   <button 
                     key={t.id}
@@ -1225,7 +1225,7 @@ function PowerAssessmentModule() {
               ) : (
                 <div className="space-y-2">
                   <label className="label-caps italic text-xs">
-                    {testType === 'jump' ? 'Altura do Salto (cm)' : testType === 'horizontal_jump' ? 'DistÃ¢ncia do Salto (cm)' : testType === 'medball' ? 'DistÃ¢ncia do LanÃ§amento (m)' : 'Tempo do Sprint 40m (s)'}
+                    {testType === 'jump' ? 'Altura do Salto (cm)' : testType === 'horizontal_jump' ? 'DistÃƒÂ¢ncia do Salto (cm)' : testType === 'medball' ? 'DistÃƒÂ¢ncia do LanÃƒÂ§amento (m)' : 'Tempo do Sprint 40m (s)'}
                   </label>
                   <input 
                     type="number"
@@ -1256,7 +1256,7 @@ function PowerAssessmentModule() {
                 <Zap className={`absolute -right-8 -bottom-8 w-48 h-48 opacity-10 rotate-12 ${testType.includes('analytics') || testType === 'rsi' ? 'text-white' : 'text-black'}`} />
                 <div className="relative z-10 mt-6 flex gap-3">
                   <span className={`px-3 py-1 ${testType.includes('analytics') || testType === 'rsi' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'} rounded-full text-[10px] font-black italic uppercase`}>
-                    {testType === 'ssc_analytics' ? 'Taxa de UtilizaÃ§Ã£o' : testType === 'rsi' ? 'Ãndice Reativo' : 'PotÃªncia Estimada'}
+                    {testType === 'ssc_analytics' ? 'Taxa de UtilizaÃƒÂ§ÃƒÂ£o' : testType === 'rsi' ? 'ÃƒÂndice Reativo' : 'PotÃƒÂªncia Estimada'}
                   </span>
                 </div>
               </div>
@@ -1264,7 +1264,7 @@ function PowerAssessmentModule() {
               <div className="bento-card border-none bg-slate-900 border-slate-800 p-8 flex flex-col justify-between relative overflow-hidden">
                 <div>
                   <p className="text-[10px] font-black text-slate-500 uppercase italic tracking-widest mb-2">
-                    {testType === 'ssc_analytics' ? 'DiferenÃ§a SSC%' : testType === 'rsi' ? 'H/TC Ratio' : 'Relativa por Massa'}
+                    {testType === 'ssc_analytics' ? 'DiferenÃƒÂ§a SSC%' : testType === 'rsi' ? 'H/TC Ratio' : 'Relativa por Massa'}
                   </p>
                   <h3 className="text-5xl font-black text-white italic">
                     {testType === 'ssc_analytics' ? `${results.sscDiff?.toFixed(1)}%` : testType === 'rsi' ? (results.rsiValue as number).toFixed(1) : (results.relativePower as number).toFixed(1)}
@@ -1288,36 +1288,36 @@ function PowerAssessmentModule() {
 
             <div className="bento-card bg-slate-900 border-slate-800 p-8">
               <div className="mb-8">
-                <p className="label-caps italic mb-1">AnÃ¡lise Normativa</p>
-                <h3 className="text-xl font-black text-white uppercase italic">ClassificaÃ§Ã£o e Zonas</h3>
+                <p className="label-caps italic mb-1">AnÃƒÂ¡lise Normativa</p>
+                <h3 className="text-xl font-black text-white uppercase italic">ClassificaÃƒÂ§ÃƒÂ£o e Zonas</h3>
               </div>
 
               <div className="space-y-6">
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <PowerClassCard 
-                      label="ExplosÃ£o" 
-                      value={testType === 'ssc_analytics' ? (results.sscDiff as number > 15 ? 'AltÃ­ssima' : 'Normal') : 'Avaliado'} 
+                      label="ExplosÃƒÂ£o" 
+                      value={testType === 'ssc_analytics' ? (results.sscDiff as number > 15 ? 'AltÃƒÂ­ssima' : 'Normal') : 'Avaliado'} 
                       icon={<Zap className="w-5 h-5" />} 
                     />
                     <PowerClassCard 
-                      label="EficiÃªncia" 
+                      label="EficiÃƒÂªncia" 
                       value={testType === 'rsi' ? (results.rsiValue as number > 2.5 ? 'Excelente' : 'Bom') : 'Base'} 
                       icon={<Target className="w-5 h-5" />} 
                     />
-                    <PowerClassCard label="ReferÃªncia" value={testType === 'ssc_analytics' ? 'Meta >1.10' : 'Norma ACSM'} icon={<Info className="w-5 h-5" />} />
+                    <PowerClassCard label="ReferÃƒÂªncia" value={testType === 'ssc_analytics' ? 'Meta >1.10' : 'Norma ACSM'} icon={<Info className="w-5 h-5" />} />
                  </div>
 
                  <div className="bg-slate-800/40 p-6 rounded-2xl border border-slate-800">
-                    <h4 className="text-[10px] font-black text-white uppercase italic mb-4">TransferÃªncia para o Treino</h4>
+                    <h4 className="text-[10px] font-black text-white uppercase italic mb-4">TransferÃƒÂªncia para o Treino</h4>
                     <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
                       {testType === 'ssc_analytics' ? (
-                        `O Ciclo Alongamento-Encurtamento (SSC) apresenta uma vantagem de ${results.sscDiff?.toFixed(1)}%. Um EUR acima de 1.10 indica boa utilizaÃ§Ã£o elÃ¡stica. 
-                        Se abaixo disto, foque em treinos de potÃªncia explosiva e saltos pliomÃ©tricos.`
+                        `O Ciclo Alongamento-Encurtamento (SSC) apresenta uma vantagem de ${results.sscDiff?.toFixed(1)}%. Um EUR acima de 1.10 indica boa utilizaÃƒÂ§ÃƒÂ£o elÃƒÂ¡stica. 
+                        Se abaixo disto, foque em treinos de potÃƒÂªncia explosiva e saltos pliomÃƒÂ©tricos.`
                       ) : testType === 'rsi' ? (
-                        `O Ãndice de ForÃ§a Reativa de ${results.rsiValue?.toFixed(2)} indica a capacidade de mudar rapidamente de aÃ§Ã£o excÃªntrica para concÃªntrica. 
-                        Valores acima de 2.0 sÃ£o tÃ­picos de atletas bem treinados para pliometria.`
+                        `O ÃƒÂndice de ForÃƒÂ§a Reativa de ${results.rsiValue?.toFixed(2)} indica a capacidade de mudar rapidamente de aÃƒÂ§ÃƒÂ£o excÃƒÂªntrica para concÃƒÂªntrica. 
+                        Valores acima de 2.0 sÃƒÂ£o tÃƒÂ­picos de atletas bem treinados para pliometria.`
                       ) : (
-                        `Capacidade detectada para o teste de ${testType}. Os dados sugerem foco em ${results.relativePower as number < 40 ? 'PotÃªncia Base' : 'Pliometria e Velocidade'}.`
+                        `Capacidade detectada para o teste de ${testType}. Os dados sugerem foco em ${results.relativePower as number < 40 ? 'PotÃƒÂªncia Base' : 'Pliometria e Velocidade'}.`
                       )}
                     </p>
                  </div>
@@ -1328,7 +1328,7 @@ function PowerAssessmentModule() {
           <div className="h-full flex flex-col items-center justify-center p-12 text-center bg-slate-900/20 border border-dashed border-slate-800 rounded-[2rem]">
             <Zap className="w-12 h-12 text-slate-700 mb-4" />
             <h4 className="text-slate-500 font-black uppercase italic tracking-widest">Insira os dados para calcular</h4>
-            <p className="text-slate-600 text-[10px] mt-2 max-w-[200px]">Utilize instrumentos validados (fita mÃ©trica ou cronÃ´metro) para maior precisÃ£o.</p>
+            <p className="text-slate-600 text-[10px] mt-2 max-w-[200px]">Utilize instrumentos validados (fita mÃƒÂ©trica ou cronÃƒÂ´metro) para maior precisÃƒÂ£o.</p>
           </div>
         )}
       </div>
@@ -1442,18 +1442,18 @@ function AnthropometricAssessmentModule() {
     let classification = "Normal";
     if (bodyFat) {
       if (gender === 'male') {
-        // ACSM 11th ed. (2022) norms â€” Men
-        if (bodyFat < 6) classification = "MÃ­nimo Essencial";
+        // ACSM 11th ed. (2022) norms ââ‚¬â€ Men
+        if (bodyFat < 6) classification = "MÃƒÂ­nimo Essencial";
         else if (bodyFat <= 13) classification = "Atleta/Excelente";
         else if (bodyFat <= 17) classification = "Fitness/Bom";
-        else if (bodyFat <= 24) classification = "AceitÃ¡vel";
+        else if (bodyFat <= 24) classification = "AceitÃƒÂ¡vel";
         else classification = "Obesidade/Risco";
       } else {
-        // ACSM 11th ed. (2022) norms â€” Women
-        if (bodyFat < 14) classification = "MÃ­nimo Essencial";
+        // ACSM 11th ed. (2022) norms ââ‚¬â€ Women
+        if (bodyFat < 14) classification = "MÃƒÂ­nimo Essencial";
         else if (bodyFat <= 20) classification = "Atleta/Excelente";
         else if (bodyFat <= 24) classification = "Fitness/Bom";
-        else if (bodyFat <= 31) classification = "AceitÃ¡vel";
+        else if (bodyFat <= 31) classification = "AceitÃƒÂ¡vel";
         else classification = "Obesidade/Risco";
       }
     }
@@ -1482,14 +1482,14 @@ function AnthropometricAssessmentModule() {
              <div className="w-8 h-8 rounded-lg bg-blue-600/20 flex items-center justify-center border border-blue-500/30">
                 <Scale className="w-4 h-4 text-blue-500" />
              </div>
-             <h3 className="text-sm font-black text-white uppercase italic">Perfil BÃ¡sico</h3>
+             <h3 className="text-sm font-black text-white uppercase italic">Perfil BÃƒÂ¡sico</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
              <InputField label="Peso (kg)" value={weight} set={setWeight} />
              <InputField label="Altura (cm)" value={height} set={setHeight} />
              <InputField label="Idade" value={age} set={setAge} />
              <div className="space-y-1">
-                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">GÃªnero</span>
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">GÃƒÂªnero</span>
                 <select 
                   value={gender} 
                   onChange={e => setGender(e.target.value as any)}
@@ -1508,12 +1508,12 @@ function AnthropometricAssessmentModule() {
              <div className="w-8 h-8 rounded-lg bg-emerald-600/20 flex items-center justify-center border border-emerald-500/30">
                 <MoveHorizontal className="w-4 h-4 text-emerald-500" />
              </div>
-             <h3 className="text-sm font-black text-white uppercase italic">PerÃ­metros (cm)</h3>
+             <h3 className="text-sm font-black text-white uppercase italic">PerÃƒÂ­metros (cm)</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
              <InputField label="Cintura" value={waist} set={setWaist} />
              <InputField label="Quadril" value={hip} set={setHip} />
-             <InputField label="BraÃ§o" value="" set={() => {}} disabled />
+             <InputField label="BraÃƒÂ§o" value="" set={() => {}} disabled />
              <InputField label="Coxa" value="" set={() => {}} disabled />
           </div>
           <p className="text-[9px] text-slate-600 font-bold uppercase italic">* Cintura no ponto mais estreito</p>
@@ -1528,14 +1528,14 @@ function AnthropometricAssessmentModule() {
              <h3 className="text-sm font-black text-white uppercase italic">Dobras (mm)</h3>
           </div>
           <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 xl:grid-cols-2 gap-3">
-             <InputField label="TrÃ­ceps" value={triceps} set={setTriceps} />
+             <InputField label="TrÃƒÂ­ceps" value={triceps} set={setTriceps} />
              <InputField label="Subescap." value={subscapular} set={setSubscapular} />
-             <InputField label="Supra-ilÃ­aca" value={suprailiac} set={setSuprailiac} />
+             <InputField label="Supra-ilÃƒÂ­aca" value={suprailiac} set={setSuprailiac} />
              <InputField label="Abdominal" value={abdominal} set={setAbdominal} />
              <InputField label="Peitoral" value={chest} set={setChest} />
              <InputField label="Coxa" value={thigh} set={setThigh} />
              <InputField label="Axilar M." value={midaxillary} set={setMidaxillary} />
-             <InputField label="BÃ­ceps" value={biceps} set={setBiceps} />
+             <InputField label="BÃƒÂ­ceps" value={biceps} set={setBiceps} />
           </div>
         </div>
       </div>
@@ -1548,7 +1548,7 @@ function AnthropometricAssessmentModule() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="bento-card bg-rose-600 border-none p-8 flex flex-col justify-between overflow-hidden relative shadow-2xl shadow-rose-900/20">
                   <div className="relative z-10">
-                    <p className="text-[10px] font-black text-white/50 uppercase italic tracking-widest mb-2">ComposiÃ§Ã£o Corporal (%G)</p>
+                    <p className="text-[10px] font-black text-white/50 uppercase italic tracking-widest mb-2">ComposiÃƒÂ§ÃƒÂ£o Corporal (%G)</p>
                     <div className="flex items-baseline gap-2">
                        <h3 className="text-6xl font-black text-white italic">{results.bodyFat?.toFixed(1) || "--"}</h3>
                        <span className="text-xl font-black text-white/40">%</span>
@@ -1566,7 +1566,7 @@ function AnthropometricAssessmentModule() {
                       <div className="space-y-1">
                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">IMC</p>
                          <h4 className="text-3xl font-black text-white italic">{results.imc.toFixed(1)}</h4>
-                         <p className="text-[9px] font-bold text-rose-500 uppercase">{results.imc < 25 ? "SaudÃ¡vel" : "Risco"}</p>
+                         <p className="text-[9px] font-bold text-rose-500 uppercase">{results.imc < 25 ? "SaudÃƒÂ¡vel" : "Risco"}</p>
                       </div>
                       <div className="space-y-1">
                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">RCQ</p>
@@ -1585,8 +1585,8 @@ function AnthropometricAssessmentModule() {
               <div className="bento-card bg-slate-900/50 border-slate-800 p-8">
                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <div>
-                      <p className="label-caps italic mb-1">CÃ¡lculo Diferencial</p>
-                      <h3 className="text-xl font-black text-white uppercase italic">AnÃ¡lise de Protocolos ACSM</h3>
+                      <p className="label-caps italic mb-1">CÃƒÂ¡lculo Diferencial</p>
+                      <h3 className="text-xl font-black text-white uppercase italic">AnÃƒÂ¡lise de Protocolos ACSM</h3>
                     </div>
                     <div className="flex gap-2">
                        <span className="px-3 py-1 bg-slate-800 rounded-lg text-[10px] font-black text-slate-400 border border-slate-700">7-G: {results.bodyFatPollock ? "OK" : "Pendente"}</span>
@@ -1602,12 +1602,12 @@ function AnthropometricAssessmentModule() {
                     <ProtocolSummary 
                       title="Durnin (Geral)" 
                       val={results.bodyFatDurnin} 
-                      desc="SensÃ­vel Ã  densidade Ã³ssea por faixa etÃ¡ria." 
+                      desc="SensÃƒÂ­vel ÃƒÂ  densidade ÃƒÂ³ssea por faixa etÃƒÂ¡ria." 
                     />
                     <ProtocolSummary 
                       title="Slaughter (Jovens)" 
                       val={results.bodyFatSlaughter} 
-                      desc="EquaÃ§Ã£o padrÃ£o para fase de maturaÃ§Ã£o." 
+                      desc="EquaÃƒÂ§ÃƒÂ£o padrÃƒÂ£o para fase de maturaÃƒÂ§ÃƒÂ£o." 
                     />
                  </div>
               </div>
@@ -1617,7 +1617,7 @@ function AnthropometricAssessmentModule() {
                <Scale className="w-16 h-16 text-slate-800 mb-6 group-hover:scale-110 transition-transform" />
                <h3 className="text-xl font-black text-slate-500 uppercase italic">Dados Pendentes</h3>
                <p className="text-slate-600 text-[10px] font-bold uppercase mt-2 max-w-[280px] leading-relaxed">
-                  Insira o peso e as dobras cutÃ¢neas para desbloquear a anÃ¡lise detalhada de composiÃ§Ã£o corporal.
+                  Insira o peso e as dobras cutÃƒÂ¢neas para desbloquear a anÃƒÂ¡lise detalhada de composiÃƒÂ§ÃƒÂ£o corporal.
                </p>
             </div>
           )}
@@ -1627,12 +1627,12 @@ function AnthropometricAssessmentModule() {
         <div className="lg:col-span-4 space-y-6">
            <div className="bento-card border-none bg-gradient-to-br from-indigo-600 to-purple-600 p-8">
               <div className="flex items-center gap-3 mb-6 font-black uppercase italic tracking-widest text-[10px] text-white/60">
-                 <Info className="w-4 h-4" /> Diretrizes CientÃ­ficas
+                 <Info className="w-4 h-4" /> Diretrizes CientÃƒÂ­ficas
               </div>
               <div className="space-y-4">
                  <div className="p-4 bg-white/10 rounded-2xl border border-white/5 backdrop-blur-sm">
-                    <h4 className="text-[10px] font-black text-white uppercase italic mb-1">PadrÃ£o Pollock</h4>
-                    <p className="text-[9px] text-white/70 font-medium leading-relaxed">As mediÃ§Ãµes devem ser realizadas do lado direito do corpo de acordo com o protocolo ACSM.</p>
+                    <h4 className="text-[10px] font-black text-white uppercase italic mb-1">PadrÃƒÂ£o Pollock</h4>
+                    <p className="text-[9px] text-white/70 font-medium leading-relaxed">As mediÃƒÂ§ÃƒÂµes devem ser realizadas do lado direito do corpo de acordo com o protocolo ACSM.</p>
                  </div>
                  <div className="p-4 bg-white/10 rounded-2xl border border-white/5 backdrop-blur-sm">
                     <h4 className="text-[10px] font-black text-white uppercase italic mb-1">WHR (RCQ)</h4>
@@ -1642,11 +1642,11 @@ function AnthropometricAssessmentModule() {
            </div>
 
            <div className="bento-card bg-slate-900 border-slate-800 p-8">
-              <h4 className="text-[10px] font-black text-slate-500 uppercase italic mb-4">Normas de ClassificaÃ§Ã£o</h4>
+              <h4 className="text-[10px] font-black text-slate-500 uppercase italic mb-4">Normas de ClassificaÃƒÂ§ÃƒÂ£o</h4>
                <div className="space-y-3">
                   <RankingRow label="Atleta" range="6-13% (M) | 12-20% (F)" active={results?.bodyFat ? results.bodyFat < 13 : false} />
-                  <RankingRow label="SaudÃ¡vel" range="14-17% (M) | 21-25% (F)" active={results?.bodyFat ? results.bodyFat >= 14 && results.bodyFat <= 17 : false} />
-                  <RankingRow label="MÃ©dia" range="18-24% (M) | 26-31% (F)" active={results?.bodyFat ? results.bodyFat >= 18 && results.bodyFat <= 24 : false} />
+                  <RankingRow label="SaudÃƒÂ¡vel" range="14-17% (M) | 21-25% (F)" active={results?.bodyFat ? results.bodyFat >= 14 && results.bodyFat <= 17 : false} />
+                  <RankingRow label="MÃƒÂ©dia" range="18-24% (M) | 26-31% (F)" active={results?.bodyFat ? results.bodyFat >= 18 && results.bodyFat <= 24 : false} />
                   <RankingRow label="Excesso" range=">25% (M) | >32% (F)" active={results?.bodyFat ? results.bodyFat > 25 : false} />
                </div>
            </div>
@@ -1745,7 +1745,7 @@ function EnduranceAssessmentModule() {
         const v_mmin = v * 1000 / 60; // km/h to m/min
         const vo2_submax = 3.5 + (0.2 * v_mmin);
         
-        // Ã…strand-Ryhming method adjusted by Tanaka FC_max:
+        // Ãƒâ€¦strand-Ryhming method adjusted by Tanaka FC_max:
         // VO2max = VO2_submax * (FC_max / FC_submax)
         const vo2max_est = vo2_submax * (maxHR_est / hr);
         
@@ -1753,7 +1753,7 @@ function EnduranceAssessmentModule() {
         const v_mmin_vo2max = (vo2max_est - 3.5) / 0.2;  // m/min
         const vVO2max = v_mmin_vo2max * 60 / 1000; // back to km/h
         
-        return { vo2max: vo2max_est, vVO2max, speed: v, type: 'SubmÃ¡ximo (Pred. Ã…strand/Tanaka)' };
+        return { vo2max: vo2max_est, vVO2max, speed: v, type: 'SubmÃƒÂ¡ximo (Pred. Ãƒâ€¦strand/Tanaka)' };
       }
     }
 
@@ -1764,7 +1764,7 @@ function EnduranceAssessmentModule() {
       // Speed (km/h) = 8.0 + (stage * 0.5)
       const speed = 8.0 + (stage * 0.5);
       
-      // LÃ©ger et al. (1988) formula
+      // LÃƒÂ©ger et al. (1988) formula
       const vo2max = 31.025 + (3.238 * speed) - (3.248 * a) + (0.1536 * speed * a);
       const vVO2max = speed; // Approximation
       
@@ -1773,7 +1773,7 @@ function EnduranceAssessmentModule() {
 
     if (testType === 'yoyo') {
       // Bangsbo et al. (2008): VO2max = dist_total(m) * 0.0084 + 36.4
-      // Input: total distance run (m) â€” registered directly from the test result sheet
+      // Input: total distance run (m) ââ‚¬â€ registered directly from the test result sheet
       const dist = parseFloat(yoyoLevel); // yoyoLevel field repurposed as total distance
       if (!dist) return null;
       const vo2max = dist * 0.0084 + 36.4;
@@ -1796,7 +1796,7 @@ function EnduranceAssessmentModule() {
       if (d1 && t1 && d2 && t2) {
         const vcrit = (d2 - d1) / (t2 - t1); // m/s
         const vcritKmh = vcrit * 3.6;
-        return { vcrit: vcritKmh, type: 'Velocidade CrÃ­tica' };
+        return { vcrit: vcritKmh, type: 'Velocidade CrÃƒÂ­tica' };
       }
     }
 
@@ -1811,7 +1811,7 @@ function EnduranceAssessmentModule() {
              <div className="w-8 h-8 rounded-lg bg-emerald-600/20 flex items-center justify-center border border-emerald-500/30">
                 <Timer className="w-4 h-4 text-emerald-500" />
              </div>
-             <h3 className="text-sm font-black text-white uppercase italic">ConfiguraÃ§Ã£o do Teste</h3>
+             <h3 className="text-sm font-black text-white uppercase italic">ConfiguraÃƒÂ§ÃƒÂ£o do Teste</h3>
           </div>
 
           <div className="space-y-4">
@@ -1825,8 +1825,8 @@ function EnduranceAssessmentModule() {
                    <option value="beep">Beep Test (20m Shuttle)</option>
                    <option value="yoyo">Yo-Yo Intermittent Recovery</option>
                    <option value="vift">VIFT 30-15</option>
-                   <option value="submax">SubmÃ¡ximo (Esteira/Bike)</option>
-                   <option value="vcrit">Velocidade CrÃ­tica (Vcrit)</option>
+                   <option value="submax">SubmÃƒÂ¡ximo (Esteira/Bike)</option>
+                   <option value="vcrit">Velocidade CrÃƒÂ­tica (Vcrit)</option>
                 </select>
              </div>
 
@@ -1836,18 +1836,18 @@ function EnduranceAssessmentModule() {
                 {testType === 'submax' && (
                   <div className="space-y-4">
                     <InputField label="Velocidade Atual (km/h)" value={submaxSpeed} set={setSubmaxSpeed} />
-                    <InputField label="Freq. CardÃ­aca no Teste (bpm)" value={submaxHR} set={setSubmaxHR} />
-                    <InputField label="Freq. CardÃ­aca Repouso (bpm)" value={restingHR} set={setRestingHR} />
+                    <InputField label="Freq. CardÃƒÂ­aca no Teste (bpm)" value={submaxHR} set={setSubmaxHR} />
+                    <InputField label="Freq. CardÃƒÂ­aca Repouso (bpm)" value={restingHR} set={setRestingHR} />
                   </div>
                 )}
                 
                 {testType === 'beep' && (
-                  <InputField label="Ãšltimo EstÃ¡gio Completado" value={beepStage} set={setBeepStage} />
+                  <InputField label="ÃƒÅ¡ltimo EstÃƒÂ¡gio Completado" value={beepStage} set={setBeepStage} />
                 )}
                 
                 {testType === 'yoyo' && (
                   <div className="space-y-2">
-                    <InputField label="DistÃ¢ncia Total Percorrida (m)" value={yoyoLevel} set={setYoyoLevel} />
+                    <InputField label="DistÃƒÂ¢ncia Total Percorrida (m)" value={yoyoLevel} set={setYoyoLevel} />
                     <p className="text-[9px] text-slate-600 font-bold italic">* Dist. total acumulada da folha de resultado (ex: 1120m)</p>
                   </div>
                 )}
@@ -1859,11 +1859,11 @@ function EnduranceAssessmentModule() {
                 {testType === 'vcrit' && (
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                      <InputField label="DistÃ¢ncia 1 (m)" value={dist1} set={setDist1} />
+                      <InputField label="DistÃƒÂ¢ncia 1 (m)" value={dist1} set={setDist1} />
                       <InputField label="Tempo 1 (seg)" value={time1} set={setTime1} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <InputField label="DistÃ¢ncia 2 (m)" value={dist2} set={setDist2} />
+                      <InputField label="DistÃƒÂ¢ncia 2 (m)" value={dist2} set={setDist2} />
                       <InputField label="Tempo 2 (seg)" value={time2} set={setTime2} />
                     </div>
                   </div>
@@ -1881,7 +1881,7 @@ function EnduranceAssessmentModule() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="bento-card bg-emerald-600 border-none p-8 flex flex-col justify-between overflow-hidden relative shadow-2xl">
                 <div className="relative z-10">
-                  <p className="text-[10px] font-black text-white/50 uppercase italic tracking-widest mb-2">VO2mÃ¡x Estimado</p>
+                  <p className="text-[10px] font-black text-white/50 uppercase italic tracking-widest mb-2">VO2mÃƒÂ¡x Estimado</p>
                   <div className="flex items-baseline gap-2">
                      <h3 className="text-6xl font-black text-white italic">{results.vo2max?.toFixed(1) || "--"}</h3>
                      <span className="text-xl font-black text-white/40">ml/kg/min</span>
@@ -1897,7 +1897,7 @@ function EnduranceAssessmentModule() {
               <div className="bento-card bg-slate-900 border-slate-800 p-8 flex flex-col justify-between">
                  <div className="space-y-6">
                     <div>
-                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Velocidade AerÃ³bica MÃ¡xima (vVO2max)</p>
+                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Velocidade AerÃƒÂ³bica MÃƒÂ¡xima (vVO2max)</p>
                        <div className="flex items-baseline gap-2 mt-1">
                           <h4 className="text-4xl font-black text-white italic">{results.vVO2max?.toFixed(1) || "--"}</h4>
                           <span className="text-sm font-black text-slate-600">km/h</span>
@@ -1923,13 +1923,13 @@ function EnduranceAssessmentModule() {
             <div className="bento-card bg-slate-900 border-slate-800 p-8">
                <div className="flex items-center justify-between mb-8">
                   <div>
-                    <p className="label-caps italic mb-1">PrediÃ§Ã£o de Performance</p>
+                    <p className="label-caps italic mb-1">PrediÃƒÂ§ÃƒÂ£o de Performance</p>
                     <h3 className="text-xl font-black text-white uppercase italic">Zonas de Treinamento Baseadas na Velocidade</h3>
                   </div>
                </div>
                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <EnduranceZone label="RecuperaÃ§Ã£o" pct="< 70%" speed={results.vVO2max ? (results.vVO2max * 0.7).toFixed(1) : "--"} />
-                  <EnduranceZone label="AerÃ³bico" pct="70-80%" speed={results.vVO2max ? (results.vVO2max * 0.8).toFixed(1) : "--"} />
+                  <EnduranceZone label="RecuperaÃƒÂ§ÃƒÂ£o" pct="< 70%" speed={results.vVO2max ? (results.vVO2max * 0.7).toFixed(1) : "--"} />
+                  <EnduranceZone label="AerÃƒÂ³bico" pct="70-80%" speed={results.vVO2max ? (results.vVO2max * 0.8).toFixed(1) : "--"} />
                   <EnduranceZone label="Limiar" pct="85-92%" speed={results.vVO2max ? (results.vVO2max * 0.9).toFixed(1) : "--"} />
                   <EnduranceZone label="Intervalado" pct="> 100%" speed={results.vVO2max ? (results.vVO2max * 1.1).toFixed(1) : "--"} />
                </div>
@@ -1938,9 +1938,9 @@ function EnduranceAssessmentModule() {
         ) : (
           <div className="h-full min-h-[400px] flex flex-col items-center justify-center bg-slate-900/50 border border-dashed border-slate-800 rounded-[2rem] p-12 text-center group">
              <Timer className="w-16 h-16 text-slate-800 mb-6 group-hover:scale-110 transition-transform" />
-             <h3 className="text-xl font-black text-slate-500 uppercase italic">Aguardando ExecuÃ§Ã£o</h3>
+             <h3 className="text-xl font-black text-slate-500 uppercase italic">Aguardando ExecuÃƒÂ§ÃƒÂ£o</h3>
              <p className="text-slate-600 text-[10px] font-bold uppercase mt-2 max-w-[280px]">
-                Selecione o protocolo e insira os dados do teste para visualizar os resultados de resistÃªncia aerÃ³bica.
+                Selecione o protocolo e insira os dados do teste para visualizar os resultados de resistÃƒÂªncia aerÃƒÂ³bica.
              </p>
           </div>
         )}
@@ -1960,11 +1960,11 @@ function BeepReferenceTable() {
 
   return (
     <div className="bento-card bg-slate-900 border-slate-800 p-6">
-       <h4 className="text-[10px] font-black text-slate-500 uppercase italic mb-4">ReferÃªncia: Beep Test</h4>
+       <h4 className="text-[10px] font-black text-slate-500 uppercase italic mb-4">ReferÃƒÂªncia: Beep Test</h4>
        <div className="space-y-2">
           {stages.map(item => (
             <div key={item.s} className="flex items-center justify-between p-2 hover:bg-slate-800 rounded-lg transition-colors group">
-               <span className="text-[10px] font-black text-white italic">EstÃ¡gio {item.s}</span>
+               <span className="text-[10px] font-black text-white italic">EstÃƒÂ¡gio {item.s}</span>
                <div className="flex gap-4">
                   <span className="text-[10px] font-bold text-emerald-500">{item.v} km/h</span>
                   <span className="text-[10px] font-bold text-slate-600">{item.m}m</span>
@@ -1972,7 +1972,7 @@ function BeepReferenceTable() {
             </div>
           ))}
        </div>
-       <p className="text-[8px] text-slate-600 font-bold uppercase italic mt-4">* Protocolo LÃ©ger et al. (1988)</p>
+       <p className="text-[8px] text-slate-600 font-bold uppercase italic mt-4">* Protocolo LÃƒÂ©ger et al. (1988)</p>
     </div>
   );
 }
@@ -2026,21 +2026,21 @@ function AgilityAssessmentModule() {
     if (testType === 't-test') {
       if (t < 9.5) return { label: 'Excelente', color: 'text-emerald-500' };
       if (t < 10.5) return { label: 'Bom', color: 'text-blue-500' };
-      if (t < 11.5) return { label: 'MÃ©dio', color: 'text-yellow-500' };
-      return { label: 'Abaixo da MÃ©dia', color: 'text-rose-500' };
+      if (t < 11.5) return { label: 'MÃƒÂ©dio', color: 'text-yellow-500' };
+      return { label: 'Abaixo da MÃƒÂ©dia', color: 'text-rose-500' };
     }
 
     if (testType === 'illinois') {
       if (t < 15.2) return { label: 'Excelente', color: 'text-emerald-500' };
       if (t < 16.1) return { label: 'Bom', color: 'text-blue-500' };
-      if (t < 18.1) return { label: 'MÃ©dio', color: 'text-yellow-500' };
+      if (t < 18.1) return { label: 'MÃƒÂ©dio', color: 'text-yellow-500' };
       return { label: 'Pobre', color: 'text-rose-500' };
     }
 
     if (testType === 'pro-agility') {
       if (t < 4.4) return { label: 'Elite', color: 'text-emerald-500' };
-      if (t < 4.7) return { label: 'Acima da MÃ©dia', color: 'text-blue-500' };
-      return { label: 'MÃ©dia', color: 'text-slate-500' };
+      if (t < 4.7) return { label: 'Acima da MÃƒÂ©dia', color: 'text-blue-500' };
+      return { label: 'MÃƒÂ©dia', color: 'text-slate-500' };
     }
 
     return null;
@@ -2068,7 +2068,7 @@ function AgilityAssessmentModule() {
                    <option value="t-test">T-Test (NSCA)</option>
                    <option value="illinois">Illinois Agility Test</option>
                    <option value="pro-agility">Pro-Agility (5-10-5)</option>
-                   <option value="reactive">Agilidade Reativa (EstÃ­mulo)</option>
+                   <option value="reactive">Agilidade Reativa (EstÃƒÂ­mulo)</option>
                 </select>
              </div>
 
@@ -2111,7 +2111,7 @@ function AgilityAssessmentModule() {
                   {isWaiting ? (
                     <div className="space-y-4">
                        <Timer className="w-12 h-12 text-amber-500 mx-auto" />
-                       <h4 className="text-xl font-black text-amber-500 uppercase italic">Aguardando EstÃ­mulo...</h4>
+                       <h4 className="text-xl font-black text-amber-500 uppercase italic">Aguardando EstÃƒÂ­mulo...</h4>
                        <p className="text-amber-500/60 text-[10px] font-black uppercase tracking-widest">Fique pronto para reagir</p>
                     </div>
                   ) : hasStarted ? (
@@ -2122,7 +2122,7 @@ function AgilityAssessmentModule() {
                          onClick={handleStop}
                          className="px-10 py-4 bg-white rounded-full text-emerald-600 font-black uppercase tracking-widest text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all"
                        >
-                          Parar CronÃ´metro
+                          Parar CronÃƒÂ´metro
                        </button>
                     </div>
                   ) : (
@@ -2134,8 +2134,8 @@ function AgilityAssessmentModule() {
                           <Zap className="w-12 h-12 text-cyan-500" />
                        </div>
                        <div className="space-y-2">
-                          <h4 className="text-2xl font-black text-white uppercase italic">Iniciar Teste de ReaÃ§Ã£o</h4>
-                          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">O sinal serÃ¡ disparado aleatoriamente</p>
+                          <h4 className="text-2xl font-black text-white uppercase italic">Iniciar Teste de ReaÃƒÂ§ÃƒÂ£o</h4>
+                          <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">O sinal serÃƒÂ¡ disparado aleatoriamente</p>
                        </div>
                     </button>
                   )}
@@ -2145,7 +2145,7 @@ function AgilityAssessmentModule() {
             {reactionTime && (
               <div className="bento-card bg-emerald-600 border-none p-8 flex flex-col justify-between overflow-hidden relative shadow-2xl text-white">
                 <div className="relative z-10">
-                  <p className="text-[10px] font-black text-white/50 uppercase italic tracking-widest mb-2">Tempo de ReaÃ§Ã£o</p>
+                  <p className="text-[10px] font-black text-white/50 uppercase italic tracking-widest mb-2">Tempo de ReaÃƒÂ§ÃƒÂ£o</p>
                   <div className="flex items-baseline gap-2">
                      <h3 className="text-6xl font-black italic">{(reactionTime / 1000).toFixed(3)}</h3>
                      <span className="text-xl font-black text-white/40">segundos</span>
@@ -2184,16 +2184,16 @@ function AgilityAssessmentModule() {
                            style={{ width: `${Math.min(100, (20 / parseFloat(time)) * 100)}%` }} 
                          />
                       </div>
-                      <p className="text-[8px] text-slate-600 font-bold uppercase italic mt-2">ClassificaÃ§Ã£o baseada em normas NSCA para atletas universitÃ¡rios.</p>
+                      <p className="text-[8px] text-slate-600 font-bold uppercase italic mt-2">ClassificaÃƒÂ§ÃƒÂ£o baseada em normas NSCA para atletas universitÃƒÂ¡rios.</p>
                    </div>
                 </div>
               </div>
             ) : (
               <div className="h-full min-h-[400px] flex flex-col items-center justify-center bg-slate-900/50 border border-dashed border-slate-800 rounded-[2rem] p-12 text-center group">
                  <Footprints className="w-16 h-16 text-slate-800 mb-6 group-hover:scale-110 transition-transform" />
-                 <h3 className="text-xl font-black text-slate-500 uppercase italic">CronÃ´metro Zerado</h3>
+                 <h3 className="text-xl font-black text-slate-500 uppercase italic">CronÃƒÂ´metro Zerado</h3>
                  <p className="text-slate-600 text-[10px] font-bold uppercase mt-2 max-w-[280px]">
-                    Insira o tempo final do percurso para visualizar a classificaÃ§Ã£o de agilidade e mudanÃ§a de direÃ§Ã£o.
+                    Insira o tempo final do percurso para visualizar a classificaÃƒÂ§ÃƒÂ£o de agilidade e mudanÃƒÂ§a de direÃƒÂ§ÃƒÂ£o.
                  </p>
               </div>
             )}
@@ -2202,17 +2202,17 @@ function AgilityAssessmentModule() {
 
         <div className="bento-card bg-slate-900 border-slate-800 p-8">
            <div className="flex items-center justify-between mb-8">
-              <p className="label-caps italic">ExplicaÃ§Ã£o do Protocolo</p>
+              <p className="label-caps italic">ExplicaÃƒÂ§ÃƒÂ£o do Protocolo</p>
               <h3 className="text-sm font-black text-white uppercase italic">Diretrizes NSCA</h3>
            </div>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
-                 <h4 className="text-[10px] font-black text-cyan-500 uppercase">MudanÃ§a de DireÃ§Ã£o (COD)</h4>
-                 <p className="text-[10px] text-slate-500 leading-tight">Testes como Illinois e T-Test medem a capacidade prÃ©-planejada de mudar de curso. Foco em biomecÃ¢nica de frenagem e aceleraÃ§Ã£o.</p>
+                 <h4 className="text-[10px] font-black text-cyan-500 uppercase">MudanÃƒÂ§a de DireÃƒÂ§ÃƒÂ£o (COD)</h4>
+                 <p className="text-[10px] text-slate-500 leading-tight">Testes como Illinois e T-Test medem a capacidade prÃƒÂ©-planejada de mudar de curso. Foco em biomecÃƒÂ¢nica de frenagem e aceleraÃƒÂ§ÃƒÂ£o.</p>
               </div>
               <div className="space-y-3">
                  <h4 className="text-[10px] font-black text-rose-500 uppercase">Agilidade Reativa</h4>
-                 <p className="text-[10px] text-slate-500 leading-tight">Envolve o componente cognitivo de processar um estÃ­mulo (visual/sonoro) antes da execuÃ§Ã£o fÃ­sica. Essencial para esportes abertos.</p>
+                 <p className="text-[10px] text-slate-500 leading-tight">Envolve o componente cognitivo de processar um estÃƒÂ­mulo (visual/sonoro) antes da execuÃƒÂ§ÃƒÂ£o fÃƒÂ­sica. Essencial para esportes abertos.</p>
               </div>
            </div>
         </div>
@@ -2225,19 +2225,19 @@ function AgilityGuide({ testType }: { testType: string }) {
   const content = {
     't-test': {
       title: 'Setup T-Test',
-      steps: ['Corra 10m Ã  frente', 'Deslocamento lateral 5m esquerda', 'Deslocamento lateral 10m direita', 'Lateral 5m volta ao centro', 'Corra 10m de costas para o inÃ­cio']
+      steps: ['Corra 10m ÃƒÂ  frente', 'Deslocamento lateral 5m esquerda', 'Deslocamento lateral 10m direita', 'Lateral 5m volta ao centro', 'Corra 10m de costas para o inÃƒÂ­cio']
     },
     'illinois': {
       title: 'Setup Illinois',
-      steps: ['InÃ­cio deitado de bruÃ§os', 'Sprint 10m e volta', 'Drible entre 4 cones (3.3m cada)', 'Sprint final 10m']
+      steps: ['InÃƒÂ­cio deitado de bruÃƒÂ§os', 'Sprint 10m e volta', 'Drible entre 4 cones (3.3m cada)', 'Sprint final 10m']
     },
     'pro-agility': {
       title: 'Setup 5-10-5',
-      steps: ['ExplosÃ£o 5 jardas Ã  esquerda', 'Cruzamento 10 jardas Ã  direita', 'Sprint final 5 jardas ao ponto central']
+      steps: ['ExplosÃƒÂ£o 5 jardas ÃƒÂ  esquerda', 'Cruzamento 10 jardas ÃƒÂ  direita', 'Sprint final 5 jardas ao ponto central']
     },
     'reactive': {
       title: 'Reactive Agility',
-      steps: ['Sinal randÃ´mico (2-5s)', 'EstÃ­mulo Visual (Flash)', 'EstÃ­mulo Sonoro (Beep)', 'Foco em tempo de decisÃ£o + execuÃ§Ã£o']
+      steps: ['Sinal randÃƒÂ´mico (2-5s)', 'EstÃƒÂ­mulo Visual (Flash)', 'EstÃƒÂ­mulo Sonoro (Beep)', 'Foco em tempo de decisÃƒÂ£o + execuÃƒÂ§ÃƒÂ£o']
     }
   };
 
@@ -2265,48 +2265,48 @@ function FlexibilityAssessmentModule() {
   const [resultVal, setResultVal] = useState<string>('');
   
   // Goniometry State
-  const [joint, setJoint] = useState<string>('Ombro - FlexÃ£o');
+  const [joint, setJoint] = useState<string>('Ombro - FlexÃƒÂ£o');
   const [angle, setAngle] = useState<string>('');
   const [side, setSide] = useState<'D' | 'E'>('D');
 
   // AAOS / ACSM Normal ROM values (degrees)
   const joints = [
     // Ombro
-    { group: 'Ombro', name: 'Ombro - FlexÃ£o', normal: 180, range: '170-180Â°', low: 150 },
-    { group: 'Ombro', name: 'Ombro - ExtensÃ£o', normal: 60, range: '50-60Â°', low: 40 },
-    { group: 'Ombro', name: 'Ombro - AbduÃ§Ã£o', normal: 180, range: '170-180Â°', low: 150 },
-    { group: 'Ombro', name: 'Ombro - Rot. Interna', normal: 70, range: '60-90Â°', low: 45 },
-    { group: 'Ombro', name: 'Ombro - Rot. Externa', normal: 90, range: '80-90Â°', low: 60 },
-    // Cotovelo / AntebraÃ§o
-    { group: 'Cotovelo', name: 'Cotovelo - FlexÃ£o', normal: 150, range: '140-150Â°', low: 120 },
-    { group: 'Cotovelo', name: 'Cotovelo - ExtensÃ£o', normal: 0, range: '0Â°', low: -10 },
-    { group: 'Cotovelo', name: 'AntebraÃ§o - PronaÃ§Ã£o', normal: 80, range: '75-80Â°', low: 60 },
-    { group: 'Cotovelo', name: 'AntebraÃ§o - SupinaÃ§Ã£o', normal: 80, range: '80-85Â°', low: 60 },
+    { group: 'Ombro', name: 'Ombro - FlexÃƒÂ£o', normal: 180, range: '170-180Ã‚Â°', low: 150 },
+    { group: 'Ombro', name: 'Ombro - ExtensÃƒÂ£o', normal: 60, range: '50-60Ã‚Â°', low: 40 },
+    { group: 'Ombro', name: 'Ombro - AbduÃƒÂ§ÃƒÂ£o', normal: 180, range: '170-180Ã‚Â°', low: 150 },
+    { group: 'Ombro', name: 'Ombro - Rot. Interna', normal: 70, range: '60-90Ã‚Â°', low: 45 },
+    { group: 'Ombro', name: 'Ombro - Rot. Externa', normal: 90, range: '80-90Ã‚Â°', low: 60 },
+    // Cotovelo / AntebraÃƒÂ§o
+    { group: 'Cotovelo', name: 'Cotovelo - FlexÃƒÂ£o', normal: 150, range: '140-150Ã‚Â°', low: 120 },
+    { group: 'Cotovelo', name: 'Cotovelo - ExtensÃƒÂ£o', normal: 0, range: '0Ã‚Â°', low: -10 },
+    { group: 'Cotovelo', name: 'AntebraÃƒÂ§o - PronaÃƒÂ§ÃƒÂ£o', normal: 80, range: '75-80Ã‚Â°', low: 60 },
+    { group: 'Cotovelo', name: 'AntebraÃƒÂ§o - SupinaÃƒÂ§ÃƒÂ£o', normal: 80, range: '80-85Ã‚Â°', low: 60 },
     // Punho
-    { group: 'Punho', name: 'Punho - FlexÃ£o', normal: 80, range: '70-80Â°', low: 60 },
-    { group: 'Punho', name: 'Punho - ExtensÃ£o', normal: 70, range: '60-70Â°', low: 50 },
-    { group: 'Punho', name: 'Punho - Desvio Radial', normal: 20, range: '15-20Â°', low: 10 },
-    { group: 'Punho', name: 'Punho - Desvio Ulnar', normal: 30, range: '30-35Â°', low: 20 },
+    { group: 'Punho', name: 'Punho - FlexÃƒÂ£o', normal: 80, range: '70-80Ã‚Â°', low: 60 },
+    { group: 'Punho', name: 'Punho - ExtensÃƒÂ£o', normal: 70, range: '60-70Ã‚Â°', low: 50 },
+    { group: 'Punho', name: 'Punho - Desvio Radial', normal: 20, range: '15-20Ã‚Â°', low: 10 },
+    { group: 'Punho', name: 'Punho - Desvio Ulnar', normal: 30, range: '30-35Ã‚Â°', low: 20 },
     // Quadril
-    { group: 'Quadril', name: 'Quadril - FlexÃ£o', normal: 120, range: '115-125Â°', low: 90 },
-    { group: 'Quadril', name: 'Quadril - ExtensÃ£o', normal: 20, range: '10-20Â°', low: 5 },
-    { group: 'Quadril', name: 'Quadril - AbduÃ§Ã£o', normal: 45, range: '40-50Â°', low: 30 },
-    { group: 'Quadril', name: 'Quadril - AduÃ§Ã£o', normal: 30, range: '20-30Â°', low: 15 },
-    { group: 'Quadril', name: 'Quadril - Rot. Interna', normal: 45, range: '30-45Â°', low: 20 },
-    { group: 'Quadril', name: 'Quadril - Rot. Externa', normal: 45, range: '40-60Â°', low: 25 },
+    { group: 'Quadril', name: 'Quadril - FlexÃƒÂ£o', normal: 120, range: '115-125Ã‚Â°', low: 90 },
+    { group: 'Quadril', name: 'Quadril - ExtensÃƒÂ£o', normal: 20, range: '10-20Ã‚Â°', low: 5 },
+    { group: 'Quadril', name: 'Quadril - AbduÃƒÂ§ÃƒÂ£o', normal: 45, range: '40-50Ã‚Â°', low: 30 },
+    { group: 'Quadril', name: 'Quadril - AduÃƒÂ§ÃƒÂ£o', normal: 30, range: '20-30Ã‚Â°', low: 15 },
+    { group: 'Quadril', name: 'Quadril - Rot. Interna', normal: 45, range: '30-45Ã‚Â°', low: 20 },
+    { group: 'Quadril', name: 'Quadril - Rot. Externa', normal: 45, range: '40-60Ã‚Â°', low: 25 },
     // Joelho
-    { group: 'Joelho', name: 'Joelho - FlexÃ£o', normal: 140, range: '130-150Â°', low: 110 },
-    { group: 'Joelho', name: 'Joelho - ExtensÃ£o', normal: 0, range: '0Â°', low: -10 },
-    // Tornozelo / PÃ©
-    { group: 'Tornozelo', name: 'Tornozelo - DorsiflexÃ£o', normal: 20, range: '15-20Â°', low: 10 },
-    { group: 'Tornozelo', name: 'Tornozelo - Plantar FlexÃ£o', normal: 50, range: '45-50Â°', low: 30 },
-    { group: 'Tornozelo', name: 'Subtalar - InversÃ£o', normal: 35, range: '30-40Â°', low: 20 },
-    { group: 'Tornozelo', name: 'Subtalar - EversÃ£o', normal: 15, range: '10-20Â°', low: 5 },
+    { group: 'Joelho', name: 'Joelho - FlexÃƒÂ£o', normal: 140, range: '130-150Ã‚Â°', low: 110 },
+    { group: 'Joelho', name: 'Joelho - ExtensÃƒÂ£o', normal: 0, range: '0Ã‚Â°', low: -10 },
+    // Tornozelo / PÃƒÂ©
+    { group: 'Tornozelo', name: 'Tornozelo - DorsiflexÃƒÂ£o', normal: 20, range: '15-20Ã‚Â°', low: 10 },
+    { group: 'Tornozelo', name: 'Tornozelo - Plantar FlexÃƒÂ£o', normal: 50, range: '45-50Ã‚Â°', low: 30 },
+    { group: 'Tornozelo', name: 'Subtalar - InversÃƒÂ£o', normal: 35, range: '30-40Ã‚Â°', low: 20 },
+    { group: 'Tornozelo', name: 'Subtalar - EversÃƒÂ£o', normal: 15, range: '10-20Ã‚Â°', low: 5 },
     // Coluna
-    { group: 'Coluna', name: 'Coluna - FlexÃ£o (lombar)', normal: 60, range: '40-60Â°', low: 30 },
-    { group: 'Coluna', name: 'Coluna - ExtensÃ£o (lombar)', normal: 25, range: '20-30Â°', low: 10 },
-    { group: 'Coluna', name: 'Coluna - RotaÃ§Ã£o (cervical)', normal: 80, range: '70-80Â°', low: 50 },
-    { group: 'Coluna', name: 'Coluna - FlexÃ£o Lateral', normal: 35, range: '25-35Â°', low: 15 },
+    { group: 'Coluna', name: 'Coluna - FlexÃƒÂ£o (lombar)', normal: 60, range: '40-60Ã‚Â°', low: 30 },
+    { group: 'Coluna', name: 'Coluna - ExtensÃƒÂ£o (lombar)', normal: 25, range: '20-30Ã‚Â°', low: 10 },
+    { group: 'Coluna', name: 'Coluna - RotaÃƒÂ§ÃƒÂ£o (cervical)', normal: 80, range: '70-80Ã‚Â°', low: 50 },
+    { group: 'Coluna', name: 'Coluna - FlexÃƒÂ£o Lateral', normal: 35, range: '25-35Ã‚Â°', low: 15 },
   ];
 
   const groups = [...new Set(joints.map(j => j.group))];
@@ -2328,31 +2328,31 @@ function FlexibilityAssessmentModule() {
       const val = parseFloat(resultVal);
       if (isNaN(val)) return null;
       if (sitProtocol === 'wells') {
-        // ACSM Wells Bank â€” sex-specific norms (18-29 yrs reference)
+        // ACSM Wells Bank ââ‚¬â€ sex-specific norms (18-29 yrs reference)
         if (gender === 'male') {
           if (val >= 34) return { label: 'Excelente', color: 'bg-emerald-500' };
           if (val >= 28) return { label: 'Bom', color: 'bg-blue-500' };
-          if (val >= 21) return { label: 'MÃ©dio', color: 'bg-yellow-500' };
-          if (val >= 15) return { label: 'Abaixo da MÃ©dia', color: 'bg-orange-500' };
+          if (val >= 21) return { label: 'MÃƒÂ©dio', color: 'bg-yellow-500' };
+          if (val >= 15) return { label: 'Abaixo da MÃƒÂ©dia', color: 'bg-orange-500' };
           return { label: 'Fraco', color: 'bg-rose-500' };
         } else {
           if (val >= 38) return { label: 'Excelente', color: 'bg-emerald-500' };
           if (val >= 33) return { label: 'Bom', color: 'bg-blue-500' };
-          if (val >= 26) return { label: 'MÃ©dio', color: 'bg-yellow-500' };
-          if (val >= 20) return { label: 'Abaixo da MÃ©dia', color: 'bg-orange-500' };
+          if (val >= 26) return { label: 'MÃƒÂ©dio', color: 'bg-yellow-500' };
+          if (val >= 20) return { label: 'Abaixo da MÃƒÂ©dia', color: 'bg-orange-500' };
           return { label: 'Fraco', color: 'bg-rose-500' };
         }
       } else {
         if (val >= 15) return { label: 'Excelente', color: 'bg-emerald-500' };
         if (val >= 5) return { label: 'Bom', color: 'bg-blue-500' };
-        if (val >= 0) return { label: 'MÃ©dia', color: 'bg-yellow-500' };
+        if (val >= 0) return { label: 'MÃƒÂ©dia', color: 'bg-yellow-500' };
         return { label: 'Limitado', color: 'bg-rose-500' };
       }
     }
     return null;
   }, [testType, sitProtocol, gender, resultVal]);
 
-  // Goniometer angle capped at 180Â° for visual
+  // Goniometer angle capped at 180Ã‚Â° for visual
   const visualAngle = Math.min(parseFloat(angle) || 0, 180);
 
   return (
@@ -2374,7 +2374,7 @@ function FlexibilityAssessmentModule() {
                      onClick={() => setTestType('sit-reach')}
                      className={`py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${testType === 'sit-reach' ? 'bg-pink-500 border-pink-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-500'}`}
                    >
-                     Sentar e AlcanÃ§ar
+                     Sentar e AlcanÃƒÂ§ar
                    </button>
                    <button 
                      onClick={() => setTestType('goniometry')}
@@ -2407,7 +2407,7 @@ function FlexibilityAssessmentModule() {
                          onClick={() => setSitProtocol('floor')}
                          className={`py-2 rounded-lg text-[9px] font-black uppercase transition-all ${sitProtocol === 'floor' ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-500'}`}
                        >
-                         No ChÃ£o (S/ Banco)
+                         No ChÃƒÂ£o (S/ Banco)
                        </button>
                     </div>
                   </div>
@@ -2426,7 +2426,7 @@ function FlexibilityAssessmentModule() {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">ArticulaÃ§Ã£o / Movimento</span>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">ArticulaÃƒÂ§ÃƒÂ£o / Movimento</span>
                     <select 
                       value={joint}
                       onChange={e => { setJoint(e.target.value); setAngle(''); }}
@@ -2444,7 +2444,7 @@ function FlexibilityAssessmentModule() {
                       <button onClick={() => setSide('E')} className={`py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${side === 'E' ? 'bg-pink-600 text-white' : 'bg-slate-800 text-slate-500'}`}>Esquerdo (E)</button>
                     </div>
                   </div>
-                  <InputField label="Ã‚ngulo Medido (Graus Â°)" value={angle} set={setAngle} />
+                  <InputField label="Ãƒâ€šngulo Medido (Graus Ã‚Â°)" value={angle} set={setAngle} />
                   {currentJoint && (
                     <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700">
                       <p className="text-[9px] font-black text-slate-500 uppercase">ADM Normal (AAOS)</p>
@@ -2462,7 +2462,7 @@ function FlexibilityAssessmentModule() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className={`bento-card border-none p-8 flex flex-col justify-between text-white relative overflow-hidden shadow-2xl ${classification?.color || 'bg-pink-600'}`}>
                <div className="relative z-10">
-                  <p className="text-[10px] font-black text-white/50 uppercase italic tracking-widest mb-2">Resultado â€” Sentar e AlcanÃ§ar</p>
+                  <p className="text-[10px] font-black text-white/50 uppercase italic tracking-widest mb-2">Resultado ââ‚¬â€ Sentar e AlcanÃƒÂ§ar</p>
                   <div className="flex items-baseline gap-2">
                      <h3 className="text-6xl font-black italic">{resultVal}</h3>
                      <span className="text-xl font-black text-white/40">cm</span>
@@ -2475,18 +2475,18 @@ function FlexibilityAssessmentModule() {
             </div>
 
             <div className="bento-card bg-slate-900 border-slate-800 p-8 flex flex-col justify-center">
-               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Normas ACSM â€” {gender === 'male' ? 'Masculino' : 'Feminino'}</p>
+               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Normas ACSM ââ‚¬â€ {gender === 'male' ? 'Masculino' : 'Feminino'}</p>
                <div className="space-y-3">
                   <div className="flex justify-between items-center text-[10px] font-bold">
                     <span className="text-emerald-400">Excelente</span>
-                    <span className="text-emerald-400">{sitProtocol === 'wells' ? (gender === 'male' ? 'â‰¥ 34cm' : 'â‰¥ 38cm') : 'â‰¥ 15cm'}</span>
+                    <span className="text-emerald-400">{sitProtocol === 'wells' ? (gender === 'male' ? 'ââ€°Â¥ 34cm' : 'ââ€°Â¥ 38cm') : 'ââ€°Â¥ 15cm'}</span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-bold">
                     <span className="text-blue-400">Bom</span>
                     <span className="text-blue-400">{sitProtocol === 'wells' ? (gender === 'male' ? '28-33cm' : '33-37cm') : '5-14cm'}</span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-bold">
-                    <span className="text-yellow-400">MÃ©dio</span>
+                    <span className="text-yellow-400">MÃƒÂ©dio</span>
                     <span className="text-yellow-400">{sitProtocol === 'wells' ? (gender === 'male' ? '21-27cm' : '26-32cm') : '0-4cm'}</span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-bold">
@@ -2501,7 +2501,7 @@ function FlexibilityAssessmentModule() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* Visual Goniometer */}
               <div className="bento-card bg-slate-900 border-slate-800 p-8 flex flex-col items-center justify-center">
-                <p className="text-[9px] font-black text-pink-500 uppercase tracking-widest mb-6">{joint} â€” Lado {side}</p>
+                <p className="text-[9px] font-black text-pink-500 uppercase tracking-widest mb-6">{joint} ââ‚¬â€ Lado {side}</p>
                 <div className="relative w-44 h-44">
                   {/* Background arc */}
                   <svg viewBox="0 0 100 100" className="w-full h-full">
@@ -2513,7 +2513,7 @@ function FlexibilityAssessmentModule() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-black text-white italic">{angle}Â°</span>
+                    <span className="text-3xl font-black text-white italic">{angle}Ã‚Â°</span>
                     <span className={`text-[9px] font-black uppercase ${goniometryClassification?.color || 'text-slate-500'}`}>{goniometryClassification?.label}</span>
                   </div>
                 </div>
@@ -2539,8 +2539,8 @@ function FlexibilityAssessmentModule() {
                 </div>
                 <div className="pt-4 border-t border-slate-800 space-y-2">
                   {[
-                    { label: 'Normal (â‰¥ 90%)', col: 'text-emerald-400' },
-                    { label: 'Leve reduÃ§Ã£o (75-89%)', col: 'text-yellow-400' },
+                    { label: 'Normal (ââ€°Â¥ 90%)', col: 'text-emerald-400' },
+                    { label: 'Leve reduÃƒÂ§ÃƒÂ£o (75-89%)', col: 'text-yellow-400' },
                     { label: 'Moderada (50-74%)', col: 'text-orange-400' },
                     { label: 'Severa (< 50%)', col: 'text-red-400' },
                   ].map(r => (
@@ -2554,11 +2554,11 @@ function FlexibilityAssessmentModule() {
             </div>
 
             <div className="bento-card bg-slate-900/50 border-slate-800 p-6">
-              <p className="text-[9px] font-black text-pink-500 uppercase tracking-widest mb-2">InterpretaÃ§Ã£o ClÃ­nica</p>
+              <p className="text-[9px] font-black text-pink-500 uppercase tracking-widest mb-2">InterpretaÃƒÂ§ÃƒÂ£o ClÃƒÂ­nica</p>
               <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
                 {goniometryClassification?.label === 'ADM Normal'
-                  ? `A amplitude de movimento de ${angle}Â° para ${joint} estÃ¡ dentro dos valores normais segundo a AAOS (${currentJoint.range}). ManutenÃ§Ã£o com exercÃ­cios de mobilidade preventiva.`
-                  : `A amplitude de ${angle}Â° estÃ¡ abaixo do esperado para ${joint} (Normal: ${currentJoint.range}). Recomenda-se avaliaÃ§Ã£o clÃ­nica detalhada e protocolo de mobilizaÃ§Ã£o articular especÃ­fico.`
+                  ? `A amplitude de movimento de ${angle}Ã‚Â° para ${joint} estÃƒÂ¡ dentro dos valores normais segundo a AAOS (${currentJoint.range}). ManutenÃƒÂ§ÃƒÂ£o com exercÃƒÂ­cios de mobilidade preventiva.`
+                  : `A amplitude de ${angle}Ã‚Â° estÃƒÂ¡ abaixo do esperado para ${joint} (Normal: ${currentJoint.range}). Recomenda-se avaliaÃƒÂ§ÃƒÂ£o clÃƒÂ­nica detalhada e protocolo de mobilizaÃƒÂ§ÃƒÂ£o articular especÃƒÂ­fico.`
                 }
               </p>
             </div>
@@ -2574,12 +2574,12 @@ function FlexibilityAssessmentModule() {
         )}
 
         <div className="bento-card bg-slate-900 border-slate-800 p-8">
-           <h4 className="text-[10px] font-black text-white uppercase italic mb-6">ImportÃ¢ncia da Flexibilidade</h4>
+           <h4 className="text-[10px] font-black text-white uppercase italic mb-6">ImportÃƒÂ¢ncia da Flexibilidade</h4>
            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               {[
-                { title: 'Performance', desc: 'Melhora a eficiÃªncia biomecÃ¢nica do movimento esportivo.' },
-                { title: 'PrevenÃ§Ã£o', desc: 'Reduz riscos de lesÃµes em articulaÃ§Ãµes e tecidos moles.' },
-                { title: 'Funcionalidade', desc: 'Garante amplitude necessÃ¡ria para atividades diÃ¡rias.' }
+                { title: 'Performance', desc: 'Melhora a eficiÃƒÂªncia biomecÃƒÂ¢nica do movimento esportivo.' },
+                { title: 'PrevenÃƒÂ§ÃƒÂ£o', desc: 'Reduz riscos de lesÃƒÂµes em articulaÃƒÂ§ÃƒÂµes e tecidos moles.' },
+                { title: 'Funcionalidade', desc: 'Garante amplitude necessÃƒÂ¡ria para atividades diÃƒÂ¡rias.' }
               ].map(item => (
                 <div key={item.title} className="space-y-2">
                    <h5 className="text-[9px] font-black text-pink-500 uppercase">{item.title}</h5>
@@ -2651,10 +2651,10 @@ function PeriodizationModule() {
     if (config.goalType === 'sport') {
       if (config.sportType === 'futebol') {
         exercises = [
-          { name: 'AvanÃ§o com Halteres', sets: 3, reps: '10', intensity: '75%', load: '20kg' },
+          { name: 'AvanÃƒÂ§o com Halteres', sets: 3, reps: '10', intensity: '75%', load: '20kg' },
           { name: 'Salto Vertical', sets: 4, reps: '6', intensity: '100%', load: 'BW' },
           { name: 'Sprint 30m', sets: 6, reps: '1', intensity: '95%', load: 'N/A' },
-          { name: 'Pliometria Box Jump', sets: 4, reps: '8', intensity: 'MÃ¡x', load: 'N/A' },
+          { name: 'Pliometria Box Jump', sets: 4, reps: '8', intensity: 'MÃƒÂ¡x', load: 'N/A' },
           { name: 'Copenhagen Plank', sets: 3, reps: '30s', intensity: 'Mod', load: 'BW' },
         ];
       } else if (config.sportType === 'crossfit') {
@@ -2662,7 +2662,7 @@ function PeriodizationModule() {
           { name: 'Clean & Jerk', sets: 5, reps: '3', intensity: '80%', load: '60kg' },
           { name: 'Thrusters', sets: 3, reps: '15', intensity: '70%', load: '40kg' },
           { name: 'Pull Ups (Butterfly)', sets: 4, reps: 'Max', intensity: 'Intenso', load: 'BW' },
-          { name: 'Burpees over bar', sets: 4, reps: '20', intensity: 'MÃ¡x', load: 'BW' },
+          { name: 'Burpees over bar', sets: 4, reps: '20', intensity: 'MÃƒÂ¡x', load: 'BW' },
           { name: 'Double Unders', sets: 3, reps: 'Max', intensity: 'Mod', load: 'N/A' },
         ];
       }
@@ -2675,12 +2675,12 @@ function PeriodizationModule() {
           { name: 'Good Morning', sets: 3, reps: '8', intensity: '60%', load: '60kg' },
           { name: 'Board Press', sets: 3, reps: '5', intensity: '80%', load: '110kg' },
         ];
-      } else if (config.aestheticGoal === 'potÃªncia & pliometria') {
+      } else if (config.aestheticGoal === 'potÃƒÂªncia & pliometria') {
         exercises = [
-          { name: 'Salto Vertical', sets: 4, reps: '5', intensity: 'MÃ¡xima', load: 'BW' },
+          { name: 'Salto Vertical', sets: 4, reps: '5', intensity: 'MÃƒÂ¡xima', load: 'BW' },
           { name: 'Med Ball Throw', sets: 4, reps: '6', intensity: 'Explosiva', load: '5kg' },
-          { name: 'Box Jump', sets: 4, reps: '5', intensity: 'MÃ¡xima', load: 'BW' },
-          { name: 'Broad Jump', sets: 3, reps: '5', intensity: 'MÃ¡xima', load: 'BW' },
+          { name: 'Box Jump', sets: 4, reps: '5', intensity: 'MÃƒÂ¡xima', load: 'BW' },
+          { name: 'Broad Jump', sets: 3, reps: '5', intensity: 'MÃƒÂ¡xima', load: 'BW' },
           { name: 'Depth Jump', sets: 3, reps: '4', intensity: 'Alta Reatividade', load: 'BW' },
         ];
       } else if (config.aestheticGoal === 'lpo') {
@@ -2694,31 +2694,31 @@ function PeriodizationModule() {
       } else if (config.aestheticGoal === 'hiit / sit') {
         exercises = [
           { name: 'Sprint 30m', sets: 6, reps: '1', intensity: '100%', load: 'N/A' },
-          { name: 'Bike Erg', sets: 8, reps: '20s', intensity: 'MÃ¡xima', load: 'N/A' },
-          { name: 'Remo ErgÃ´metro', sets: 6, reps: '30s', intensity: 'MÃ¡xima', load: 'N/A' },
-          { name: 'Burpees', sets: 4, reps: '30s', intensity: 'MÃ¡xima', load: 'BW' },
+          { name: 'Bike Erg', sets: 8, reps: '20s', intensity: 'MÃƒÂ¡xima', load: 'N/A' },
+          { name: 'Remo ErgÃƒÂ´metro', sets: 6, reps: '30s', intensity: 'MÃƒÂ¡xima', load: 'N/A' },
+          { name: 'Burpees', sets: 4, reps: '30s', intensity: 'MÃƒÂ¡xima', load: 'BW' },
           { name: 'Pular Corda', sets: 4, reps: '60s', intensity: 'Intensa', load: 'N/A' },
         ];
-      } else if (config.aestheticGoal === 'aerÃ³bio (oxidativo)') {
+      } else if (config.aestheticGoal === 'aerÃƒÂ³bio (oxidativo)') {
         exercises = [
-          { name: 'Corrida ContÃ­nua', sets: 1, reps: '45min', intensity: '65% FC', load: 'N/A' },
+          { name: 'Corrida ContÃƒÂ­nua', sets: 1, reps: '45min', intensity: '65% FC', load: 'N/A' },
           { name: 'Ciclismo', sets: 1, reps: '60min', intensity: '65% FC', load: 'N/A' },
           { name: 'Remo', sets: 1, reps: '30min', intensity: '70% FC', load: 'N/A' },
-          { name: 'NataÃ§Ã£o', sets: 1, reps: '40min', intensity: '65% FC', load: 'N/A' },
+          { name: 'NataÃƒÂ§ÃƒÂ£o', sets: 1, reps: '40min', intensity: '65% FC', load: 'N/A' },
           { name: 'Eliptico', sets: 1, reps: '30min', intensity: '65% FC', load: 'N/A' },
         ];
-      } else if (config.aestheticGoal === 'treinos lÃ¡ticos e alÃ¡ticos') {
+      } else if (config.aestheticGoal === 'treinos lÃƒÂ¡ticos e alÃƒÂ¡ticos') {
         exercises = [
-          { name: 'Tiro 400m (LÃ¡tico)', sets: 4, reps: '1', intensity: '95%', load: 'N/A' },
-          { name: 'Tiro 50m (AlÃ¡tico)', sets: 6, reps: '1', intensity: '100%', load: 'N/A' },
-          { name: 'TrenÃ³ (Sled Push)', sets: 5, reps: '20m', intensity: 'MÃ¡xima', load: '80kg' },
-          { name: 'Assault Bike', sets: 5, reps: '15s', intensity: 'MÃ¡xima', load: 'N/A' },
-          { name: 'Kettlebell Swing Pesado', sets: 4, reps: '15', intensity: 'LÃ¡tica', load: '32kg' },
+          { name: 'Tiro 400m (LÃƒÂ¡tico)', sets: 4, reps: '1', intensity: '95%', load: 'N/A' },
+          { name: 'Tiro 50m (AlÃƒÂ¡tico)', sets: 6, reps: '1', intensity: '100%', load: 'N/A' },
+          { name: 'TrenÃƒÂ³ (Sled Push)', sets: 5, reps: '20m', intensity: 'MÃƒÂ¡xima', load: '80kg' },
+          { name: 'Assault Bike', sets: 5, reps: '15s', intensity: 'MÃƒÂ¡xima', load: 'N/A' },
+          { name: 'Kettlebell Swing Pesado', sets: 4, reps: '15', intensity: 'LÃƒÂ¡tica', load: '32kg' },
         ];
       }
     }
 
-    if (phase.toLowerCase().includes('choque') || phase.toLowerCase().includes('mÃ¡xima') || phase.toLowerCase().includes('trans')) {
+    if (phase.toLowerCase().includes('choque') || phase.toLowerCase().includes('mÃƒÂ¡xima') || phase.toLowerCase().includes('trans')) {
       return exercises.map(ex => ({
         ...ex,
         id: Math.random().toString(36).substr(2, 9),
@@ -2728,7 +2728,7 @@ function PeriodizationModule() {
       }));
     }
 
-    if (phase.toLowerCase().includes('realizaÃ§Ã£o') || phase.toLowerCase().includes('competitiva')) {
+    if (phase.toLowerCase().includes('realizaÃƒÂ§ÃƒÂ£o') || phase.toLowerCase().includes('competitiva')) {
       return exercises.map(ex => ({
         ...ex,
         id: Math.random().toString(36).substr(2, 9),
@@ -2748,21 +2748,21 @@ function PeriodizationModule() {
     const mesocycles: Mesocycle[] = [];
     
     if (modelType === 'matveyev') {
-      const phases = ['Prep. Geral', 'Prep. EspecÃ­fica', 'Competitiva'];
+      const phases = ['Prep. Geral', 'Prep. EspecÃƒÂ­fica', 'Competitiva'];
       phases.forEach((p, i) => {
         const micros: Microcycle[] = [];
         for (let m = 1; m <= 4; m++) {
           micros.push({
             id: `mat-${i}-${m}`,
             name: `Micro ${m + i * 4}`,
-            type: m === 4 ? 'RecuperaÃ§Ã£o' : 'OrdinÃ¡rio',
+            type: m === 4 ? 'RecuperaÃƒÂ§ÃƒÂ£o' : 'OrdinÃƒÂ¡rio',
             exercises: generateExercises(config.aestheticGoal, p)
           });
         }
         mesocycles.push({ id: `meso-mat-${i}`, name: p, microcycles: micros });
       });
     } else if (modelType === 'issurin') {
-      const phases = ['AcumulaÃ§Ã£o', 'TransmutaÃ§Ã£o', 'RealizaÃ§Ã£o'];
+      const phases = ['AcumulaÃƒÂ§ÃƒÂ£o', 'TransmutaÃƒÂ§ÃƒÂ£o', 'RealizaÃƒÂ§ÃƒÂ£o'];
       phases.forEach((p, i) => {
         const micros: Microcycle[] = [];
         for (let m = 1; m <= 4; m++) {
@@ -2776,7 +2776,7 @@ function PeriodizationModule() {
         mesocycles.push({ id: `meso-iss-${i}`, name: p, microcycles: micros });
       });
     } else if (modelType === 'verkhoshansky') {
-      const phases = ['Bloco A (Carga)', 'Bloco B (ConversÃ£o)', 'Bloco C (CompetiÃ§Ã£o)'];
+      const phases = ['Bloco A (Carga)', 'Bloco B (ConversÃƒÂ£o)', 'Bloco C (CompetiÃƒÂ§ÃƒÂ£o)'];
       phases.forEach((p, i) => {
         const micros: Microcycle[] = [];
         for (let m = 1; m <= 4; m++) {
@@ -2790,7 +2790,7 @@ function PeriodizationModule() {
         mesocycles.push({ id: `meso-verk-${i}`, name: p, microcycles: micros });
       });
     } else {
-      const phases = ['AdaptaÃ§Ã£o', 'ForÃ§a MÃ¡xima', 'ConversÃ£o'];
+      const phases = ['AdaptaÃƒÂ§ÃƒÂ£o', 'ForÃƒÂ§a MÃƒÂ¡xima', 'ConversÃƒÂ£o'];
       phases.forEach((p, i) => {
         const micros: Microcycle[] = [];
         for (let m = 1; m <= 4; m++) {
@@ -2851,7 +2851,7 @@ function PeriodizationModule() {
       if (micro) {
         micro.exercises.push({
           id: Math.random().toString(36).substr(2, 9),
-          name: 'Novo ExercÃ­cio',
+          name: 'Novo ExercÃƒÂ­cio',
           sets: 3,
           reps: '10',
           intensity: 'Mod',
@@ -2866,7 +2866,7 @@ function PeriodizationModule() {
     return (
       <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="text-center space-y-2">
-          <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">ConfiguraÃ§Ã£o da PeriodizaÃ§Ã£o</h2>
+          <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">ConfiguraÃƒÂ§ÃƒÂ£o da PeriodizaÃƒÂ§ÃƒÂ£o</h2>
           <p className="text-slate-400">Insira os dados do aluno para gerar a estrutura ideal de treinamento.</p>
         </div>
 
@@ -2874,7 +2874,7 @@ function PeriodizationModule() {
           <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6">
             <h3 className="flex items-center gap-2 text-white font-bold uppercase italic text-sm">
               <ClipboardList className="w-4 h-4 text-blue-500" />
-              Dados BÃ¡sicos e AvaliaÃ§Ã£o
+              Dados BÃƒÂ¡sicos e AvaliaÃƒÂ§ÃƒÂ£o
             </h3>
             
             <div className="grid grid-cols-2 gap-4">
@@ -2902,7 +2902,7 @@ function PeriodizationModule() {
 
             <div className="space-y-4">
               <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800/50 space-y-3">
-                <p className="text-[10px] uppercase font-black text-slate-500 italic">Resultados de AvaliaÃ§Ã£o (Opcional)</p>
+                <p className="text-[10px] uppercase font-black text-slate-500 italic">Resultados de AvaliaÃƒÂ§ÃƒÂ£o (Opcional)</p>
                 <div className="grid grid-cols-2 gap-3">
                    <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800 flex items-center justify-between">
                      <span className="text-[10px] text-slate-400">Gordura %</span>
@@ -2928,7 +2928,7 @@ function PeriodizationModule() {
                 onClick={() => setConfig({...config, goalType: 'aesthetic'})}
                 className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase italic transition-all ${config.goalType === 'aesthetic' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
               >
-                EstÃ©tico / SaÃºde
+                EstÃƒÂ©tico / SaÃƒÂºde
               </button>
               <button 
                 onClick={() => setConfig({...config, goalType: 'sport'})}
@@ -2941,7 +2941,7 @@ function PeriodizationModule() {
             {config.goalType === 'aesthetic' ? (
               <div className="space-y-4 animate-in fade-in duration-300">
                 <div className="grid grid-cols-1 gap-2">
-                  {['Hipertrofia', 'Emagrecimento', 'Condicionamento Geral', 'Powerlifting', 'PotÃªncia & Pliometria', 'LPO', 'HIIT / SIT', 'AerÃ³bio (Oxidativo)', 'Treinos LÃ¡ticos e AlÃ¡ticos'].map(goal => (
+                  {['Hipertrofia', 'Emagrecimento', 'Condicionamento Geral', 'Powerlifting', 'PotÃƒÂªncia & Pliometria', 'LPO', 'HIIT / SIT', 'AerÃƒÂ³bio (Oxidativo)', 'Treinos LÃƒÂ¡ticos e AlÃƒÂ¡ticos'].map(goal => (
                     <button 
                       key={goal}
                       onClick={() => setConfig({...config, aestheticGoal: goal.toLowerCase()})}
@@ -2960,10 +2960,10 @@ function PeriodizationModule() {
                     <div key={key} className="space-y-1">
                       <div className="flex justify-between items-center px-1">
                         <label className="text-[10px] uppercase font-black text-slate-500 italic">
-                          {key === 'strength' && 'Capacidade de ForÃ§a'}
+                          {key === 'strength' && 'Capacidade de ForÃƒÂ§a'}
                           {key === 'speed' && 'Capacidade de Velocidade'}
-                          {key === 'resistance' && 'Capacidade de ResistÃªncia'}
-                          {key === 'technique' && 'Capacidade TÃ©cnica'}
+                          {key === 'resistance' && 'Capacidade de ResistÃƒÂªncia'}
+                          {key === 'technique' && 'Capacidade TÃƒÂ©cnica'}
                         </label>
                         <span className="text-[10px] font-bold text-white">{value}/10</span>
                       </div>
@@ -2991,7 +2991,7 @@ function PeriodizationModule() {
           className="w-full bg-white text-black p-6 rounded-3xl font-black uppercase italic text-lg hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3 shadow-[0_0_40px_rgba(255,255,255,0.1)]"
         >
           <Zap className="w-6 h-6 fill-black" />
-          Gerar PeriodizaÃ§Ã£o AutomÃ¡tica
+          Gerar PeriodizaÃƒÂ§ÃƒÂ£o AutomÃƒÂ¡tica
         </button>
       </div>
     );
@@ -3002,12 +3002,12 @@ function PeriodizationModule() {
       <div className="flex items-center justify-between">
         <button onClick={() => setView('setup')} className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors group">
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          <span className="text-[10px] font-black uppercase italic">Voltar para ConfiguraÃ§Ã£o</span>
+          <span className="text-[10px] font-black uppercase italic">Voltar para ConfiguraÃƒÂ§ÃƒÂ£o</span>
         </button>
         
         <div className="flex items-center gap-3 bg-blue-500/10 border border-blue-500/20 px-4 py-2 rounded-2xl">
           <div className="flex flex-col">
-            <span className="text-[10px] text-blue-500 font-black uppercase italic leading-none">RecomendaÃ§Ã£o WMPS</span>
+            <span className="text-[10px] text-blue-500 font-black uppercase italic leading-none">RecomendaÃƒÂ§ÃƒÂ£o WMPS</span>
             <span className="text-xs text-white font-bold">
               {config.goalType === 'aesthetic' ? `Foco em ${config.aestheticGoal}` : `Treino de Performance (${config.sportType})`}
             </span>
@@ -3024,7 +3024,7 @@ function PeriodizationModule() {
           active={model === 'matveyev'} 
           onClick={() => setModel('matveyev')}
           title="Matveyev"
-          subtitle="ClÃ¡ssico Linear"
+          subtitle="ClÃƒÂ¡ssico Linear"
           icon={<Activity className="w-5 h-5" />}
         />
         <PeriodizationModelBtn 
@@ -3045,7 +3045,7 @@ function PeriodizationModule() {
           active={model === 'bompa'} 
           onClick={() => setModel('bompa')}
           title="Bompa"
-          subtitle="SistematizaÃ§Ã£o"
+          subtitle="SistematizaÃƒÂ§ÃƒÂ£o"
           icon={<Dumbbell className="w-5 h-5" />}
         />
       </div>
@@ -3055,12 +3055,12 @@ function PeriodizationModule() {
             <div className="bento-card bg-slate-900 border-slate-800 p-8 overflow-hidden relative">
                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                   <div>
-                    <p className="label-caps italic mb-1 text-blue-500">WMPS - Estrutura de Treino DinÃ¢mica</p>
+                    <p className="label-caps italic mb-1 text-blue-500">WMPS - Estrutura de Treino DinÃƒÂ¢mica</p>
                     <h3 className="text-2xl font-black text-white uppercase italic">
-                      {model === 'matveyev' && 'PeriodizaÃ§Ã£o ClÃ¡ssica (Matveyev)'}
+                      {model === 'matveyev' && 'PeriodizaÃƒÂ§ÃƒÂ£o ClÃƒÂ¡ssica (Matveyev)'}
                       {model === 'verkhoshansky' && 'Treinamento em Bloco (Verkhoshansky)'}
                       {model === 'issurin' && 'Modelo ATR (Issurin)'}
-                      {model === 'bompa' && 'SistematizaÃ§Ã£o de Bompa'}
+                      {model === 'bompa' && 'SistematizaÃƒÂ§ÃƒÂ£o de Bompa'}
                     </h3>
                   </div>
                   <div className="flex items-center gap-4 bg-slate-950/50 p-3 rounded-2xl border border-slate-800">
@@ -3107,7 +3107,7 @@ function PeriodizationModule() {
                        {model === 'matveyev' && 'Matveyev (Clássico): Baseada na variação ondulatória onde o volume cai e a intensidade sobe linearmente ao longo do tempo.'}
                        {model === 'issurin' && 'Issurin (ATR): Focada na superposição de efeitos residuais através de blocos altamente concentrados (Acumulação, Transmutação e Realização).'}
                        {model === 'verkhoshansky' && 'Verkhoshansky (Choque): Caracterizada por cargas extremamente elevadas e concentradas seguidas por restauração completa e pico.'}
-                       {model === 'bompa' && 'Bompa (Sistematização): Combina períodos de adaptação com foco em pico de força máxima antes da conversão para potências específicas.'}
+                       {model === 'bompa' && 'Bompa (Sistematização): Combina períodos de adaptação com foco em pico de força máxima antes da conversÃ£o para potências específicas.'}
                      </p>
                   </div>
                   <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
@@ -3124,7 +3124,7 @@ function PeriodizationModule() {
                      <GoalRow label="Freq. Semanal" val={`${config.frequency}x`} />
                      <GoalRow label="Modelo" val={model === 'issurin' ? "ATR" : "Linear"} />
                      <GoalRow label="Pico Estimado" val="Semana 12" />
-                     <GoalRow label="Foco FisiolÃ³gico" val={config.goalType === 'sport' ? 'Performance' : 'Hipertrofia'} />
+                     <GoalRow label="Foco FisiolÃƒÂ³gico" val={config.goalType === 'sport' ? 'Performance' : 'Hipertrofia'} />
                   </div>
                </div>
             </div>
