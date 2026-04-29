@@ -273,9 +273,9 @@ export default function AthletePage() {
                         { id: 'q6', text: 'Problema ósseo/articular que piora com exercício?' },
                         { id: 'q7', text: 'Remédio para coração ou pressão?' },
                       ].map(q => (
-                        <div key={q.id} className="flex items-center justify-between p-4 bg-slate-900/50 border border-slate-700 rounded-xl">
-                          <span className="text-[10px] font-bold text-slate-300 uppercase">{q.text}</span>
-                          <div className="flex gap-2">
+                        <div key={q.id} className="flex items-center justify-between p-3 sm:p-4 bg-slate-900/50 border border-slate-700 rounded-xl gap-4">
+                          <span className="text-[10px] font-bold text-slate-300 uppercase leading-tight">{q.text}</span>
+                          <div className="flex-shrink-0">
                             <BinaryToggle active={anamnesisData[q.id as keyof typeof anamnesisData] as boolean} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, [q.id]: v})} />
                           </div>
                         </div>

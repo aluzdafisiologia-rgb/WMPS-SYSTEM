@@ -59,7 +59,7 @@ const HOOPER_SCALE = {
   2: { label: 'Ruim', abbr: 'R', color: 'text-orange-500' },
   3: { label: 'Bom', abbr: 'B', color: 'text-emerald-500' },
   4: { label: 'Muito Bom', abbr: 'MB', color: 'text-blue-500' },
-  5: { label: 'Ãƒâ€œtimo', abbr: 'OT', color: 'text-blue-400' }
+  5: { label: 'Ótimo', abbr: 'OT', color: 'text-blue-400' }
 };
 
 const WELLNESS_CLASS = (score: number) => {
@@ -528,7 +528,7 @@ export default function CoachPage() {
                     <Info className="w-4 h-4 text-slate-500" />
                     <p className="label-caps italic uppercase">Painel de Controle Interno</p>
                   </div>
-                  <h3 className="text-xl font-black text-white uppercase italic">ÃÃ‚Ândice de Hooper & Bem-Estar Geral</h3>
+                  <h3 className="text-xl font-black text-white uppercase italic">ÃÃ‚ÂÍndice de Hooper & Bem-Estar Geral</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                    {['OT', 'MB', 'B', 'R', 'P'].map((s) => (
@@ -537,7 +537,7 @@ export default function CoachPage() {
                 </div>
              </div>
 
-             <div className="overflow-x-auto">
+             <div className="overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0">
                 <table className="w-full text-left border-collapse min-w-[800px]">
                    <thead>
                       <tr className="border-b border-slate-700 text-slate-500 text-[10px] font-black uppercase italic">
@@ -597,7 +597,7 @@ export default function CoachPage() {
           </div>
 
           {/* Weekly Summary Chart */}
-          <div className="col-span-12 bento-card bg-slate-800/20">
+          <div className="col-span-12 bento-card bg-slate-800/20 p-4 sm:p-8">
              <div className="flex items-center gap-2 mb-8">
                 <CalendarIcon className="w-4 h-4 text-blue-500" />
                 <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Resumo Semanal de Carga</h3>
