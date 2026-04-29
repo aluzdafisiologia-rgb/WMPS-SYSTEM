@@ -88,7 +88,17 @@ export async function registerProfile(profile: any) {
 }
 
 export async function submitRegistrationRequest(request: any) {
-  const { data, error } = await supabase.from('registration_requests').insert([request]).select().single();
+  const { data, error } = await supabase.from('registration_requests').insert([{
+    full_name: request.fullName,
+    email: request.email,
+    birth_date: request.birthDate,
+    cpf: request.cpf,
+    phone: request.phone,
+    is_minor: request.isMinor,
+    guardian_name: request.guardianName,
+    guardian_cpf: request.guardianCpf,
+    status: 'pendente'
+  }]).select().single();
   if (error) {
     console.error('Error submitting registration request:', error);
     throw error;
