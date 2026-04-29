@@ -48,6 +48,7 @@ export interface Database {
 }
 
 export async function getDb(): Promise<Database> {
+  if (!supabase) return { sessions: [], wellness: [], profiles: [] };
   const { data: sessions, error: sErr } = await supabase.from('sessions').select('*');
   const { data: wellness, error: wErr } = await supabase.from('wellness').select('*');
   const { data: profiles, error: pErr } = await supabase.from('profiles').select('*');
@@ -64,6 +65,7 @@ export async function getDb(): Promise<Database> {
 }
 
 export async function saveProfile(profile: Profile) {
+  if (!supabase) throw new Error('Supabase client not initialized');
   const { data, error } = await supabase.from('profiles').upsert([profile], { onConflict: 'athlete_id' }).select().single();
   if (error) {
     console.error('Supabase error (profiles):', error);
@@ -81,6 +83,7 @@ export async function saveDb(data: Database) {
 export async function addSession(session: Omit<Session, 'id' | 'load'>) {
   const load = session.rpe * session.duration;
   
+  if (!supabase) throw new Error('Supabase client not initialized');
   const { data, error } = await supabase.from('sessions').insert([{
     ...session,
     load
@@ -101,6 +104,7 @@ export async function addWellness(entry: Omit<WellnessEntry, 'id' | 'score' | 'c
   if (total >= 32) classification = 'Alto';
   else if (total <= 18) classification = 'Baixo';
 
+  if (!supabase) throw new Error('Supabase client not initialized');
   const { data, error } = await supabase.from('wellness').insert([{
     ...entry,
     score,

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -73,6 +73,7 @@ export default function AthletePage() {
 
   React.useEffect(() => {
     async function checkAuth() {
+      if (!supabase) return;
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         window.location.href = '/';
@@ -81,6 +82,7 @@ export default function AthletePage() {
       setUser(session.user);
       
       // Auto-preencher o nome do atleta
+      if (!supabase) return;
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name')
@@ -95,7 +97,7 @@ export default function AthletePage() {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (supabase) await supabase.auth.signOut();
     window.location.href = '/';
   };
 
@@ -228,7 +230,7 @@ export default function AthletePage() {
             <div className="bento-card bg-slate-800 border-slate-700 shadow-xl overflow-hidden p-0">
               <div className={activeTab === 'workout' ? "bg-blue-600 px-8 py-4" : "bg-emerald-600 px-8 py-4"}>
                  <h2 className="text-sm font-black text-white uppercase tracking-widest italic">
-                   {activeTab === 'workout' ? 'Nova SessÃ£o de Treino' : 'Formulário Wellness'}
+                   {activeTab === 'workout' ? 'Nova Sessão de Treino' : 'Formulário Wellness'}
                  </h2>
               </div>
               

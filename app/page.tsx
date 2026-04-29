@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -45,6 +45,7 @@ export default function Home() {
     setError('');
     
     try {
+      if (!supabase) throw new Error('Conexão indisponível');
       const { data, error: loginError } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -57,6 +58,7 @@ export default function Home() {
       }
 
       // Buscar o perfil para saber a função
+      if (!supabase) throw new Error('Conexão indisponível');
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -302,7 +304,10 @@ export default function Home() {
                 </div>
               </div>
               <button 
-                onClick={() => { setIsLoggedIn(false); setView('login'); }}
+                onClick={async () => { 
+                  if (supabase) await supabase.auth.signOut();
+                  setView('login'); 
+                }}
                 className="bg-slate-800/50 hover:bg-slate-800 px-4 py-2 rounded-xl border border-slate-700 backdrop-blur-sm transition-all group"
               >
                 <p className="text-[10px] text-slate-500 group-hover:text-rose-500 font-black uppercase tracking-wider">Sair do Sistema</p>
@@ -327,7 +332,7 @@ export default function Home() {
                   <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20 group-hover:scale-110 transition-transform"><BarChart3 className="w-7 h-7" /></div>
                   <div className="space-y-3">
                     <h2 className="text-4xl font-black text-white uppercase italic">Professor</h2>
-                    <p className="text-sm text-slate-400 font-medium leading-relaxed">Dashboard analítico de performance, cargas agudas e crÃ´nicas dos atletas.</p>
+                    <p className="text-sm text-slate-400 font-medium leading-relaxed">Dashboard analítico de performance, cargas agudas e crônicas dos atletas.</p>
                   </div>
                   <div className="flex items-center gap-3 text-emerald-400 text-[10px] font-black uppercase tracking-widest"><span>Analisar dados</span><ChevronRight className="w-4 h-4" /></div>
                 </motion.div>

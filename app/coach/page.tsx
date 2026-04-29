@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion } from 'motion/react';
@@ -78,12 +78,14 @@ export default function CoachPage() {
 
   useEffect(() => {
     async function checkAuth() {
+      if (!supabase) return;
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         window.location.href = '/';
         return;
       }
 
+      if (!supabase) return;
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -118,7 +120,7 @@ export default function CoachPage() {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (supabase) await supabase.auth.signOut();
     window.location.href = '/';
   };
 

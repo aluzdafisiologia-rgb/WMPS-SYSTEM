@@ -1,8 +1,7 @@
 
 const fs = require('fs');
-const path = 'app/coach/page.tsx';
 
-let content = fs.readFileSync(path, 'utf8');
+const files = ['app/coach/page.tsx', 'app/athlete/page.tsx', 'app/page.tsx'];
 
 const replacements = {
     'ÃƒÂ§ÃƒÂµes': 'ções',
@@ -51,9 +50,13 @@ const replacements = {
     'EstÃ¡vel': 'Estável'
 };
 
-for (const [bad, good] of Object.entries(replacements)) {
-    content = content.split(bad).join(good);
-}
-
-fs.writeFileSync(path, content, 'utf8');
-console.log('Limpeza concluída com sucesso!');
+files.forEach(path => {
+    if (fs.existsSync(path)) {
+        let content = fs.readFileSync(path, 'utf8');
+        for (const [bad, good] of Object.entries(replacements)) {
+            content = content.split(bad).join(good);
+        }
+        fs.writeFileSync(path, content, 'utf8');
+        console.log(`Limpeza concluída para ${path}`);
+    }
+});
