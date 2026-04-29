@@ -96,14 +96,12 @@ export default function CoachPage() {
 
     async function loadData() {
       try {
-        const [sessionData, wellnessData, requestData] = await Promise.all([
+        const [sessionData, wellnessData] = await Promise.all([
           getSessions(),
-          getWellness(),
-          getRegistrationRequests()
+          getWellness()
         ]);
         setSessions(sessionData);
         setWellness(wellnessData);
-        setRequests(requestData);
       } catch (error) {
         console.error(error);
       } finally {
@@ -310,15 +308,9 @@ export default function CoachPage() {
               icon={<FileText className="w-8 h-8 text-purple-500" />} 
               onClick={() => setActiveModule('prescription')} 
             />
-            <MenuButton 
-              title="Solicitações" 
-              subtitle="Novos Cadastros" 
-              icon={<div className="relative"><UserPlus className="w-8 h-8 text-rose-500" />{requests.length > 0 && <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-black animate-bounce">{requests.length}</span>}</div>} 
-              onClick={() => setActiveModule('requests')} 
-            />
+
           </div>
-        ) : activeModule === 'requests' ? (
-          <RequestsModule requests={requests} />
+
         ) : activeModule === 'assessment' ? (
           <div className="space-y-8">
             <button 
