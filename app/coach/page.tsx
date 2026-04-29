@@ -3373,34 +3373,38 @@ function AnamnesisModule() {
                 </div>
 
                 <div className="space-y-6">
-                  <h5 className="text-[10px] font-black text-blue-400 uppercase italic tracking-[0.2em]">Dados ACSM</h5>
-                  <div className="space-y-4">
-                    <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
-                      <p className="text-[9px] text-slate-500 font-bold uppercase mb-1">Pratica Exercício?</p>
-                      <p className="text-sm font-black text-white uppercase italic">{selectedRecord.data.isPhysicallyActive ? 'Sim (Ativo)' : 'Não (Inativo)'}</p>
-                    </div>
-                    <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
-                      <p className="text-[9px] text-slate-500 font-bold uppercase mb-1">Doença Diagnosticada?</p>
-                      <p className="text-sm font-black text-white uppercase italic">{selectedRecord.data.hasKnownDisease ? 'Sim' : 'Não'}</p>
-                    </div>
-                    <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
-                      <p className="text-[9px] text-slate-500 font-bold uppercase mb-1">Sinais/Sintomas?</p>
-                      <p className="text-sm font-black text-white uppercase italic">{selectedRecord.data.hasSymptoms ? 'Sim' : 'Não'}</p>
-                    </div>
-                    <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
-                      <p className="text-[9px] text-slate-500 font-bold uppercase mb-1">Intensidade Desejada</p>
-                      <p className="text-sm font-black text-white uppercase italic">{selectedRecord.data.desiredIntensity === 'vigorous' ? 'Vigorosa' : 'Moderada'}</p>
-                    </div>
+                  <h5 className="text-[10px] font-black text-blue-400 uppercase italic tracking-[0.2em]">Fatores de Risco (ACSM/NSCA)</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <RiskFactor label="Ativo regular?" value={selectedRecord.data.isPhysicallyActive} invert />
+                    <RiskFactor label="Doença CV/Metab./Renal" value={selectedRecord.data.hasKnownDisease} />
+                    <RiskFactor label="Sinais ou Sintomas" value={selectedRecord.data.hasSymptoms} />
+                    <RiskFactor label="Histórico Familiar" value={selectedRecord.data.familyHistory} />
+                    <RiskFactor label="Fumante" value={selectedRecord.data.smoking} />
+                    <RiskFactor label="Hipertensão" value={selectedRecord.data.hypertension} />
+                    <RiskFactor label="Diabetes" value={selectedRecord.data.diabetes} />
+                    <RiskFactor label="Obesidade" value={selectedRecord.data.obesity} />
+                  </div>
+                  <div className="mt-4 p-4 bg-slate-900 rounded-2xl border border-slate-800">
+                    <p className="text-[9px] text-slate-500 font-bold uppercase mb-1">Intensidade Desejada</p>
+                    <p className="text-sm font-black text-white uppercase italic">{selectedRecord.data.desiredIntensity === 'vigorous' ? 'Vigorosa' : 'Moderada'}</p>
                   </div>
                 </div>
               </div>
 
-              {selectedRecord.data.details && (
-                <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800">
-                   <p className="text-[10px] font-black text-slate-500 uppercase italic mb-2">Observações Adicionais</p>
-                   <p className="text-xs text-white font-medium leading-relaxed">{selectedRecord.data.details}</p>
-                </div>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {selectedRecord.data.previousInjuries && (
+                  <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800">
+                    <p className="text-[10px] font-black text-rose-400 uppercase italic mb-2">Histórico de Lesões</p>
+                    <p className="text-xs text-white font-medium leading-relaxed">{selectedRecord.data.previousInjuries}</p>
+                  </div>
+                )}
+                {selectedRecord.data.details && (
+                  <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800">
+                    <p className="text-[10px] font-black text-slate-500 uppercase italic mb-2">Observações Adicionais</p>
+                    <p className="text-xs text-white font-medium leading-relaxed">{selectedRecord.data.details}</p>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-20 bento-card bg-slate-900/30 border-dashed border-slate-800">
@@ -3410,6 +3414,18 @@ function AnamnesisModule() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function RiskFactor({ label, value, invert = false }: { label: string, value: boolean, invert?: boolean }) {
+  const isDanger = invert ? !value : value;
+  return (
+    <div className="flex justify-between items-center p-3 bg-slate-900 rounded-xl border border-slate-800">
+      <span className="text-[9px] font-bold text-slate-500 uppercase">{label}</span>
+      <span className={`text-[10px] font-black uppercase ${isDanger ? 'text-red-500' : 'text-emerald-500'}`}>
+        {value ? 'Sim' : 'Não'}
+      </span>
     </div>
   );
 }

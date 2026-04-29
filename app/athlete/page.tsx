@@ -71,6 +71,13 @@ export default function AthletePage() {
     hasKnownDisease: false,
     hasSymptoms: false,
     desiredIntensity: 'moderate' as 'moderate' | 'vigorous',
+    // Novos campos ACSM/NSCA
+    familyHistory: false,
+    smoking: false,
+    hypertension: false,
+    diabetes: false,
+    obesity: false,
+    previousInjuries: '',
     details: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -145,6 +152,7 @@ export default function AthletePage() {
 
   const handleSubmitAnamnesis = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
     setIsSubmitting(true);
     try {
       await logAnamnesis(user.id, {
@@ -234,14 +242,37 @@ export default function AthletePage() {
                         </div>
                       ))}
                     </div>
+
                     <div className="space-y-4 border-t border-slate-700 pt-6">
-                      <p className="text-[10px] font-black text-blue-400 uppercase italic">Triagem ACSM</p>
+                      <p className="text-[10px] font-black text-blue-400 uppercase italic">Fatores de Risco (ACSM/NSCA)</p>
                       <ToggleItem label="Ativo regular? (3x/sem, 30min, 3m)" active={anamnesisData.isPhysicallyActive} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, isPhysicallyActive: v})} />
                       <ToggleItem label="Doença CV, Metabólica ou Renal?" active={anamnesisData.hasKnownDisease} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hasKnownDisease: v})} />
                       <ToggleItem label="Sintomas (Dor, Falta de ar, Tontura)?" active={anamnesisData.hasSymptoms} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hasSymptoms: v})} />
-                      <div className="grid grid-cols-2 gap-4">
-                        <button type="button" onClick={() => setAnamnesisData({...anamnesisData, desiredIntensity: 'moderate'})} className={`py-3 rounded-xl text-[10px] font-black uppercase italic border ${anamnesisData.desiredIntensity === 'moderate' ? 'bg-blue-600 border-blue-500' : 'bg-slate-900'}`}>Moderada</button>
-                        <button type="button" onClick={() => setAnamnesisData({...anamnesisData, desiredIntensity: 'vigorous'})} className={`py-3 rounded-xl text-[10px] font-black uppercase italic border ${anamnesisData.desiredIntensity === 'vigorous' ? 'bg-purple-600 border-purple-500' : 'bg-slate-900'}`}>Vigorosa</button>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <ToggleItem label="Histórico Familiar (Infarto/Morte Súbita)?" active={anamnesisData.familyHistory} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, familyHistory: v})} />
+                        <ToggleItem label="Fumante (ou parou há < 6 meses)?" active={anamnesisData.smoking} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, smoking: v})} />
+                        <ToggleItem label="Hipertensão (>= 140/90 ou remédio)?" active={anamnesisData.hypertension} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hypertension: v})} />
+                        <ToggleItem label="Diabetes ou Glicose Elevada?" active={anamnesisData.diabetes} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, diabetes: v})} />
+                        <ToggleItem label="Obesidade (IMC > 30 ou Cintura Larga)?" active={anamnesisData.obesity} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, obesity: v})} />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-500 uppercase italic">Histórico de Lesões (Ossos, Músculos, Articulações)</label>
+                        <textarea 
+                          value={anamnesisData.previousInjuries}
+                          onChange={(e) => setAnamnesisData({...anamnesisData, previousInjuries: e.target.value})}
+                          placeholder="Descreva lesões anteriores ou cirurgias..."
+                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none h-24"
+                        />
+                      </div>
+
+                      <div className="space-y-4 pt-4">
+                        <p className="text-[10px] font-black text-slate-500 uppercase italic">Intensidade Desejada</p>
+                        <div className="grid grid-cols-2 gap-4">
+                          <button type="button" onClick={() => setAnamnesisData({...anamnesisData, desiredIntensity: 'moderate'})} className={`py-3 rounded-xl text-[10px] font-black uppercase italic border ${anamnesisData.desiredIntensity === 'moderate' ? 'bg-blue-600 border-blue-500' : 'bg-slate-900'}`}>Moderada</button>
+                          <button type="button" onClick={() => setAnamnesisData({...anamnesisData, desiredIntensity: 'vigorous'})} className={`py-3 rounded-xl text-[10px] font-black uppercase italic border ${anamnesisData.desiredIntensity === 'vigorous' ? 'bg-purple-600 border-purple-500' : 'bg-slate-900'}`}>Vigorosa</button>
+                        </div>
                       </div>
                     </div>
                     <SubmitButton loading={isSubmitting} color="bg-purple-600 hover:bg-purple-500" />
@@ -249,6 +280,14 @@ export default function AthletePage() {
                 )}
               </div>
             </div>
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={() => setActiveTab(null)}
+              className="w-full py-3 rounded-lg border border-slate-700 text-[9px] font-black text-slate-500 uppercase tracking-widest hover:bg-slate-800 transition-all"
+            >
+              Voltar ao Menu
+            </motion.button>
           </div>
         )}
       </main>
@@ -298,8 +337,8 @@ function WellnessSlider({ label, value, onChange, labels }: { label: string, val
 function BinaryToggle({ active, onToggle }: { active: boolean, onToggle: (val: boolean) => void }) {
   return (
     <div className="flex gap-1">
-      <button type="button" onClick={() => onToggle(true)} className={`px-3 py-1 rounded text-[9px] font-black uppercase ${active ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-500'}`}>Sim</button>
-      <button type="button" onClick={() => onToggle(false)} className={`px-3 py-1 rounded text-[9px] font-black uppercase ${!active ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500'}`}>Não</button>
+      <button type="button" onClick={() => onToggle(true)} className={`px-3 py-1 rounded text-[9px] font-black uppercase ${active ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500'}`}>Sim</button>
+      <button type="button" onClick={() => onToggle(false)} className={`px-3 py-1 rounded text-[9px] font-black uppercase ${!active ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-500'}`}>Não</button>
     </div>
   );
 }
@@ -307,7 +346,7 @@ function BinaryToggle({ active, onToggle }: { active: boolean, onToggle: (val: b
 function ToggleItem({ label, active, onToggle }: { label: string, active: boolean, onToggle: (val: boolean) => void }) {
   return (
     <div className="flex items-center justify-between p-4 bg-slate-900/50 border border-slate-700 rounded-xl">
-      <span className="text-[9px] font-bold text-slate-400 uppercase">{label}</span>
+      <span className="text-[9px] font-bold text-slate-400 uppercase pr-4">{label}</span>
       <BinaryToggle active={active} onToggle={onToggle} />
     </div>
   );
