@@ -18,18 +18,15 @@ if (!supabase) {
   console.log('SERVER-SIDE SUPABASE INITIALIZED SUCCESSFULLY');
 }
 
-export async function logAnamnesis(data: any) {
+export async function logAnamnesis(userId: string, data: any) {
   if (!supabase) return;
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) throw new Error('Not authenticated');
-
     const { error } = await supabase
       .from('anamnesis')
       .upsert({
-        athlete_id: session.user.id,
+        athlete_id: userId,
         athlete_name: data.athleteName,
-        data: data, // Full object for flexibility
+        data: data,
         date: new Date().toISOString().split('T')[0]
       });
 

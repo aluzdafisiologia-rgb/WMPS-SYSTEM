@@ -147,7 +147,7 @@ export default function AthletePage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await logAnamnesis({
+      await logAnamnesis(user.id, {
         athleteName: formData.athleteName,
         ...anamnesisData
       });
