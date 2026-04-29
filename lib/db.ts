@@ -26,22 +26,50 @@ export interface WellnessEntry {
   classification: string;
 }
 
+export interface Profile {
+  id?: string;
+  athleteId: string;
+  fullName: string;
+  email: string;
+  birthDate: string;
+  gender: 'male' | 'female' | 'other';
+  height: number;
+  weight: number;
+  sport: string;
+  goal: 'performance' | 'hypertrophy' | 'health' | 'weight-loss';
+  experienceLevel: 'beginner' | 'intermediate' | 'advanced' | 'elite';
+  createdAt?: string;
+}
+
 export interface Database {
   sessions: Session[];
   wellness: WellnessEntry[];
+  profiles: Profile[];
 }
 
 export async function getDb(): Promise<Database> {
   const { data: sessions, error: sErr } = await supabase.from('sessions').select('*');
   const { data: wellness, error: wErr } = await supabase.from('wellness').select('*');
+  const { data: profiles, error: pErr } = await supabase.from('profiles').select('*');
   
   if (sErr) console.error('Error fetching sessions:', sErr);
   if (wErr) console.error('Error fetching wellness:', wErr);
+  if (pErr) console.error('Error fetching profiles:', pErr);
 
   return {
     sessions: sessions || [],
-    wellness: wellness || []
+    wellness: wellness || [],
+    profiles: profiles || []
   };
+}
+
+export async function saveProfile(profile: Profile) {
+  const { data, error } = await supabase.from('profiles').upsert([profile], { onConflict: 'athleteId' }).select().single();
+  if (error) {
+    console.error('Supabase error (profiles):', error);
+    throw error;
+  }
+  return data;
 }
 
 export async function saveDb(data: Database) {

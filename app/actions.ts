@@ -1,6 +1,6 @@
 'use server'
 
-import { addSession, addWellness, getDb, Session, WellnessEntry } from '@/lib/db';
+import { addSession, addWellness, getDb, Session, WellnessEntry, saveProfile } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 
 export async function logWorkout(formData: {
@@ -59,4 +59,15 @@ export async function getSessions(): Promise<Session[]> {
 export async function getWellness(): Promise<WellnessEntry[]> {
   const db = await getDb();
   return db.wellness.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+export async function registerProfile(profile: any) {
+  const athleteId = profile.fullName.toLowerCase().replace(/\s+/g, '-');
+  const data = {
+    ...profile,
+    athleteId
+  };
+
+  await saveProfile(data); 
+  revalidatePath('/');
+  revalidatePath('/coach');
 }
