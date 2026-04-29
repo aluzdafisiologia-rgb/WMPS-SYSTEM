@@ -2,6 +2,7 @@
 
 import { addSession, addWellness, getDb, Session, WellnessEntry, saveProfile } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { supabase } from '@/lib/supabase';
 
 export async function logWorkout(formData: {
   athleteName: string;
