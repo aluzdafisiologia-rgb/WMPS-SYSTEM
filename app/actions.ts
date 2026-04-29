@@ -67,7 +67,13 @@ export async function registerProfile(profile: any) {
     athleteId
   };
 
-  await saveProfile(data); 
-  revalidatePath('/');
-  revalidatePath('/coach');
+  try {
+    const result = await saveProfile(data); 
+    revalidatePath('/');
+    revalidatePath('/coach');
+    return result;
+  } catch (error) {
+    console.error('Action error (registerProfile):', error);
+    throw error;
+  }
 }

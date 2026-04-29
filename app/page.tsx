@@ -65,15 +65,16 @@ export default function Home() {
 
     setLoading(true);
     try {
-      await registerProfile({
+      const response = await registerProfile({
         ...regData,
         height: Number(regData.height),
         weight: Number(regData.weight)
       });
       setIsLoggedIn(true);
       setView('selection');
-    } catch (err) {
-      setError('Erro ao criar conta. Tente novamente.');
+    } catch (err: any) {
+      console.error('Registration error:', err);
+      setError('Erro ao criar conta: ' + (err.message || 'Verifique se a tabela profiles existe no Supabase.'));
     } finally {
       setLoading(false);
     }
