@@ -88,6 +88,10 @@ export async function registerProfile(profile: any) {
 }
 
 export async function submitRegistrationRequest(request: any) {
+  if (!supabase) {
+    throw new Error('O cliente Supabase não foi inicializado. Verifique as variáveis de ambiente na Vercel.');
+  }
+
   const { data, error } = await supabase.from('registration_requests').insert([{
     full_name: request.fullName,
     email: request.email,
