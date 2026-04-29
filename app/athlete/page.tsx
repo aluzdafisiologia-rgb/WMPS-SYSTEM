@@ -116,7 +116,7 @@ export default function AthletePage() {
     if (!formData.duration) return alert('Informe a duração.');
     setIsSubmitting(true);
     try {
-      await logWorkout({
+      await logWorkout(user.id, {
         athleteName: formData.athleteName,
         rpe: formData.rpe,
         duration: Number(formData.duration),
@@ -136,7 +136,7 @@ export default function AthletePage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await logWellness({
+      await logWellness(user.id, {
         athleteName: formData.athleteName,
         ...wellnessData,
         date: formData.date,

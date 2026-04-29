@@ -98,13 +98,12 @@ export async function getRegistrationRequests() {
 
 // --- FUNÇÕES DE ATIVIDADE (Restauradas) ---
 
-export async function logWorkout(formData: any) {
+export async function logWorkout(userId: string, formData: any) {
   try {
     if (!supabase) throw new Error('Banco de dados indisponível');
-    const athlete_id = formData.athleteName.toLowerCase().replace(/\s+/g, '-');
     
     await supabase.from('sessions').insert([{
-      athlete_id,
+      athlete_id: userId,
       athlete_name: formData.athleteName,
       date: formData.date,
       rpe: formData.rpe,
@@ -116,17 +115,16 @@ export async function logWorkout(formData: any) {
 
     revalidatePath('/coach');
   } catch (e) {
-    console.error(e);
+    console.error('Error logging workout:', e);
   }
 }
 
-export async function logWellness(formData: any) {
+export async function logWellness(userId: string, formData: any) {
   try {
     if (!supabase) throw new Error('Banco de dados indisponível');
-    const athlete_id = formData.athleteName.toLowerCase().replace(/\s+/g, '-');
 
     await supabase.from('wellness').insert([{
-      athlete_id,
+      athlete_id: userId,
       athlete_name: formData.athleteName,
       date: formData.date,
       recovery: formData.recovery,
@@ -139,7 +137,7 @@ export async function logWellness(formData: any) {
 
     revalidatePath('/coach');
   } catch (e) {
-    console.error(e);
+    console.error('Error logging wellness:', e);
   }
 }
 
