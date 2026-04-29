@@ -11,10 +11,13 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { getPendingRequests, getAllUsers, approveRegistration, denyRegistration, changeUserRole } from './actions';
 import { getUserRole } from '../actions';
+import ForcePasswordReset from '../components/ForcePasswordReset';
+import { useAuth } from '@/hooks/useAuth'; // Assumindo que temos o ID do user no estado ou via supabase.auth.getUser()
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [user, setUser] = useState<any>(null);
   
   const [requests, setRequests] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -34,6 +37,7 @@ export default function AdminDashboard() {
         window.location.href = '/';
         return;
       }
+      setUser(user);
       
       const role = await getUserRole(user.id);
         
@@ -105,6 +109,7 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[#020617] font-sans relative overflow-hidden pb-20">
+      <ForcePasswordReset userId={user?.id || ''} />
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-500/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-rose-500/10 blur-[120px] rounded-full pointer-events-none" />
 

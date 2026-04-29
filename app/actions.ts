@@ -187,6 +187,40 @@ export async function registerProfile(profile: any) {
   }
 }
 
+export async function checkMustChangePassword(userId: string) {
+  if (!supabase) return false;
+  const { data } = await supabase
+    .from('profiles')
+    .select('must_change_password')
+    .eq('id', userId)
+    .single();
+  return data?.must_change_password || false;
+}
+
+export async function updateUserPassword(userId: string, newPassword: string) {
+  if (!supabase) return { success: false };
+  try {
+    // 1. Atualizar no Auth
+    const { error: authError } = await supabase.auth.admin.updateUserById(userId, {
+      password: newPassword
+    });
+    if (authError) throw authError;
+
+    // 2. Marcar como alterado no Profile
+    const { error: profError } = await supabase
+      .from('profiles')
+      .update({ must_change_password: false })
+      .eq('id', userId);
+    
+    if (profError) throw profError;
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('updateUserPassword error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function getUserRole(userId: string) {
   if (!supabase) {
     console.error('getUserRole: Supabase service client is NULL');

@@ -75,7 +75,8 @@ export async function approveRegistration(request: any) {
       weight: 0,
       sport: 'N/A',
       goal: 'N/A',
-      experience_level: 'N/A'
+      experience_level: 'N/A',
+      must_change_password: true
     };
 
     const { error: profError } = await supabase.from('profiles').upsert([profileData]);

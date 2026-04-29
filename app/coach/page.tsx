@@ -32,6 +32,7 @@ import {
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis } from '../actions';
+import ForcePasswordReset from '../components/ForcePasswordReset';
 import { Session, WellnessEntry } from '@/lib/db';
 import { 
   XAxis, 
@@ -248,6 +249,7 @@ export default function CoachPage() {
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-slate-200 font-sans pb-12">
+      {user?.id && <ForcePasswordReset userId={user.id} />}
       <header className="flex flex-col sm:flex-row justify-between items-center p-6 px-10 gap-4">
         <div className="flex items-center gap-4">
           <button 

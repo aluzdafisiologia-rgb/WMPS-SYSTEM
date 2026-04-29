@@ -6,6 +6,7 @@ import { ArrowLeft, Clock, Zap, Calendar, CheckCircle2, Save, LogOut, FileText, 
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { logWorkout, logWellness, logAnamnesis, getUserRole } from '../actions';
+import ForcePasswordReset from '../components/ForcePasswordReset';
 
 const WELLNESS_LABELS = {
   sleep: ['Muito ruim', 'Ruim', 'Médio', 'Bom', 'Muito bom'],
@@ -170,6 +171,7 @@ export default function AthletePage() {
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-slate-200 font-sans pb-20">
+      {user?.id && <ForcePasswordReset userId={user.id} />}
       <header className="bg-slate-900/50 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
         <div className="max-w-xl mx-auto px-6 h-20 flex items-center justify-between">
           <button onClick={() => activeTab ? setActiveTab(null) : window.location.href = role === 'admin' ? '/admin' : '/'} className="p-2 -ml-2 text-slate-400 hover:text-emerald-500 transition-all hover:scale-110">
