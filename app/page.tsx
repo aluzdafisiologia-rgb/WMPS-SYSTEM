@@ -74,18 +74,24 @@ export default function Home() {
 
     setLoading(true);
     try {
-      await submitRegistrationRequest({
+      const result = await submitRegistrationRequest({
         ...regData,
         isMinor: isMinor(regData.birthDate)
       });
-      setView('login');
-      alert('Solicitação enviada com sucesso!');
-      setRegData({ fullName: '', email: '', birthDate: '', cpf: '', phone: '', guardianName: '', guardianCpf: '' });
-      setRegStep(1);
+
+      if (result.success) {
+        setView('login');
+        alert('Solicitação enviada com sucesso! Aguarde o contato por e-mail.');
+        setRegData({ fullName: '', email: '', birthDate: '', cpf: '', phone: '', guardianName: '', guardianCpf: '' });
+        setRegStep(1);
+      } else {
+        alert('ERRO NO SUPABASE: ' + result.error);
+        setError('Erro ao enviar solicitação: ' + result.error);
+      }
     } catch (err: any) {
       console.error(err);
-      alert('ERRO NO SUPABASE: ' + (err.message || 'Erro desconhecido'));
-      setError('Erro ao enviar solicitação: ' + (err.message || 'Tente novamente.'));
+      alert('ERRO INESPERADO: ' + (err.message || 'Erro desconhecido'));
+      setError('Erro ao enviar solicitação. Tente novamente.');
     } finally {
       setLoading(false);
     }

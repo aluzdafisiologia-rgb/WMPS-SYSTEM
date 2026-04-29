@@ -61,6 +61,7 @@ export async function getWellness(): Promise<WellnessEntry[]> {
   const db = await getDb();
   return db.wellness.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
+
 export async function registerProfile(profile: any) {
   const athlete_id = profile.fullName.toLowerCase().replace(/\s+/g, '-');
   const data = {
@@ -88,33 +89,46 @@ export async function registerProfile(profile: any) {
 }
 
 export async function submitRegistrationRequest(request: any) {
-  if (!supabase) {
-    throw new Error('O cliente Supabase não foi inicializado. Verifique as variáveis de ambiente na Vercel.');
-  }
+  try {
+    if (!supabase) {
+      return { success: false, error: 'Banco de dados não configurado.' };
+    }
 
-  const { data, error } = await supabase.from('registration_requests').insert([{
-    full_name: request.fullName,
-    email: request.email,
-    birth_date: request.birthDate,
-    cpf: request.cpf,
-    phone: request.phone,
-    is_minor: request.isMinor,
-    guardian_name: request.guardianName,
-    guardian_cpf: request.guardianCpf,
-    status: 'pendente'
-  }]).select().single();
-  if (error) {
-    console.error('Error submitting registration request:', error);
-    throw error;
+    const { data, error } = await supabase.from('registration_requests').insert([{
+      full_name: request.fullName,
+      email: request.email,
+      birth_date: request.birthDate,
+      cpf: request.cpf,
+      phone: request.phone,
+      is_minor: request.isMinor,
+      guardian_name: request.guardianName,
+      guardian_cpf: request.guardianCpf,
+      status: 'pendente'
+    }]).select().single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (err: any) {
+    console.error('Unexpected error:', err);
+    return { success: false, error: err.message || 'Erro inesperado no servidor.' };
   }
-  return data;
 }
 
 export async function getRegistrationRequests() {
-  const { data, error } = await supabase.from('registration_requests').select('*').order('created_at', { ascending: false });
-  if (error) {
-    console.error('Error fetching registration requests:', error);
-    throw error;
+  try {
+    if (!supabase) return [];
+    const { data, error } = await supabase.from('registration_requests').select('*').order('created_at', { ascending: false });
+    if (error) {
+      console.error('Error fetching registration requests:', error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('getRegistrationRequests error:', err);
+    return [];
   }
-  return data;
 }
