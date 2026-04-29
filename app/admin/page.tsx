@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShieldCheck, Users, Clock, CheckCircle, XCircle, 
   ArrowLeft, Star, ShieldAlert, Lock, Unlock, Mail, 
-  Calendar, Check, AlertTriangle
+  Calendar, Check, AlertTriangle, Zap
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
