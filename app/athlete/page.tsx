@@ -177,7 +177,7 @@ export default function AthletePage() {
           </button>
           <div className="flex flex-col items-center">
             <Link href="/" className="bg-gradient-to-br from-emerald-400 to-cyan-500 text-black font-black px-4 py-1 rounded-lg text-xl italic skew-x-[-10deg] shadow-[0_0_20px_rgba(52,211,153,0.3)] transition-transform hover:scale-105 active:scale-95">WMPS</Link>
-            <span className="text-[7px] font-black text-emerald-500/60 uppercase tracking-[0.3em] mt-1.5 italic">William Moreira Performance System</span>
+            <span className="text-[10px] font-black text-emerald-500/80 uppercase tracking-[0.2em] mt-2 italic">William Moreira Performance System</span>
           </div>
           <div className="w-10"></div>
         </div>
