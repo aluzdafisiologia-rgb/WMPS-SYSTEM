@@ -41,6 +41,18 @@ export interface Profile {
   created_at?: string;
 }
 
+export interface TrainingPrescription {
+  id?: string;
+  athlete_id: string;
+  coach_id: string;
+  athlete_name: string;
+  date: string;
+  status: 'pending' | 'completed';
+  data: any;
+  created_at?: string;
+  completed_at?: string;
+}
+
 export interface Database {
   sessions: Session[];
   wellness: WellnessEntry[];

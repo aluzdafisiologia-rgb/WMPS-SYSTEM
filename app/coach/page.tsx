@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis, getAthletes } from '../actions';
+import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis, getAthletes, saveTrainingPrescription, approveRegistration } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
 import { Session, WellnessEntry } from '@/lib/db';
 import { 
@@ -74,7 +74,7 @@ export default function CoachPage() {
   const [wellness, setWellness] = useState<WellnessEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'periodization' | 'prescription' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'assessment_anamnesis'>('menu');
+  const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'periodization' | 'prescription' | 'requests' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'assessment_anamnesis'>('menu');
   const [requests, setRequests] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
@@ -100,12 +100,14 @@ export default function CoachPage() {
 
     async function loadData() {
       try {
-        const [sessionData, wellnessData] = await Promise.all([
+        const [sessionData, wellnessData, reqData] = await Promise.all([
           getSessions(),
-          getWellness()
+          getWellness(),
+          getRegistrationRequests()
         ]);
         setSessions(sessionData);
         setWellness(wellnessData);
+        setRequests(reqData.filter((r: any) => r.status === 'pendente'));
       } catch (error) {
         console.error(error);
       } finally {
@@ -312,6 +314,13 @@ export default function CoachPage() {
               subtitle="Montagem de Treinos" 
               icon={<FileText className="w-8 h-8 text-purple-500" />} 
               onClick={() => setActiveModule('prescription')} 
+            />
+            <MenuButton 
+              title="Solicitações" 
+              subtitle={`${requests.length} pendente${requests.length !== 1 ? 's' : ''}`} 
+              icon={<UserPlus className="w-8 h-8 text-rose-500" />} 
+              onClick={() => setActiveModule('requests')} 
+              badge={requests.length}
             />
 
           </div>
@@ -791,7 +800,22 @@ export default function CoachPage() {
               Voltar ao Menu
             </button>
             
-            <PrescriptionModule />
+            <PrescriptionModule coachId={user?.id} />
+          </div>
+        ) : activeModule === 'requests' ? (
+          <div className="space-y-8">
+            <button 
+              onClick={() => setActiveModule('menu')}
+              className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              Voltar ao Menu
+            </button>
+            
+            <RequestsModule
+              requests={requests}
+              onApproved={(updatedReqs) => setRequests(updatedReqs)}
+            />
           </div>
         ) : (
           <div className="py-20 flex flex-col items-center justify-center text-center space-y-6">
@@ -867,7 +891,7 @@ function StatCard({ title, value, icon, color }: { title: string, value: string 
   );
 }
 
-function MenuButton({ title, subtitle, icon, onClick }: { title: string, subtitle: string, icon: React.ReactNode, onClick: () => void }) {
+function MenuButton({ title, subtitle, icon, onClick, badge }: { title: string, subtitle: string, icon: React.ReactNode, onClick: () => void, badge?: number }) {
   return (
     <motion.button
       whileHover={{ y: -5 }}
@@ -878,6 +902,11 @@ function MenuButton({ title, subtitle, icon, onClick }: { title: string, subtitl
       <div className="absolute -right-2 -bottom-2 opacity-5 group-hover:opacity-10 transition-opacity">
         {React.cloneElement(icon as React.ReactElement<any>, { className: 'w-32 h-32' })}
       </div>
+      {badge !== undefined && badge > 0 && (
+        <div className="absolute top-4 right-4 bg-rose-500 text-white text-[9px] font-black w-6 h-6 rounded-full flex items-center justify-center shadow-lg shadow-rose-500/30 animate-pulse">
+          {badge > 9 ? '9+' : badge}
+        </div>
+      )}
       <div className="mb-6 p-4 bg-slate-900 border border-slate-700 rounded-2xl w-fit group-hover:border-blue-500/50 transition-colors">
         {icon}
       </div>
@@ -3445,51 +3474,185 @@ function RiskFactor({ label, value, invert = false }: { label: string, value: bo
   );
 }
 
-function RequestsModule({ requests }: { requests: any[] }) {
+function RequestsModule({ requests, onApproved }: { requests: any[], onApproved: (updated: any[]) => void }) {
+  const [localRequests, setLocalRequests] = useState(requests);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [credentials, setCredentials] = useState<{ fullName: string; email: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleApprove = async (req: any) => {
+    setLoadingId(req.id);
+    try {
+      const result = await approveRegistration(req.id);
+      if (result.success && !result.alreadyExists) {
+        const updated = localRequests.filter(r => r.id !== req.id);
+        setLocalRequests(updated);
+        onApproved(updated);
+        setCredentials({
+          fullName: result.fullName!,
+          email: result.email!,
+          password: result.password!
+        });
+        setCopied(false);
+      } else if (result.alreadyExists) {
+        const updated = localRequests.filter(r => r.id !== req.id);
+        setLocalRequests(updated);
+        onApproved(updated);
+        alert(`O e-mail ${req.email} já possui uma conta cadastrada. Status atualizado para aprovado.`);
+      } else {
+        alert('Erro ao aprovar: ' + result.error);
+      }
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const handleCopyCredentials = () => {
+    if (!credentials) return;
+    const text = `🏋️ WMPS — William Moreira Performance System\n\nOlá, ${credentials.fullName}!\n\nSeu acesso foi aprovado. Utilize as credenciais abaixo para entrar na plataforma:\n\n📧 Login (E-mail): ${credentials.email}\n🔑 Senha provisória: ${credentials.password}\n\n⚠️ IMPORTANTE: Ao fazer o primeiro acesso, você será solicitado(a) a criar uma nova senha pessoal.\n\nAcesse em: ${typeof window !== 'undefined' ? window.location.origin : ''}\n\nBem-vindo(a) à equipe! 💪`;
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Modal de Credenciais */}
+      {credentials && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-slate-900 border border-emerald-500/30 rounded-3xl p-8 shadow-2xl shadow-emerald-500/10 space-y-6 animate-in zoom-in-95 duration-300">
+            {/* Header */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center border border-emerald-500/30">
+                <UserPlus className="w-7 h-7 text-emerald-500" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-white uppercase italic">Acesso Criado!</h3>
+                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Envie as credenciais ao aluno</p>
+              </div>
+            </div>
+
+            {/* Athlete Name */}
+            <div className="bg-slate-800 rounded-2xl p-4 border border-slate-700">
+              <p className="text-[9px] font-black text-slate-500 uppercase mb-1">Atleta</p>
+              <p className="text-base font-black text-white uppercase italic">{credentials.fullName}</p>
+            </div>
+
+            {/* Credentials Box */}
+            <div className="space-y-3">
+              <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 flex justify-between items-center">
+                <div>
+                  <p className="text-[9px] font-black text-slate-500 uppercase mb-0.5">Login (E-mail)</p>
+                  <p className="text-sm font-bold text-white">{credentials.email}</p>
+                </div>
+                <Mail className="w-4 h-4 text-blue-500" />
+              </div>
+              <div className="bg-slate-950 rounded-2xl p-4 border border-emerald-500/20 flex justify-between items-center">
+                <div>
+                  <p className="text-[9px] font-black text-slate-500 uppercase mb-0.5">Senha Provisória</p>
+                  <p className="text-lg font-black text-emerald-400 tracking-widest font-mono">{credentials.password}</p>
+                </div>
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              </div>
+            </div>
+
+            {/* Welcome Message Preview */}
+            <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700 text-[10px] text-slate-400 leading-relaxed font-medium space-y-1">
+              <p className="font-black text-slate-300 uppercase text-[9px] tracking-widest mb-2">Prévia da mensagem de boas-vindas:</p>
+              <p>🏋️ <strong className="text-white">WMPS — William Moreira Performance System</strong></p>
+              <p>Olá, <strong className="text-white">{credentials.fullName}</strong>!</p>
+              <p>Seu acesso foi aprovado. Utilize as credenciais acima para entrar na plataforma.</p>
+              <p className="text-yellow-500">⚠️ No primeiro acesso, você criará uma nova senha pessoal.</p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleCopyCredentials}
+                className={`flex-1 py-3.5 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2 ${
+                  copied
+                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
+                }`}
+              >
+                {copied ? '✓ Copiado!' : '📋 Copiar Mensagem'}
+              </button>
+              <button
+                onClick={() => setCredentials(null)}
+                className="flex-1 py-3.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black uppercase text-[10px] tracking-widest transition-all border border-slate-700"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-black text-white uppercase italic">Solicitações de Acesso</h2>
           <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Gerencie os novos cadastros de atletas</p>
         </div>
+        {localRequests.length > 0 && (
+          <span className="bg-rose-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+            {localRequests.length} pendente{localRequests.length !== 1 ? 's' : ''}
+          </span>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {requests.length === 0 ? (
-          <div className="bento-card bg-slate-900/50 border-slate-800 p-12 text-center">
+        {localRequests.length === 0 ? (
+          <div className="bento-card bg-slate-900/50 border-slate-800 p-16 text-center">
             <UserPlus className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-            <p className="text-slate-500 font-black uppercase italic">Nenhuma solicitação pendente</p>
+            <p className="text-slate-500 font-black uppercase italic text-sm">Nenhuma solicitação pendente</p>
+            <p className="text-slate-700 text-[10px] font-bold uppercase mt-2">Todos os cadastros foram processados</p>
           </div>
         ) : (
-          requests.map((req) => (
+          localRequests.map((req) => (
             <div key={req.id} className="bento-card bg-slate-900 border-slate-800 p-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:border-rose-500/30 transition-all">
               <div className="flex items-center gap-6 w-full">
-                <div className="w-12 h-12 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 font-black italic text-xl">
+                <div className="w-14 h-14 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 font-black italic text-2xl border border-rose-500/20">
                   {req.full_name?.charAt(0)}
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-black text-white uppercase italic">{req.full_name}</h3>
-                  <div className="flex flex-wrap gap-4 mt-1">
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest"><Mail className="w-3 h-3 text-rose-500" /> {req.email}</span>
-                    <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest"><User className="w-3 h-3 text-blue-500" /> CPF: {req.cpf}</span>
-                    {req.is_minor && <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-full font-black uppercase tracking-tighter">Menor de Idade</span>}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-black text-white uppercase italic truncate">{req.full_name}</h3>
+                  <div className="flex flex-wrap gap-3 mt-1.5">
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
+                      <Mail className="w-3 h-3 text-rose-500 shrink-0" />
+                      <span className="truncate max-w-[200px]">{req.email}</span>
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
+                      <User className="w-3 h-3 text-blue-500 shrink-0" />
+                      CPF: {req.cpf}
+                    </span>
+                    {req.phone && (
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Tel: {req.phone}</span>
+                    )}
+                    {req.is_minor && (
+                      <span className="text-[9px] bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full font-black uppercase border border-amber-500/20">
+                        Menor de Idade
+                      </span>
+                    )}
                   </div>
+                  {req.guardian_name && (
+                    <p className="text-[9px] text-slate-600 font-bold uppercase mt-1">
+                      Responsável: {req.guardian_name}
+                    </p>
+                  )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <button 
-                  onClick={() => {
-                    const text = `Nome: ${req.full_name}\nEmail: ${req.email}\nCPF: ${req.cpf}\nResponsável: ${req.guardian_name || 'N/A'}`;
-                    navigator.clipboard.writeText(text);
-                    alert('Dados copiados! Agora crie o usuário no Supabase Auth.');
-                  }}
-                  className="flex-1 md:flex-none bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+              <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+                <button
+                  onClick={() => handleApprove(req)}
+                  disabled={loadingId === req.id}
+                  className="flex-1 md:flex-none bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
                 >
-                  Copiar Dados
-                </button>
-                <button className="flex-1 md:flex-none bg-rose-600 hover:bg-rose-500 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-rose-600/20 transition-all">
-                  Aprovar
+                  {loadingId === req.id ? (
+                    <><span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Processando...</>
+                  ) : (
+                    <><UserPlus className="w-3.5 h-3.5" />Aprovar e Criar Acesso</>
+                  )}
                 </button>
               </div>
             </div>
@@ -3500,29 +3663,48 @@ function RequestsModule({ requests }: { requests: any[] }) {
   );
 }
 
-function PrescriptionModule() {
+function PrescriptionModule({ coachId }: { coachId?: string }) {
   const [athletes, setAthletes] = useState<any[]>([]);
   const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [searchAthlete, setSearchAthlete] = useState('');
+  const [sending, setSending] = useState(false);
   const [prescription, setPrescription] = useState({
     strength: { method: '', intensity: '', duration: '', restSeries: '', restReps: '' },
-    hiit: { 
-      protocol: '', format: '', workInt: '', workDur: '', recInt: '', recDur: '', 
-      series: '', reps: '', bSeriesDur: '', bSeriesInt: '', modality: '', 
-      env: '', nutrition: '', totalKm: 0, totalTime: 0 
-    },
-    continuous: { modality: '', intensity: '', duration: '', notes: '', totalKm: 0, totalTime: 0 },
-    plyometrics: { 
-      drill: '', height: '', load: '', series: '', reps: '', totalContacts: 0, 
-      notes: '', experience: 'Beginner', jumpType: 'Bilateral' 
-    },
-    agility: { drill: '', reps: '', series: '', rest: '', notes: '' },
-    power: { method: '', intensity: '', duration: '', restSeries: '', restReps: '' },
+    hiit: { protocol: '', workDur: '', recDur: '', workInt: '', recInt: '', series: '', reps: '', bSeriesDur: '', totalKm: '0', totalTime: '0', modality: '' },
+    continuous: { intensity: '', duration: '', modality: '', totalKm: '0', totalTime: '0' },
+    agility: { protocol: '', drills: '', series: '', reps: '', restSeries: '', notes: '' },
+    plyometrics: { drill: '', experience: 'Beginner', jumpType: 'Bilateral', series: '', reps: '', restSeries: '', totalContacts: '0', notes: '' },
     flexibility: { method: '', intensity: '', duration: '', restSeries: '', restReps: '' },
+    power: { method: '', intensity: '', duration: '', restSeries: '', restReps: '' },
     prevVolume: ''
   });
+
+  const handleSendPrescription = async () => {
+    if (!selectedAthlete || !coachId) return;
+    
+    setSending(true);
+    try {
+      const result = await saveTrainingPrescription({
+        athlete_id: selectedAthlete.id,
+        coach_id: coachId,
+        athlete_name: selectedAthlete.full_name,
+        data: prescription
+      });
+
+      if (result.success) {
+        alert('Prescrição enviada com sucesso para ' + selectedAthlete.full_name);
+      } else {
+        alert('Erro ao enviar: ' + result.error);
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Erro inesperado ao enviar prescrição.');
+    } finally {
+      setSending(false);
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -3767,11 +3949,15 @@ function PrescriptionModule() {
                 </div>
               </div>
 
-              <button 
-                className="w-full py-6 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase italic tracking-widest rounded-3xl shadow-xl shadow-blue-600/20 transition-all flex items-center justify-center gap-3 group"
+               <button 
+                onClick={handleSendPrescription}
+                disabled={sending}
+                className={`w-full py-6 text-white font-black uppercase italic tracking-widest rounded-3xl shadow-xl transition-all flex items-center justify-center gap-3 group ${
+                  sending ? 'bg-slate-700 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'
+                }`}
               >
-                <Download className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
-                Salvar e Enviar Prescrição
+                <Download className={`w-5 h-5 ${sending ? 'animate-spin' : 'group-hover:translate-y-1 transition-transform'}`} />
+                {sending ? 'Enviando...' : 'Salvar e Enviar Prescrição'}
               </button>
             </div>
           ) : (

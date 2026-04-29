@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Clock, Zap, Calendar, CheckCircle2, Save, LogOut, FileText, Mail, User } from 'lucide-react';
+import { ArrowLeft, Clock, Zap, Calendar, CheckCircle2, Save, LogOut, FileText, Mail, User, Dumbbell } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { logWorkout, logWellness, logAnamnesis, getUserRole } from '../actions';
+import { logWorkout, logWellness, logAnamnesis, getUserRole, getActivePrescription, completeTraining } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
 
 const WELLNESS_LABELS = {
@@ -52,7 +52,7 @@ const BORG_RPE_LABELS: Record<number, string> = {
 };
 
 export default function AthletePage() {
-  const [activeTab, setActiveTab] = useState<'workout' | 'wellness' | 'anamnesis' | null>(null);
+  const [activeTab, setActiveTab] = useState<'workout' | 'wellness' | 'anamnesis' | 'training' | null>(null);
   const [formData, setFormData] = useState({
     athleteName: '',
     duration: '',
@@ -83,8 +83,11 @@ export default function AthletePage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [activePrescription, setActivePrescription] = useState<any>(null);
+  const [completedExercises, setCompletedExercises] = useState<Record<string, boolean>>({});
+  const [trainingSummary, setTrainingSummary] = useState({ rpe: 13, duration: '' });
 
   React.useEffect(() => {
     async function checkAuth() {
@@ -108,6 +111,9 @@ export default function AthletePage() {
       if (profile) {
         setFormData(prev => ({ ...prev, athleteName: profile.full_name }));
       }
+
+      const prescription = await getActivePrescription(session.user.id);
+      setActivePrescription(prescription);
     }
     checkAuth();
   }, []);
@@ -164,6 +170,36 @@ export default function AthletePage() {
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       alert('Erro ao salvar anamnese.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCompleteTraining = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activePrescription) return;
+    if (!trainingSummary.duration) return alert('Informe a duração real do treino.');
+    
+    setIsSubmitting(true);
+    try {
+      const res = await completeTraining(activePrescription.id, {
+        athleteId: user.id,
+        athleteName: formData.athleteName,
+        rpe: trainingSummary.rpe,
+        duration: Number(trainingSummary.duration),
+        volume: 0 // Podia ser calculado aqui se necessário
+      });
+
+      if (res.success) {
+        setShowSuccess(true);
+        setActivePrescription(null);
+        setActiveTab(null);
+        setTimeout(() => setShowSuccess(false), 3000);
+      } else {
+        alert('Erro ao concluir treino: ' + res.error);
+      }
+    } catch (error) {
+      alert('Erro ao salvar conclusão.');
     } finally {
       setIsSubmitting(false);
     }
@@ -227,12 +263,26 @@ export default function AthletePage() {
                 accentColor="from-blue-500/20 to-transparent"
               />
             </div>
+
+            {activePrescription && (
+               <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-[2rem] blur opacity-30 animate-pulse transition duration-1000"></div>
+                <MenuCard 
+                  title="Prescrição" 
+                  sub="Treinamento Pendente" 
+                  icon={<Dumbbell className="w-10 h-10 text-yellow-400" />} 
+                  onClick={() => setActiveTab('training')} 
+                  color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-yellow-500/30"
+                  accentColor="from-yellow-500/20 to-transparent"
+                />
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-6">
             <div className="bento-card bg-slate-800 border-slate-700 shadow-xl overflow-hidden p-0">
-              <div className={`px-8 py-4 ${activeTab === 'workout' ? 'bg-blue-600' : activeTab === 'wellness' ? 'bg-emerald-600' : 'bg-purple-600'}`}>
-                <h2 className="text-sm font-black text-white uppercase italic">{activeTab === 'workout' ? 'Treino' : activeTab === 'wellness' ? 'Wellness' : 'Anamnese'}</h2>
+              <div className={`px-8 py-4 ${activeTab === 'workout' ? 'bg-blue-600' : activeTab === 'wellness' ? 'bg-emerald-600' : activeTab === 'training' ? 'bg-yellow-600' : 'bg-purple-600'}`}>
+                <h2 className="text-sm font-black text-white uppercase italic">{activeTab === 'workout' ? 'Treino' : activeTab === 'wellness' ? 'Wellness' : activeTab === 'training' ? 'Prescrição do Treinador' : 'Anamnese'}</h2>
               </div>
               
               <div className="p-8 space-y-8">
@@ -316,6 +366,66 @@ export default function AthletePage() {
                     </div>
                     <SubmitButton loading={isSubmitting} color="bg-purple-600 hover:bg-purple-500" />
                   </form>
+                )}
+
+                {activeTab === 'training' && activePrescription && (
+                   <form onSubmit={handleCompleteTraining} className="space-y-8">
+                     <div className="space-y-6">
+                        {Object.entries(activePrescription.data).map(([key, value]: [string, any]) => {
+                          if (typeof value !== 'object' || !value || Object.values(value).every(v => !v)) return null;
+                          
+                          const labels: Record<string, string> = {
+                            strength: 'Treinamento de Força',
+                            hiit: 'HIIT (Laursen & Buchheit)',
+                            continuous: 'Treinamento Contínuo',
+                            plyometrics: 'Pliometria (NSCA)',
+                            agility: 'Agilidade',
+                            power: 'Potência',
+                            flexibility: 'Flexibilidade'
+                          };
+
+                          return (
+                            <div key={key} className="p-6 bg-slate-900/50 border border-slate-700 rounded-2xl space-y-4">
+                               <div className="flex items-center justify-between">
+                                  <h4 className="text-[10px] font-black text-yellow-500 uppercase italic tracking-widest">{labels[key] || key}</h4>
+                                  <input 
+                                    type="checkbox" 
+                                    checked={completedExercises[key] || false}
+                                    onChange={(e) => setCompletedExercises({...completedExercises, [key]: e.target.checked})}
+                                    className="w-5 h-5 rounded border-slate-700 bg-slate-800 text-yellow-500 focus:ring-yellow-500"
+                                  />
+                               </div>
+                               <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                                  {Object.entries(value).map(([field, val]) => {
+                                    if (!val || field === 'totalKm' || field === 'totalTime' || field === 'totalContacts') return null;
+                                    return (
+                                      <div key={field}>
+                                        <p className="text-[8px] font-black text-slate-500 uppercase">{field}</p>
+                                        <p className="text-[10px] font-bold text-white">{val as string}</p>
+                                      </div>
+                                    );
+                                  })}
+                               </div>
+                            </div>
+                          );
+                        })}
+                     </div>
+
+                     <div className="space-y-6 border-t border-slate-700 pt-8">
+                        <p className="text-[10px] font-black text-slate-500 uppercase italic">Dados de Conclusão</p>
+                        <div className="grid grid-cols-2 gap-4">
+                          <Input label="Duração Real (min)" type="number" value={trainingSummary.duration} onChange={(v) => setTrainingSummary({...trainingSummary, duration: v})} />
+                          <div className="flex flex-col justify-end">
+                            <p className="text-[8px] font-black text-slate-600 uppercase mb-2 text-center">Status Geral</p>
+                            <div className="py-3 bg-slate-900 rounded-xl text-center text-[10px] font-black text-emerald-500 uppercase italic">
+                               {Math.round((Object.values(completedExercises).filter(Boolean).length / Object.keys(activePrescription.data).filter(k => k !== 'prevVolume' && (activePrescription.data[k]?.method || activePrescription.data[k]?.protocol || activePrescription.data[k]?.modality || activePrescription.data[k]?.drill)).length || 1) * 100)}% Concluído
+                            </div>
+                          </div>
+                        </div>
+                        <RPESelector label="Esforço Percebido (PSE)" value={trainingSummary.rpe} onChange={(v) => setTrainingSummary({...trainingSummary, rpe: v})} labels={BORG_RPE_LABELS} />
+                        <SubmitButton loading={isSubmitting} color="bg-yellow-600 hover:bg-yellow-500" />
+                     </div>
+                   </form>
                 )}
               </div>
             </div>

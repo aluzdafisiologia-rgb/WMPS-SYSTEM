@@ -268,3 +268,150 @@ export async function getAthletes() {
     return [];
   }
 }
+
+export async function saveTrainingPrescription(prescription: any) {
+  if (!supabase) throw new Error('Supabase client not initialized');
+  try {
+    const { data, error } = await supabase
+      .from('training_prescriptions')
+      .insert([{
+        athlete_id: prescription.athlete_id,
+        coach_id: prescription.coach_id,
+        athlete_name: prescription.athlete_name,
+        date: new Date().toISOString().split('T')[0],
+        status: 'pending',
+        data: prescription.data
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    revalidatePath('/athlete');
+    return { success: true, data };
+  } catch (error: any) {
+    console.error('Error saving prescription:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getActivePrescription(athleteId: string) {
+  if (!supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .from('training_prescriptions')
+      .select('*')
+      .eq('athlete_id', athleteId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Error getting active prescription:', error);
+    return null;
+  }
+}
+
+export async function completeTraining(prescriptionId: string, workoutData: any) {
+  if (!supabase) throw new Error('Supabase client not initialized');
+  try {
+    // 1. Marcar prescrição como concluída
+    const { error: pError } = await supabase
+      .from('training_prescriptions')
+      .update({ 
+        status: 'completed',
+        completed_at: new Date().toISOString()
+      })
+      .eq('id', prescriptionId);
+
+    if (pError) throw pError;
+
+    // 2. Logar na tabela de sessões para cálculos de carga
+    await supabase.from('sessions').insert([{
+      athlete_id: workoutData.athleteId,
+      athlete_name: workoutData.athleteName,
+      date: new Date().toISOString().split('T')[0],
+      rpe: workoutData.rpe,
+      duration: workoutData.duration,
+      load: workoutData.rpe * workoutData.duration,
+      distance: workoutData.distance || 0,
+      volume: workoutData.volume || 0,
+      training_id: prescriptionId // Link para auditoria
+    }]);
+
+    revalidatePath('/coach');
+    revalidatePath('/athlete');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error completing training:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function approveRegistration(requestId: string) {
+  if (!supabase) return { success: false, error: 'Supabase não configurado' };
+  
+  try {
+    // 1. Buscar a solicitação
+    const { data: request, error: reqError } = await supabase
+      .from('registration_requests')
+      .select('*')
+      .eq('id', requestId)
+      .single();
+    
+    if (reqError || !request) throw new Error('Solicitação não encontrada');
+
+    // 2. Gerar senha provisória (8 caracteres alfanuméricos + prefixo)
+    const tempPassword = Math.random().toString(36).slice(-8) + 'WMPS!';
+
+    // 3. Criar usuário no Auth (Service Role permite isso)
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: request.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { full_name: request.full_name }
+    });
+
+    if (authError) {
+      // Se o erro for que o usuário já existe, tentamos apenas atualizar o status
+      if (authError.message.includes('already registered')) {
+         await supabase.from('registration_requests').update({ status: 'aprovado' }).eq('id', requestId);
+         return { success: true, alreadyExists: true };
+      }
+      throw authError;
+    }
+
+    // 4. Criar perfil
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert([{
+        id: authData.user.id,
+        full_name: request.full_name,
+        email: request.email,
+        birth_date: request.birth_date,
+        role: 'athlete',
+        must_change_password: true
+      }]);
+
+    if (profileError) throw profileError;
+
+    // 5. Atualizar status da solicitação
+    await supabase
+      .from('registration_requests')
+      .update({ status: 'aprovado' })
+      .eq('id', requestId);
+
+    revalidatePath('/coach');
+    return { 
+      success: true, 
+      email: request.email, 
+      password: tempPassword,
+      fullName: request.full_name
+    };
+  } catch (error: any) {
+    console.error('Error approving registration:', error);
+    return { success: false, error: error.message };
+  }
+}
