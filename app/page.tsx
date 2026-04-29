@@ -8,13 +8,13 @@ import {
   LogIn, UserPlus, ArrowLeft, Calendar, Ruler, Weight, 
   Trophy, Target, Zap, ChevronLeft
 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 import { registerProfile, submitRegistrationRequest } from './actions';
 
 type ViewState = 'login' | 'register' | 'selection';
 
 export default function Home() {
   const [view, setView] = useState<ViewState>('login');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -34,6 +34,47 @@ export default function Home() {
     guardianCpf: ''
   });
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) {
+      alert('Sistema de login indisponível. Verifique as chaves.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    
+    try {
+      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (loginError) {
+        setError('Credenciais inválidas ou usuário inexistente.');
+        setLoading(false);
+        return;
+      }
+
+      // Buscar o perfil para saber a função
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('email', email)
+        .single();
+
+      if (profile?.role === 'coach') {
+        window.location.href = '/coach';
+      } else {
+        window.location.href = '/athlete';
+      }
+    } catch (err) {
+      setError('Erro inesperado ao tentar entrar.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const isMinor = (dateString: string) => {
     if (!dateString) return false;
     const today = new Date();
@@ -44,25 +85,6 @@ export default function Home() {
       age--;
     }
     return age < 18;
-  };
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-
-    setTimeout(() => {
-      if (email.toLowerCase() === 'admin' && password === 'admin') {
-        setIsLoggedIn(true);
-        setView('selection');
-      } else if (email && password) {
-        setIsLoggedIn(true);
-        setView('selection');
-      } else {
-        setError('Credenciais inválidas. Tente admin / admin');
-      }
-      setLoading(false);
-    }, 800);
   };
 
   const handleRegister = async (e: React.FormEvent) => {

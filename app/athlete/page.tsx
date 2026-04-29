@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Clock, Zap, Calendar, CheckCircle2, Save } from 'lucide-react';
+import { ArrowLeft, Clock, Zap, Calendar, CheckCircle2, Save, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 import { logWorkout, logWellness } from '../actions';
 
 
@@ -68,6 +69,35 @@ export default function AthletePage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  React.useEffect(() => {
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.href = '/';
+        return;
+      }
+      setUser(session.user);
+      
+      // Auto-preencher o nome do atleta
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (profile) {
+        setFormData(prev => ({ ...prev, athleteName: profile.full_name }));
+      }
+    }
+    checkAuth();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  };
 
   const handleSubmitWorkout = async (e: React.FormEvent) => {
     e.preventDefault();

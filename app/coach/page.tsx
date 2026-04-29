@@ -29,6 +29,7 @@ import {
   User
 } from 'lucide-react';
 import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
 import { getSessions, getWellness, getRegistrationRequests } from '../actions';
 import { Session, WellnessEntry } from '@/lib/db';
 import { 
@@ -52,11 +53,11 @@ import { format, parseISO, eachDayOfInterval, isSameDay, differenceInDays } from
 
 // Hooper Index Scale
 const HOOPER_SCALE = {
-  1: { label: 'PÃ©ssimo', abbr: 'P', color: 'text-red-500' },
+  1: { label: 'Péssimo', abbr: 'P', color: 'text-red-500' },
   2: { label: 'Ruim', abbr: 'R', color: 'text-orange-500' },
   3: { label: 'Bom', abbr: 'B', color: 'text-emerald-500' },
   4: { label: 'Muito Bom', abbr: 'MB', color: 'text-blue-500' },
-  5: { label: 'Ã“timo', abbr: 'OT', color: 'text-blue-400' }
+  5: { label: 'Ótimo', abbr: 'OT', color: 'text-blue-400' }
 };
 
 const WELLNESS_CLASS = (score: number) => {
@@ -73,7 +74,29 @@ export default function CoachPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'periodization' | 'prescription' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'requests'>('menu');
   const [requests, setRequests] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
+
   useEffect(() => {
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.href = '/';
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profile?.role !== 'coach') {
+        window.location.href = '/';
+        return;
+      }
+      setUser(session.user);
+    }
+
     async function loadData() {
       try {
         const [sessionData, wellnessData, requestData] = await Promise.all([
@@ -90,8 +113,14 @@ export default function CoachPage() {
         setLoading(false);
       }
     }
-    loadData();
+
+    checkAuth().then(loadData);
   }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  };
 
   const filteredSessions = sessions.filter(s => 
     s.athleteName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -267,25 +296,25 @@ export default function CoachPage() {
               onClick={() => setActiveModule('dashboard')} 
             />
             <MenuButton 
-              title="AvaliaÃ§Ãµes" 
+              title="Avaliações" 
               subtitle="Antropometria e Testes" 
               icon={<ClipboardList className="w-8 h-8 text-emerald-500" />} 
               onClick={() => setActiveModule('assessment')} 
             />
             <MenuButton 
-              title="PeriodizaÃ§Ã£o" 
+              title="Periodização" 
               subtitle="Planejamento Macrociclo" 
               icon={<Target className="w-8 h-8 text-amber-500" />} 
               onClick={() => setActiveModule('periodization')} 
             />
             <MenuButton 
-              title="PrescriÃ§Ã£o" 
+              title="Prescrição" 
               subtitle="Montagem de Treinos" 
               icon={<FileText className="w-8 h-8 text-purple-500" />} 
               onClick={() => setActiveModule('prescription')} 
             />
             <MenuButton 
-              title="SolicitaÃ§Ãµes" 
+              title="Solicitações" 
               subtitle="Novos Cadastros" 
               icon={<div className="relative"><UserPlus className="w-8 h-8 text-rose-500" />{requests.length > 0 && <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-black animate-bounce">{requests.length}</span>}</div>} 
               onClick={() => setActiveModule('requests')} 
