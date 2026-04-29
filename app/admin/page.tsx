@@ -12,7 +12,6 @@ import { supabase } from '@/lib/supabase';
 import { getPendingRequests, getAllUsers, approveRegistration, denyRegistration, changeUserRole } from './actions';
 import { getUserRole } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
-import { useAuth } from '@/hooks/useAuth'; // Assumindo que temos o ID do user no estado ou via supabase.auth.getUser()
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
