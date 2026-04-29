@@ -119,3 +119,29 @@ export async function getWellness() {
     return [];
   }
 }
+
+export async function registerProfile(profile: any) {
+  const athlete_id = profile.fullName.toLowerCase().replace(/\s+/g, '-');
+  const data = {
+    athlete_id,
+    full_name: profile.fullName,
+    email: profile.email,
+    birth_date: profile.birthDate,
+    gender: profile.gender,
+    height: profile.height,
+    weight: profile.weight,
+    sport: profile.sport,
+    goal: profile.goal,
+    experience_level: profile.experienceLevel
+  };
+
+  try {
+    const result = await saveProfile(data); 
+    revalidatePath('/');
+    revalidatePath('/coach');
+    return result;
+  } catch (error) {
+    console.error('Action error (registerProfile):', error);
+    throw error;
+  }
+}
