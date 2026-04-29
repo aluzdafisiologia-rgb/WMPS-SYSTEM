@@ -251,3 +251,20 @@ export async function getUserRole(userId: string) {
     return 'athlete';
   }
 }
+
+export async function getAthletes() {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'athlete')
+      .order('full_name', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting athletes:', error);
+    return [];
+  }
+}

@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis } from '../actions';
+import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis, getAthletes } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
 import { Session, WellnessEntry } from '@/lib/db';
 import { 
@@ -267,12 +267,12 @@ export default function CoachPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex flex-col items-center gap-1">
-            <Link href="/" className="bg-black text-emerald-500 border-2 border-emerald-500 font-black px-3 py-0.5 rounded text-xl italic skew-x-[-10deg] shadow-[0_0_10px_rgba(16,185,129,0.25)]">
+            <Link href="/" className="bg-black text-emerald-500 border-2 border-emerald-500 font-black px-6 py-1 rounded-lg text-2xl italic skew-x-[-10deg] shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-transform hover:scale-105 active:scale-95">
               WMPS
             </Link>
             <div className="text-center">
-              <h1 className="text-[10px] font-black leading-tight text-white uppercase italic tracking-[0.1em]">William Moreira</h1>
-              <p className="text-[8px] text-slate-500 uppercase tracking-[0.2em] font-bold -mt-0.5">Performance System</p>
+              <h1 className="text-xs font-black leading-tight text-white uppercase italic tracking-[0.2em]">William Moreira</h1>
+              <p className="text-[10px] text-emerald-500 uppercase tracking-[0.3em] font-black -mt-0.5">Performance System</p>
             </div>
           </div>
         </div>
@@ -781,18 +781,31 @@ export default function CoachPage() {
             
             <PeriodizationModule />
           </div>
+        ) : activeModule === 'prescription' ? (
+          <div className="space-y-8">
+            <button 
+              onClick={() => setActiveModule('menu')}
+              className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              Voltar ao Menu
+            </button>
+            
+            <PrescriptionModule />
+          </div>
         ) : (
           <div className="py-20 flex flex-col items-center justify-center text-center space-y-6">
             <div className="w-20 h-20 bg-slate-800 rounded-3xl flex items-center justify-center border border-slate-700">
                <Info className="w-10 h-10 text-slate-500" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white uppercase italic">Mà³dulo em Desenvolvimento</h3>
+              <h3 className="text-xl font-black text-white uppercase italic">Módulo em Desenvolvimento</h3>
               <p className="text-slate-500 text-sm font-medium mt-2">Esta funcionalidade estará disponível em breve no WMPS.</p>
             </div>
             <button 
               onClick={() => {
-                if (activeModule.startsWith('assessment_')) {
+                const module = activeModule as string;
+                if (module.startsWith('assessment_')) {
                   setActiveModule('assessment');
                 } else {
                   setActiveModule('menu');
@@ -1307,7 +1320,7 @@ function PowerAssessmentModule() {
               <div className="space-y-6">
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <PowerClassCard 
-                      label="ExplosÃÃ‚Â£o" 
+                      label="Explosão" 
                       value={testType === 'ssc_analytics' ? (results.sscDiff as number > 15 ? 'Altíssima' : 'Normal') : 'Avaliado'} 
                       icon={<Zap className="w-5 h-5" />} 
                     />
@@ -1320,16 +1333,16 @@ function PowerAssessmentModule() {
                  </div>
 
                  <div className="bg-slate-800/40 p-6 rounded-2xl border border-slate-800">
-                    <h4 className="text-[10px] font-black text-white uppercase italic mb-4">Transferência para o Treino</h4>
+                    <h4 className="text-[10px] font-black text-white uppercase italic mb-4">Transferência para o Treinamento</h4>
                     <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
                       {testType === 'ssc_analytics' ? (
                         `O Ciclo Alongamento-Encurtamento (SSC) apresenta uma vantagem de ${results.sscDiff?.toFixed(1)}%. Um EUR acima de 1.10 indica boa utilização elástica. 
-                        Se abaixo disto, foque em treinos de potência explosiva e saltos pliométricos.`
+                        Se estiver abaixo desse valor, priorize treinamentos de potência explosiva e saltos pliométricos.`
                       ) : testType === 'rsi' ? (
-                        `O ÃÃ‚Ândice de Força Reativa de ${results.rsiValue?.toFixed(2)} indica a capacidade de mudar rapidamente de ação excêntrica para concêntrica. 
-                        Valores acima de 2.0 sÃÃ‚Â£o típicos de atletas bem treinados para pliometria.`
+                        `O Índice de Força Reativa de ${results.rsiValue?.toFixed(2)} indica a capacidade de transição rápida da ação excêntrica para a concêntrica. 
+                        Valores acima de 2.0 são típicos de atletas bem treinados em pliometria.`
                       ) : (
-                        `Capacidade detectada para o teste de ${testType}. Os dados sugerem foco em ${results.relativePower as number < 40 ? 'Potência Base' : 'Pliometria e Velocidade'}.`
+                        `Capacidade detectada para o teste de ${testType}. Os dados sugerem foco em ${results.relativePower as number < 40 ? 'Potência de Base' : 'Pliometria e Velocidade'}.`
                       )}
                     </p>
                  </div>
@@ -1340,7 +1353,7 @@ function PowerAssessmentModule() {
           <div className="h-full flex flex-col items-center justify-center p-12 text-center bg-slate-900/20 border border-dashed border-slate-800 rounded-[2rem]">
             <Zap className="w-12 h-12 text-slate-700 mb-4" />
             <h4 className="text-slate-500 font-black uppercase italic tracking-widest">Insira os dados para calcular</h4>
-            <p className="text-slate-600 text-[10px] mt-2 max-w-[200px]">Utilize instrumentos validados (fita métrica ou cronÃÃ‚Â´metro) para maior precisÃÃ‚Â£o.</p>
+            <p className="text-slate-600 text-[10px] mt-2 max-w-[200px]">Utilize instrumentos validados (fita métrica ou cronômetro) para maior precisão.</p>
           </div>
         )}
       </div>
@@ -1454,14 +1467,14 @@ function AnthropometricAssessmentModule() {
     let classification = "Normal";
     if (bodyFat) {
       if (gender === 'male') {
-        // ACSM 11th ed. (2022) norms âââ€šÂ¬ââ‚¬Â Men
+        // ACSM 11th ed. (2022) norms - Men
         if (bodyFat < 6) classification = "Mínimo Essencial";
         else if (bodyFat <= 13) classification = "Atleta/Excelente";
         else if (bodyFat <= 17) classification = "Fitness/Bom";
         else if (bodyFat <= 24) classification = "Aceitável";
         else classification = "Obesidade/Risco";
       } else {
-        // ACSM 11th ed. (2022) norms âââ€šÂ¬ââ‚¬Â Women
+        // ACSM 11th ed. (2022) norms - Women
         if (bodyFat < 14) classification = "Mínimo Essencial";
         else if (bodyFat <= 20) classification = "Atleta/Excelente";
         else if (bodyFat <= 24) classification = "Fitness/Bom";
@@ -3482,6 +3495,796 @@ function RequestsModule({ requests }: { requests: any[] }) {
             </div>
           ))
         )}
+      </div>
+    </div>
+  );
+}
+
+function PrescriptionModule() {
+  const [athletes, setAthletes] = useState<any[]>([]);
+  const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [searchAthlete, setSearchAthlete] = useState('');
+  const [prescription, setPrescription] = useState({
+    strength: { method: '', intensity: '', duration: '', restSeries: '', restReps: '' },
+    hiit: { 
+      protocol: '', format: '', workInt: '', workDur: '', recInt: '', recDur: '', 
+      series: '', reps: '', bSeriesDur: '', bSeriesInt: '', modality: '', 
+      env: '', nutrition: '', totalKm: 0, totalTime: 0 
+    },
+    continuous: { modality: '', intensity: '', duration: '', notes: '', totalKm: 0, totalTime: 0 },
+    plyometrics: { 
+      drill: '', height: '', load: '', series: '', reps: '', totalContacts: 0, 
+      notes: '', experience: 'Beginner', jumpType: 'Bilateral' 
+    },
+    agility: { drill: '', reps: '', series: '', rest: '', notes: '' },
+    power: { method: '', intensity: '', duration: '', restSeries: '', restReps: '' },
+    flexibility: { method: '', intensity: '', duration: '', restSeries: '', restReps: '' },
+    prevVolume: ''
+  });
+
+  useEffect(() => {
+    async function load() {
+      const data = await getAthletes();
+      const allSessions = await getSessions();
+      setAthletes(data);
+      setSessions(allSessions);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const athleteSessions = useMemo(() => {
+    if (!selectedAthlete) return [];
+    return sessions.filter(s => s.athlete_id === selectedAthlete.id || s.athlete_name === selectedAthlete.full_name);
+  }, [selectedAthlete, sessions]);
+
+  const internalLoadData = useMemo(() => {
+    return athleteSessions.slice(0, 10).reverse().map(s => ({
+      date: format(parseISO(s.date), 'dd/MM'),
+      load: s.load
+    }));
+  }, [athleteSessions]);
+
+  const filteredAthletes = useMemo(() => {
+    return athletes.filter(a => 
+      a.full_name?.toLowerCase().includes(searchAthlete.toLowerCase()) ||
+      a.sport?.toLowerCase().includes(searchAthlete.toLowerCase())
+    );
+  }, [athletes, searchAthlete]);
+
+  if (loading) return <div className="text-center py-20 font-black text-slate-500 uppercase italic">Carregando Atletas...</div>;
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-black text-white uppercase italic">Prescrição de Treinamento</h2>
+          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Painel de Controle Individual do Atleta</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Athlete List */}
+        <div className="lg:col-span-3 space-y-4 max-h-[800px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <input 
+              type="text" 
+              placeholder="Buscar atleta..."
+              value={searchAthlete}
+              onChange={(e) => setSearchAthlete(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none"
+            />
+          </div>
+          
+          {filteredAthletes.map(athlete => (
+            <button 
+              key={athlete.id}
+              onClick={() => setSelectedAthlete(athlete)}
+              className={`w-full p-4 text-left rounded-2xl border transition-all flex items-center gap-4 ${
+                selectedAthlete?.id === athlete.id ? 'bg-blue-600 border-blue-500 shadow-lg' : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black italic text-sm ${selectedAthlete?.id === athlete.id ? 'bg-white/20 text-white' : 'bg-slate-800 text-blue-500'}`}>
+                {athlete.full_name?.charAt(0)}
+              </div>
+              <div>
+                <h4 className="text-xs font-black text-white uppercase italic">{athlete.full_name}</h4>
+                <p className="text-[9px] text-slate-500 font-bold uppercase">{athlete.sport || 'N/A'}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Prescription Dashboard */}
+        <div className="lg:col-span-9">
+          {selectedAthlete ? (
+            <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
+              {/* Athlete Summary Card */}
+              <div className="bento-card bg-slate-900 border-slate-800 p-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div className="md:col-span-2 space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-3xl font-black text-white italic">
+                      {selectedAthlete.full_name?.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-white uppercase italic">{selectedAthlete.full_name}</h3>
+                      <p className="text-xs text-blue-400 font-black uppercase italic tracking-widest">{selectedAthlete.goal || 'Objetivo não definido'}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800">
+                    <div>
+                      <p className="text-[9px] font-black text-slate-500 uppercase">Idade</p>
+                      <p className="text-sm font-black text-white italic">{differenceInDays(new Date(), parseISO(selectedAthlete.birth_date)) / 365 | 0} Anos</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-500 uppercase">Esporte</p>
+                      <p className="text-sm font-black text-white italic">{selectedAthlete.sport || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-500 uppercase">Altura</p>
+                      <p className="text-sm font-black text-white italic">{selectedAthlete.height} cm</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-500 uppercase">Peso</p>
+                      <p className="text-sm font-black text-white italic">{selectedAthlete.weight} kg</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 space-y-4">
+                   <div className="flex items-center justify-between">
+                      <p className="label-caps italic">Carga Interna Recente</p>
+                      <TrendingUp className="w-4 h-4 text-blue-500" />
+                   </div>
+                   <div className="h-[120px] w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={internalLoadData}>
+                          <defs>
+                            <linearGradient id="colorPrescLoad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <Area type="monotone" dataKey="load" stroke="#3b82f6" fillOpacity={1} fill="url(#colorPrescLoad)" strokeWidth={2} />
+                          <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b' }} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                   </div>
+                </div>
+              </div>
+
+              {/* physiological metrics */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <MetricBox label="% 1RM" value="85%" subValue="Força" color="text-red-500" />
+                <MetricBox label="% vVO2max" value="105%" subValue="Cardio" color="text-blue-500" />
+                <MetricBox label="% FCmax" value="92%" subValue="Esforço" color="text-orange-500" />
+                <MetricBox label="% FCres" value="80%" subValue="Reserva" color="text-emerald-500" />
+              </div>
+
+              {/* Prescription Forms */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <PrescriptionCard 
+                  title="Treinamento de Força" 
+                  icon={<Dumbbell className="w-5 h-5 text-blue-500" />}
+                  values={prescription.strength}
+                  onChange={(field, val) => setPrescription({...prescription, strength: {...prescription.strength, [field]: val}})}
+                />
+                <HIITCard 
+                  values={prescription.hiit}
+                  onChange={(field, val) => setPrescription({...prescription, hiit: {...prescription.hiit, [field]: val}})}
+                />
+                <ContinuousCard 
+                  values={prescription.continuous}
+                  onChange={(field, val) => setPrescription({...prescription, continuous: {...prescription.continuous, [field]: val}})}
+                />
+                <AgilityCard 
+                  values={prescription.agility}
+                  onChange={(field, val) => setPrescription({...prescription, agility: {...prescription.agility, [field]: val}})}
+                />
+                <PlyometricsCard 
+                  values={prescription.plyometrics}
+                  onChange={(field, val) => setPrescription({...prescription, plyometrics: {...prescription.plyometrics, [field]: val}})}
+                />
+                <PrescriptionCard 
+                  title="Potência / Explosão" 
+                  icon={<Zap className="w-5 h-5 text-yellow-500" />}
+                  values={prescription.power}
+                  onChange={(field, val) => setPrescription({...prescription, power: {...prescription.power, [field]: val}})}
+                />
+                <PrescriptionCard 
+                  title="Flexibilidade / Mobilidade" 
+                  icon={<MoveHorizontal className="w-5 h-5 text-purple-500" />}
+                  values={prescription.flexibility}
+                  onChange={(field, val) => setPrescription({...prescription, flexibility: {...prescription.flexibility, [field]: val}})}
+                />
+              </div>
+
+              {/* Load Analysis and Alerts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bento-card bg-slate-900 border-slate-800 p-6 flex flex-col justify-center">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-[10px] font-black text-slate-500 uppercase italic">Análise de Progressão (KM)</p>
+                    <Scale className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex-1 space-y-1">
+                      <label className="text-[8px] font-black text-slate-600 uppercase">Vol. Semana Anterior (KM)</label>
+                      <input 
+                        type="number" 
+                        value={prescription.prevVolume}
+                        onChange={(e) => setPrescription({...prescription, prevVolume: e.target.value})}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white outline-none"
+                        placeholder="Ex: 15"
+                      />
+                    </div>
+                    <div className="flex-1 text-center">
+                      <p className="text-[8px] font-black text-slate-600 uppercase">Variação %</p>
+                      {(() => {
+                        const currentVol = (Number(prescription.hiit.totalKm) || 0) + (Number(prescription.continuous.totalKm) || 0);
+                        const prevVol = Number(prescription.prevVolume) || 0;
+                        if (!prevVol) return <p className="text-xl font-black text-slate-500">--</p>;
+                        const diff = ((currentVol - prevVol) / prevVol) * 100;
+                        const isHighRisk = diff > 10;
+                        return (
+                          <div className="space-y-1">
+                            <p className={`text-xl font-black italic ${diff > 0 ? (isHighRisk ? 'text-red-500' : 'text-emerald-500') : 'text-blue-500'}`}>
+                              {diff > 0 ? '+' : ''}{diff.toFixed(1)}%
+                            </p>
+                            {isHighRisk && (
+                              <div className="flex items-center justify-center gap-1 text-[8px] font-black text-red-500 uppercase animate-pulse">
+                                <AlertTriangle className="w-3 h-3" /> Risco de Lesão
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bento-card bg-slate-900 border-slate-800 p-6 flex flex-col justify-center">
+                   <div className="flex items-center justify-between mb-2">
+                      <p className="text-[10px] font-black text-slate-500 uppercase italic">Volume Total Prescrito</p>
+                      <Activity className="w-4 h-4 text-emerald-500" />
+                   </div>
+                   <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-[8px] font-black text-slate-600 uppercase">Distância Total</p>
+                        <p className="text-2xl font-black text-white italic">
+                          {((Number(prescription.hiit.totalKm) || 0) + (Number(prescription.continuous.totalKm) || 0)).toFixed(2)} <span className="text-xs text-slate-500 not-italic">KM</span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[8px] font-black text-slate-600 uppercase">Tempo Total</p>
+                        <p className="text-2xl font-black text-white italic">
+                          {((Number(prescription.hiit.totalTime) || 0) + (Number(prescription.continuous.totalTime) || 0)).toFixed(0)} <span className="text-xs text-slate-500 not-italic">MIN</span>
+                        </p>
+                      </div>
+                   </div>
+                </div>
+              </div>
+
+              <button 
+                className="w-full py-6 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase italic tracking-widest rounded-3xl shadow-xl shadow-blue-600/20 transition-all flex items-center justify-center gap-3 group"
+              >
+                <Download className="w-5 h-5 group-hover:translate-y-1 transition-transform" />
+                Salvar e Enviar Prescrição
+              </button>
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-center p-20 bento-card bg-slate-900/30 border-dashed border-slate-800">
+              <User className="w-16 h-16 text-slate-800 mb-4" />
+              <p className="text-slate-600 font-black uppercase italic tracking-widest text-sm">Selecione um atleta para iniciar a prescrição</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetricBox({ label, value, subValue, color }: { label: string, value: string, subValue: string, color: string }) {
+  return (
+    <div className="bento-card bg-slate-900 border-slate-800 p-4 flex flex-col items-center justify-center text-center">
+      <p className="text-[10px] font-black text-slate-500 uppercase mb-1">{label}</p>
+      <h4 className={`text-2xl font-black italic ${color}`}>{value}</h4>
+      <p className="text-[8px] font-bold text-slate-600 uppercase mt-1">{subValue}</p>
+    </div>
+  );
+}
+
+function PrescriptionCard({ title, icon, values, onChange }: { title: string, icon: React.ReactNode, values: any, onChange: (field: string, val: string) => void }) {
+  return (
+    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">{icon}</div>
+        <h4 className="text-sm font-black text-white uppercase italic">{title}</h4>
+      </div>
+
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Meio / Método</label>
+            <input 
+              value={values.method}
+              onChange={(e) => onChange('method', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none" 
+              placeholder="Ex: Musculação"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Intensidade</label>
+            <input 
+              value={values.intensity}
+              onChange={(e) => onChange('intensity', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none"
+              placeholder="Ex: 85% 1RM"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Duração / Volume</label>
+          <input 
+            value={values.duration}
+            onChange={(e) => onChange('duration', e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none"
+            placeholder="Ex: 4 x 8-10 reps"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Desc. Séries</label>
+            <input 
+              value={values.restSeries}
+              onChange={(e) => onChange('restSeries', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none"
+              placeholder="Ex: 90s"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Desc. Reps (se houver)</label>
+            <input 
+              value={values.restReps}
+              onChange={(e) => onChange('restReps', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none"
+              placeholder="Ex: 10s"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+function HIITCard({ values, onChange }: { values: any, onChange: (field: string, val: string) => void }) {
+  const protocols = [
+    { id: 'sit', name: 'SIT (Sprint Interval)', desc: '160-180% vVO2 | 85-95% MSS', workDur: '30s', recDur: '2-4 min', workInt: '18', recInt: '0', series: '1', reps: '6' },
+    { id: 'rst', name: 'RST (Repeated Sprint)', desc: '120-160% vVO2 | 75-85% MSS', workDur: '6s', recDur: '20s', workInt: '22', recInt: '0', series: '2', reps: '8' },
+    { id: 'short', name: 'HIIT Curto Intervalo', desc: '100-120% vVO2', workDur: '30s', recDur: '30s', workInt: '15', recInt: '8', series: '2', reps: '12' },
+    { id: 'long', name: 'HIIT Longo Intervalo', desc: '90-100% vVO2', workDur: '120s', recDur: '120s', workInt: '11.5', recInt: '8', series: '1', reps: '4' }
+  ];
+
+  useEffect(() => {
+    const speed = parseFloat(values.workInt) || 0;
+    const workDur = parseFloat(values.workDur) || 0;
+    const reps = parseInt(values.reps) || 0;
+    const series = parseInt(values.series) || 0;
+    const recDur = parseFloat(values.recDur) || 0;
+    const bSeriesDur = parseFloat(values.bSeriesDur) || 0;
+
+    const distPerRep = (speed * workDur) / 3.6;
+    const totalDist = (distPerRep * reps * series) / 1000;
+    
+    const timeWork = (workDur * reps * series) / 60;
+    const timeRec = (recDur * (reps - 1) * series) / 60;
+    const timeBSeries = (bSeriesDur * (series - 1)) / 60;
+    const totalTime = timeWork + timeRec + timeBSeries;
+
+    if (totalDist !== values.totalKm || totalTime !== values.totalTime) {
+      onChange('totalKm', totalDist.toFixed(3));
+      onChange('totalTime', totalTime.toFixed(1));
+    }
+  }, [values.workInt, values.workDur, values.reps, values.series, values.recDur, values.bSeriesDur]);
+
+  return (
+    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
+            <Timer className="w-5 h-5 text-emerald-500" />
+          </div>
+          <h4 className="text-sm font-black text-white uppercase italic">HIIT (Volume Auto)</h4>
+        </div>
+        <select 
+          onChange={(e) => {
+            const p = protocols.find(x => x.id === e.target.value);
+            if (p) {
+              onChange('protocol', p.name);
+              onChange('workDur', p.workDur);
+              onChange('recDur', p.recDur);
+              onChange('workInt', p.workInt);
+              onChange('recInt', p.recInt);
+              onChange('series', p.series);
+              onChange('reps', p.reps);
+            }
+          }}
+          className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-[10px] font-bold text-white focus:outline-none"
+        >
+          <option value="">Formatos...</option>
+          {protocols.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+      </div>
+
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+           <div className="space-y-1">
+              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Velocidade (km/h)</label>
+              <input type="number" step="0.1" value={values.workInt} onChange={e => onChange('workInt', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 11.5" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Estímulo (seg)</label>
+              <input type="number" value={values.workDur} onChange={e => onChange('workDur', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 120" />
+           </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+           <div className="space-y-1">
+              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Recuperação (seg)</label>
+              <input type="number" value={values.recDur} onChange={e => onChange('recDur', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 120" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Desc. Séries (seg)</label>
+              <input type="number" value={values.bSeriesDur} onChange={e => onChange('bSeriesDur', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 120" />
+           </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+           <div className="space-y-1">
+              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
+              <input type="number" value={values.series} onChange={e => onChange('series', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 1" />
+           </div>
+           <div className="space-y-1">
+              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Reps</label>
+              <input type="number" value={values.reps} onChange={e => onChange('reps', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 4" />
+           </div>
+           <div className="flex flex-col justify-end pb-1 text-center">
+              <p className="text-[8px] font-black text-slate-500 uppercase">Total KM</p>
+              <p className="text-sm font-black text-emerald-500 italic">{values.totalKm} KM</p>
+           </div>
+        </div>
+
+        <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 flex justify-between items-center">
+           <div>
+              <p className="text-[8px] font-black text-slate-600 uppercase">Tempo Total Previsto</p>
+              <p className="text-lg font-black text-white italic">{values.totalTime} <span className="text-[10px] text-slate-500 not-italic">MINUTOS</span></p>
+           </div>
+           <div className="text-right">
+              <p className="text-[8px] font-black text-slate-600 uppercase">Modalidade</p>
+              <input value={values.modality} onChange={e => onChange('modality', e.target.value)} className="bg-transparent border-none text-right text-xs font-black text-white outline-none focus:text-emerald-400" placeholder="Ex: Rua" />
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContinuousCard({ values, onChange }: { values: any, onChange: (field: string, val: string) => void }) {
+  useEffect(() => {
+    const time = parseFloat(values.duration) || 0;
+    const speed = parseFloat(values.intensity) || 0;
+    
+    if (time > 0 && speed > 0) {
+      const dist = (speed * time) / 60;
+      if (dist.toFixed(2) !== values.totalKm || time.toString() !== values.totalTime) {
+        onChange('totalKm', dist.toFixed(2));
+        onChange('totalTime', time.toString());
+      }
+    }
+  }, [values.duration, values.intensity]);
+
+  return (
+    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
+          <Activity className="w-5 h-5 text-blue-400" />
+        </div>
+        <h4 className="text-sm font-black text-white uppercase italic">Treinamento Contínuo</h4>
+      </div>
+
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Modalidade</label>
+            <input 
+              value={values.modality}
+              onChange={(e) => onChange('modality', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" 
+              placeholder="Ex: Corrida"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Velocidade (km/h)</label>
+            <input 
+              value={values.intensity}
+              onChange={(e) => onChange('intensity', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none"
+              placeholder="Ex: 12"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Duração (minutos)</label>
+            <input 
+              value={values.duration}
+              onChange={(e) => onChange('duration', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none"
+              placeholder="Ex: 45"
+            />
+          </div>
+          <div className="flex flex-col justify-end pb-1 text-center">
+              <p className="text-[8px] font-black text-slate-500 uppercase">Total KM</p>
+              <p className="text-sm font-black text-blue-400 italic">{values.totalKm} KM</p>
+           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Observações</label>
+          <textarea 
+            value={values.notes}
+            onChange={(e) => onChange('notes', e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-[10px] font-medium text-slate-400 focus:ring-1 focus:ring-blue-500 outline-none h-16 resize-none"
+            placeholder="Pace alvo, controle de FC..."
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AgilityCard({ values, onChange }: { values: any, onChange: (field: string, val: string) => void }) {
+  const drills = [
+    { id: 't_drill', name: 'T-Drill', desc: 'Mudança de direção em T' },
+    { id: 'shuttle_20', name: '20-yd Shuttle', desc: 'Pro Agility Drill' },
+    { id: 'shuttle_60', name: '60-yd Shuttle Run', desc: 'Resistência de Agilidade' },
+    { id: 'sprint_40', name: '40-yd Sprint Variations', desc: 'Aceleração e Troca' },
+    { id: 'figure_8', name: 'Figure 8 Drill', desc: 'Controle de Curva' },
+    { id: 'square', name: 'Square Drills', desc: 'Deslocamento Lateral' },
+    { id: 'x_pattern', name: 'X-Pattern Drills', desc: 'Crossover' },
+    { id: 'triangle', name: 'Right Triangle Drills', desc: 'Ângulos Agudos' },
+    { id: 'ekg', name: 'EKG Drill', desc: 'Zigue-zague complexo' }
+  ];
+
+  return (
+    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
+            <Footprints className="w-5 h-5 text-cyan-500" />
+          </div>
+          <h4 className="text-sm font-black text-white uppercase italic">Agilidade / COD</h4>
+        </div>
+        <select 
+          onChange={(e) => {
+            const d = drills.find(x => x.id === e.target.value);
+            if (d) {
+              onChange('drill', d.name);
+              onChange('notes', d.desc);
+            }
+          }}
+          className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-[10px] font-bold text-white focus:outline-none"
+        >
+          <option value="">Drills ACSM...</option>
+          {drills.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+      </div>
+
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Exercício / Drill</label>
+          <input 
+            value={values.drill}
+            onChange={(e) => onChange('drill', e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-cyan-500 outline-none"
+            placeholder="Ex: T-Drill"
+          />
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
+            <input 
+              value={values.series}
+              onChange={(e) => onChange('series', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-cyan-500 outline-none"
+              placeholder="Ex: 4"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Reps / Ciclo</label>
+            <input 
+              value={values.reps}
+              onChange={(e) => onChange('reps', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-cyan-500 outline-none"
+              placeholder="Ex: 3"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Descanso</label>
+            <input 
+              value={values.rest}
+              onChange={(e) => onChange('rest', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-cyan-500 outline-none"
+              placeholder="Ex: 2 min"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Observações Técnicas</label>
+          <textarea 
+            value={values.notes}
+            onChange={(e) => onChange('notes', e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-[10px] font-medium text-slate-400 focus:ring-1 focus:ring-cyan-500 outline-none h-16 resize-none"
+            placeholder="Foco na frenagem e centro de gravidade..."
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+function PlyometricsCard({ values, onChange }: { values: any, onChange: (field: string, val: string) => void }) {
+  const intensityContinuum = {
+    low: ['Pogos', 'Side-to-side ankle hop', 'Jump and reach', 'Squat jump', 'Standing long jump', 'Cone hops', 'Skipping', 'MB Chest pass'],
+    mod: ['Barrier jumps', 'Tuck jumps', 'Split squat jump', 'Double leg hops', 'Box jumps', 'Plyo push-up', 'Triple jump'],
+    high: ['Pike jump', 'Single-leg vertical jump', 'Single-leg hops', 'Depth plyo push-up', 'Single-leg bounding', 'Depth jump']
+  };
+
+  const volumeTargets = {
+    Beginner: '80-100',
+    Intermediate: '100-120',
+    Advanced: '120-140'
+  };
+
+  useEffect(() => {
+    const s = parseInt(values.series) || 0;
+    const r = parseInt(values.reps) || 0;
+    const multiplier = values.jumpType === 'Bilateral' ? 2 : 1;
+    const total = s * r * multiplier;
+    if (total !== values.totalContacts) {
+      onChange('totalContacts', total.toString());
+    }
+  }, [values.series, values.reps, values.jumpType]);
+
+  const getIntensity = (drill: string) => {
+    if (intensityContinuum.high.some(d => drill.includes(d))) return { label: 'ALTA', color: 'text-red-500' };
+    if (intensityContinuum.mod.some(d => drill.includes(d))) return { label: 'MÉDIA', color: 'text-orange-500' };
+    return { label: 'BAIXA', color: 'text-emerald-500' };
+  };
+
+  const intensity = getIntensity(values.drill);
+
+  return (
+    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
+            <Zap className="w-5 h-5 text-orange-500" />
+          </div>
+          <div>
+            <h4 className="text-sm font-black text-white uppercase italic">Pliometria Avançada</h4>
+            <div className="flex items-center gap-2">
+              <span className={`text-[8px] font-black uppercase ${intensity.color}`}>Intensidade: {intensity.label}</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <select 
+            value={values.experience}
+            onChange={(e) => onChange('experience', e.target.value)}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-[9px] font-bold text-white focus:outline-none"
+          >
+            <option value="Beginner">Iniciante</option>
+            <option value="Intermediate">Intermediário</option>
+            <option value="Advanced">Avançado</option>
+          </select>
+          <p className="text-[8px] font-black text-slate-500 uppercase italic">Meta: {volumeTargets[values.experience as keyof typeof volumeTargets]} contatos</p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Exercício (Continuum)</label>
+            <input 
+              value={values.drill}
+              onChange={(e) => onChange('drill', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-orange-500 outline-none" 
+              placeholder="Ex: Depth Jump"
+              list="plyo-drills"
+            />
+            <datalist id="plyo-drills">
+              {[...intensityContinuum.low, ...intensityContinuum.mod, ...intensityContinuum.high].map(d => <option key={d} value={d} />)}
+            </datalist>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Tipo de Salto</label>
+            <select 
+              value={values.jumpType}
+              onChange={(e) => onChange('jumpType', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-orange-500 outline-none"
+            >
+              <option value="Bilateral">Bipodal (2 contatos)</option>
+              <option value="Unilateral">Unipodal (1 contato)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Altura (cm)</label>
+            <input 
+              value={values.height}
+              onChange={(e) => onChange('height', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-orange-500 outline-none"
+              placeholder="Ex: 50"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Carga Extra (kg)</label>
+            <input 
+              value={values.load}
+              onChange={(e) => onChange('load', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-orange-500 outline-none"
+              placeholder="Ex: 0"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
+            <input 
+              value={values.series}
+              onChange={(e) => onChange('series', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-orange-500 outline-none"
+              placeholder="Ex: 3"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Reps / Ciclo</label>
+            <input 
+              value={values.reps}
+              onChange={(e) => onChange('reps', e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-orange-500 outline-none"
+              placeholder="Ex: 8"
+            />
+          </div>
+          <div className="flex flex-col justify-end pb-1 text-center">
+              <p className="text-[8px] font-black text-slate-500 uppercase italic">Vol. Calculado</p>
+              <div className="flex items-center justify-center gap-1">
+                <p className={`text-sm font-black italic ${Number(values.totalContacts) > parseInt(volumeTargets[values.experience as keyof typeof volumeTargets].split('-')[1]) ? 'text-red-500' : 'text-orange-500'}`}>
+                  {values.totalContacts}
+                </p>
+                <span className="text-[8px] text-slate-600 font-bold uppercase">Contatos</span>
+              </div>
+           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Notas Técnicas (Fase Amortização)</label>
+          <textarea 
+            value={values.notes}
+            onChange={(e) => onChange('notes', e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-[10px] font-medium text-slate-400 focus:ring-1 focus:ring-orange-500 outline-none h-12 resize-none"
+            placeholder="Minimizar tempo de contato..."
+          />
+        </div>
       </div>
     </div>
   );
