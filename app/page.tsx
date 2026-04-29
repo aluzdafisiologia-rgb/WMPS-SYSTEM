@@ -79,12 +79,13 @@ export default function Home() {
         isMinor: isMinor(regData.birthDate)
       });
       setView('login');
-      setError('Solicitação enviada! Aguarde o contato do seu treinador por e-mail.');
-      // Limpa os dados
+      alert('Solicitação enviada com sucesso!');
       setRegData({ fullName: '', email: '', birthDate: '', cpf: '', phone: '', guardianName: '', guardianCpf: '' });
       setRegStep(1);
     } catch (err: any) {
-      setError('Erro ao enviar solicitação. Tente novamente.');
+      console.error(err);
+      alert('ERRO NO SUPABASE: ' + (err.message || 'Erro desconhecido'));
+      setError('Erro ao enviar solicitação: ' + (err.message || 'Tente novamente.'));
     } finally {
       setLoading(false);
     }
