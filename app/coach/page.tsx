@@ -26,11 +26,12 @@ import {
   Plus,
   UserPlus,
   Mail,
-  User
+  User,
+  LogOut
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { getSessions, getWellness, getRegistrationRequests, getUserRole } from '../actions';
+import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis } from '../actions';
 import { Session, WellnessEntry } from '@/lib/db';
 import { 
   XAxis, 
@@ -753,6 +754,18 @@ export default function CoachPage() {
             </button>
             
             <FlexibilityAssessmentModule />
+          </div>
+        ) : activeModule === 'assessment_anamnesis' ? (
+          <div className="space-y-8">
+            <button 
+              onClick={() => setActiveModule('assessment')}
+              className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              Voltar para Avaliações
+            </button>
+            
+            <AnamnesisModule />
           </div>
         ) : activeModule === 'periodization' ? (
           <div className="space-y-8">
@@ -3239,6 +3252,167 @@ function GoalRow({ label, val }: { label: string, val: string }) {
 
 
 
+
+function AnamnesisModule() {
+  const [records, setRecords] = useState<any[]>([]);
+  const [selectedRecord, setSelectedRecord] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const data = await getAnamnesis();
+      setRecords(data);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const getACSMAnalysis = (data: any) => {
+    const isPActive = data.isPhysicallyActive;
+    const hasD = data.hasKnownDisease;
+    const hasS = data.hasSymptoms;
+    const intensity = data.desiredIntensity;
+
+    if (!isPActive) {
+      if (hasS) return { status: 'danger', msg: 'Liberação Médica OBRIGATÓRIA antes de iniciar.', action: 'Proibir exercício' };
+      if (hasD) return { status: 'warning', msg: 'Liberação Médica recomendada.', action: 'Consultar Médico' };
+      return { status: 'success', msg: 'Liberado para Intensidade Leve/Moderada.', action: 'Iniciar Gradual' };
+    } else {
+      if (hasS) return { status: 'danger', msg: 'DESCONTINUAR exercício e buscar liberação médica.', action: 'Interromper' };
+      if (hasD) {
+        if (intensity === 'vigorous') return { status: 'warning', msg: 'Liberação Médica recomendada para alta intensidade.', action: 'Consultar Médico' };
+        return { status: 'success', msg: 'Liberado para Intensidade Moderada.', action: 'Manter' };
+      }
+      return { status: 'success', msg: 'Liberado para Intensidade Moderada/Vigorosa.', action: 'Liberado Total' };
+    }
+  };
+
+  if (loading) return <div className="text-center py-20 font-black text-slate-500 uppercase italic">Carregando Anamneses...</div>;
+
+  return (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-black text-white uppercase italic">Anamneses & Triagem</h2>
+          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Protocolo PAR-Q+ e Algoritmo ACSM</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="md:col-span-1 space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+          {records.length === 0 ? (
+            <div className="p-12 text-center bg-slate-900/50 rounded-3xl border border-slate-800">
+              <FileText className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+              <p className="text-slate-500 font-black uppercase italic text-xs">Nenhum registro encontrado</p>
+            </div>
+          ) : (
+            records.map(rec => {
+              const analysis = getACSMAnalysis(rec.data);
+              return (
+                <button 
+                  key={rec.id}
+                  onClick={() => setSelectedRecord(rec)}
+                  className={`w-full p-6 text-left rounded-3xl border transition-all ${
+                    selectedRecord?.id === rec.id ? 'bg-purple-600 border-purple-500 shadow-lg' : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="text-sm font-black text-white uppercase italic">{rec.athlete_name}</h4>
+                    <span className={`w-2 h-2 rounded-full ${analysis.status === 'danger' ? 'bg-red-500' : analysis.status === 'warning' ? 'bg-yellow-500' : 'bg-emerald-500'}`}></span>
+                  </div>
+                  <p className="text-[9px] text-slate-500 font-bold uppercase mb-4">{format(parseISO(rec.date), "dd/MM/yyyy")}</p>
+                  <div className={`text-[8px] font-black uppercase italic px-2 py-1 rounded inline-block ${
+                    selectedRecord?.id === rec.id ? 'bg-white/10 text-white' : 'bg-slate-800 text-slate-400'
+                  }`}>
+                    {analysis.action}
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+
+        <div className="md:col-span-2">
+          {selectedRecord ? (
+            <div className="bento-card bg-slate-900/50 border-slate-800 p-8 space-y-8 animate-in fade-in zoom-in-95 duration-300">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-6">
+                <div>
+                  <h3 className="text-2xl font-black text-white uppercase italic">{selectedRecord.athlete_name}</h3>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-widest">Relatório de Triagem Pré-Participação</p>
+                </div>
+                <div className={`px-6 py-2 rounded-xl border ${
+                  getACSMAnalysis(selectedRecord.data).status === 'danger' ? 'bg-red-500/10 border-red-500/30 text-red-500' : 
+                  getACSMAnalysis(selectedRecord.data).status === 'warning' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-500' : 
+                  'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'
+                }`}>
+                  <p className="text-[10px] font-black uppercase italic">{getACSMAnalysis(selectedRecord.data).msg}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <h5 className="text-[10px] font-black text-purple-400 uppercase italic tracking-[0.2em]">Respostas PAR-Q+</h5>
+                  <div className="space-y-2">
+                    {[
+                      { l: 'Problema Coração/Pressão', v: selectedRecord.data.q1 },
+                      { l: 'Dor no Peito', v: selectedRecord.data.q2 },
+                      { l: 'Tontura/Desequilíbrio', v: selectedRecord.data.q3 },
+                      { l: 'Condição Crônica', v: selectedRecord.data.q4 },
+                      { l: 'Uso de Medicamentos', v: selectedRecord.data.q5 },
+                      { l: 'Problema Ósseo/Artic.', v: selectedRecord.data.q6 },
+                      { l: 'Remédio Coração/Pressão', v: selectedRecord.data.q7 },
+                    ].map((item, i) => (
+                      <div key={i} className="flex justify-between items-center p-3 bg-slate-900 rounded-xl border border-slate-800">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">{item.l}</span>
+                        <span className={`text-[10px] font-black uppercase ${item.v ? 'text-red-500' : 'text-emerald-500'}`}>
+                          {item.v ? 'Sim' : 'Não'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <h5 className="text-[10px] font-black text-blue-400 uppercase italic tracking-[0.2em]">Dados ACSM</h5>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
+                      <p className="text-[9px] text-slate-500 font-bold uppercase mb-1">Pratica Exercício?</p>
+                      <p className="text-sm font-black text-white uppercase italic">{selectedRecord.data.isPhysicallyActive ? 'Sim (Ativo)' : 'Não (Inativo)'}</p>
+                    </div>
+                    <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
+                      <p className="text-[9px] text-slate-500 font-bold uppercase mb-1">Doença Diagnosticada?</p>
+                      <p className="text-sm font-black text-white uppercase italic">{selectedRecord.data.hasKnownDisease ? 'Sim' : 'Não'}</p>
+                    </div>
+                    <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
+                      <p className="text-[9px] text-slate-500 font-bold uppercase mb-1">Sinais/Sintomas?</p>
+                      <p className="text-sm font-black text-white uppercase italic">{selectedRecord.data.hasSymptoms ? 'Sim' : 'Não'}</p>
+                    </div>
+                    <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800">
+                      <p className="text-[9px] text-slate-500 font-bold uppercase mb-1">Intensidade Desejada</p>
+                      <p className="text-sm font-black text-white uppercase italic">{selectedRecord.data.desiredIntensity === 'vigorous' ? 'Vigorosa' : 'Moderada'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {selectedRecord.data.details && (
+                <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800">
+                   <p className="text-[10px] font-black text-slate-500 uppercase italic mb-2">Observações Adicionais</p>
+                   <p className="text-xs text-white font-medium leading-relaxed">{selectedRecord.data.details}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-full flex flex-col items-center justify-center text-center p-20 bento-card bg-slate-900/30 border-dashed border-slate-800">
+              <User className="w-16 h-16 text-slate-800 mb-4" />
+              <p className="text-slate-600 font-black uppercase italic tracking-widest text-sm">Selecione um aluno para visualizar o relatório</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function RequestsModule({ requests }: { requests: any[] }) {
   return (

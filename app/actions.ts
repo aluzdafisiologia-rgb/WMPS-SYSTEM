@@ -18,6 +18,46 @@ if (!supabase) {
   console.log('SERVER-SIDE SUPABASE INITIALIZED SUCCESSFULLY');
 }
 
+export async function logAnamnesis(data: any) {
+  if (!supabase) return;
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Not authenticated');
+
+    const { error } = await supabase
+      .from('anamnesis')
+      .upsert({
+        athlete_id: session.user.id,
+        athlete_name: data.athleteName,
+        data: data, // Full object for flexibility
+        date: new Date().toISOString().split('T')[0]
+      });
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error logging anamnesis:', error);
+    throw error;
+  }
+}
+
+export async function getAnamnesis() {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('anamnesis')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting anamnesis:', error);
+    return [];
+  }
+}
+
+// --- PERMISSÕES E ROLES ---
+
 // --- FUNÇÕES DE CADASTRO ---
 
 export async function submitRegistrationRequest(request: any) {
