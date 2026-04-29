@@ -192,22 +192,22 @@ export default function AthletePage() {
                 {activeTab === 'workout' && (
                   <form onSubmit={handleSubmitWorkout} className="space-y-6">
                     <div className="grid grid-cols-2 gap-4">
-                      <Input label="Data" type="date" value={formData.date} onChange={v => setFormData({...formData, date: v})} />
-                      <Input label="Minutos" type="number" value={formData.duration} onChange={v => setFormData({...formData, duration: v})} />
+                      <Input label="Data" type="date" value={formData.date} onChange={(v: string) => setFormData({...formData, date: v})} />
+                      <Input label="Minutos" type="number" value={formData.duration} onChange={(v: string) => setFormData({...formData, duration: v})} />
                     </div>
-                    <RPESelector value={formData.rpe} onChange={v => setFormData({...formData, rpe: v})} />
+                    <RPESelector value={formData.rpe} onChange={(v: number) => setFormData({...formData, rpe: v})} />
                     <SubmitButton loading={isSubmitting} />
                   </form>
                 )}
 
                 {activeTab === 'wellness' && (
                   <form onSubmit={handleSubmitWellness} className="space-y-8">
-                    <RPESelector label="Recuperação (TQR)" value={wellnessData.recovery} onChange={v => setWellnessData({...wellnessData, recovery: v})} labels={TQR_LABELS} />
+                    <RPESelector label="Recuperação (TQR)" value={wellnessData.recovery} onChange={(v: number) => setWellnessData({...wellnessData, recovery: v})} labels={TQR_LABELS} />
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <WellnessSlider label="Sono" value={wellnessData.sleep} onChange={v => setWellnessData({...wellnessData, sleep: v})} labels={WELLNESS_LABELS.sleep} />
-                      <WellnessSlider label="Estresse" value={wellnessData.stress} onChange={v => setWellnessData({...wellnessData, stress: v})} labels={WELLNESS_LABELS.stress} />
-                      <WellnessSlider label="Fadiga" value={wellnessData.fatigue} onChange={v => setWellnessData({...wellnessData, fatigue: v})} labels={WELLNESS_LABELS.fatigue} />
-                      <WellnessSlider label="Dor" value={wellnessData.soreness} onChange={v => setWellnessData({...wellnessData, soreness: v})} labels={WELLNESS_LABELS.soreness} />
+                      <WellnessSlider label="Sono" value={wellnessData.sleep} onChange={(v: number) => setWellnessData({...wellnessData, sleep: v})} labels={WELLNESS_LABELS.sleep} />
+                      <WellnessSlider label="Estresse" value={wellnessData.stress} onChange={(v: number) => setWellnessData({...wellnessData, stress: v})} labels={WELLNESS_LABELS.stress} />
+                      <WellnessSlider label="Fadiga" value={wellnessData.fatigue} onChange={(v: number) => setWellnessData({...wellnessData, fatigue: v})} labels={WELLNESS_LABELS.fatigue} />
+                      <WellnessSlider label="Dor" value={wellnessData.soreness} onChange={(v: number) => setWellnessData({...wellnessData, soreness: v})} labels={WELLNESS_LABELS.soreness} />
                     </div>
                     <SubmitButton loading={isSubmitting} color="bg-emerald-600 hover:bg-emerald-500" />
                   </form>
@@ -229,16 +229,16 @@ export default function AthletePage() {
                         <div key={q.id} className="flex items-center justify-between p-4 bg-slate-900/50 border border-slate-700 rounded-xl">
                           <span className="text-[10px] font-bold text-slate-300 uppercase">{q.text}</span>
                           <div className="flex gap-2">
-                            <BinaryToggle active={anamnesisData[q.id as keyof typeof anamnesisData]} onToggle={v => setAnamnesisData({...anamnesisData, [q.id]: v})} />
+                            <BinaryToggle active={anamnesisData[q.id as keyof typeof anamnesisData] as boolean} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, [q.id]: v})} />
                           </div>
                         </div>
                       ))}
                     </div>
                     <div className="space-y-4 border-t border-slate-700 pt-6">
                       <p className="text-[10px] font-black text-blue-400 uppercase italic">Triagem ACSM</p>
-                      <ToggleItem label="Ativo regular? (3x/sem, 30min, 3m)" active={anamnesisData.isPhysicallyActive} onToggle={v => setAnamnesisData({...anamnesisData, isPhysicallyActive: v})} />
-                      <ToggleItem label="Doença CV, Metabólica ou Renal?" active={anamnesisData.hasKnownDisease} onToggle={v => setAnamnesisData({...anamnesisData, hasKnownDisease: v})} />
-                      <ToggleItem label="Sintomas (Dor, Falta de ar, Tontura)?" active={anamnesisData.hasSymptoms} onToggle={v => setAnamnesisData({...anamnesisData, hasSymptoms: v})} />
+                      <ToggleItem label="Ativo regular? (3x/sem, 30min, 3m)" active={anamnesisData.isPhysicallyActive} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, isPhysicallyActive: v})} />
+                      <ToggleItem label="Doença CV, Metabólica ou Renal?" active={anamnesisData.hasKnownDisease} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hasKnownDisease: v})} />
+                      <ToggleItem label="Sintomas (Dor, Falta de ar, Tontura)?" active={anamnesisData.hasSymptoms} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hasSymptoms: v})} />
                       <div className="grid grid-cols-2 gap-4">
                         <button type="button" onClick={() => setAnamnesisData({...anamnesisData, desiredIntensity: 'moderate'})} className={`py-3 rounded-xl text-[10px] font-black uppercase italic border ${anamnesisData.desiredIntensity === 'moderate' ? 'bg-blue-600 border-blue-500' : 'bg-slate-900'}`}>Moderada</button>
                         <button type="button" onClick={() => setAnamnesisData({...anamnesisData, desiredIntensity: 'vigorous'})} className={`py-3 rounded-xl text-[10px] font-black uppercase italic border ${anamnesisData.desiredIntensity === 'vigorous' ? 'bg-purple-600 border-purple-500' : 'bg-slate-900'}`}>Vigorosa</button>
@@ -256,7 +256,7 @@ export default function AthletePage() {
   );
 }
 
-function MenuCard({ title, sub, icon, onClick, color }: any) {
+function MenuCard({ title, sub, icon, onClick, color }: { title: string, sub: string, icon: React.ReactNode, onClick: () => void, color: string }) {
   return (
     <motion.button whileHover={{ y: -5 }} onClick={onClick} className={`p-8 bg-slate-800 border border-slate-700 rounded-[2rem] transition-all text-left relative overflow-hidden ${color}`}>
       <div className="absolute top-0 right-0 p-8 opacity-10">{icon}</div>
@@ -266,7 +266,7 @@ function MenuCard({ title, sub, icon, onClick, color }: any) {
   );
 }
 
-function Input({ label, type, value, onChange }: any) {
+function Input({ label, type, value, onChange }: { label: string, type: string, value: string, onChange: (val: string) => void }) {
   return (
     <div className="space-y-2">
       <label className="text-[10px] font-black text-slate-500 uppercase italic">{label}</label>
@@ -275,7 +275,7 @@ function Input({ label, type, value, onChange }: any) {
   );
 }
 
-function RPESelector({ value, onChange, label = 'Nível de Esforço (6-20)', labels = BORG_RPE_LABELS }: any) {
+function RPESelector({ value, onChange, label = 'Nível de Esforço (6-20)', labels = BORG_RPE_LABELS }: { value: number, onChange: (val: number) => void, label?: string, labels?: Record<number, string> }) {
   return (
     <div className="space-y-4">
       <div className="flex justify-between"><label className="text-[10px] font-black text-slate-500 uppercase italic">{label}</label><span className="text-[10px] font-black text-blue-400">{value}/20</span></div>
@@ -285,7 +285,7 @@ function RPESelector({ value, onChange, label = 'Nível de Esforço (6-20)', lab
   );
 }
 
-function WellnessSlider({ label, value, onChange, labels }: any) {
+function WellnessSlider({ label, value, onChange, labels }: { label: string, value: number, onChange: (val: number) => void, labels: string[] }) {
   return (
     <div className="space-y-3">
       <div className="flex justify-between"><label className="text-[10px] font-black text-slate-500 uppercase italic">{label}</label><span className="text-[10px] font-black text-emerald-400">{value}/5</span></div>
@@ -295,7 +295,7 @@ function WellnessSlider({ label, value, onChange, labels }: any) {
   );
 }
 
-function BinaryToggle({ active, onToggle }: any) {
+function BinaryToggle({ active, onToggle }: { active: boolean, onToggle: (val: boolean) => void }) {
   return (
     <div className="flex gap-1">
       <button type="button" onClick={() => onToggle(true)} className={`px-3 py-1 rounded text-[9px] font-black uppercase ${active ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-500'}`}>Sim</button>
@@ -304,7 +304,7 @@ function BinaryToggle({ active, onToggle }: any) {
   );
 }
 
-function ToggleItem({ label, active, onToggle }: any) {
+function ToggleItem({ label, active, onToggle }: { label: string, active: boolean, onToggle: (val: boolean) => void }) {
   return (
     <div className="flex items-center justify-between p-4 bg-slate-900/50 border border-slate-700 rounded-xl">
       <span className="text-[9px] font-bold text-slate-400 uppercase">{label}</span>
@@ -313,7 +313,7 @@ function ToggleItem({ label, active, onToggle }: any) {
   );
 }
 
-function SubmitButton({ loading, color = 'bg-blue-600 hover:bg-blue-500' }: any) {
+function SubmitButton({ loading, color = 'bg-blue-600 hover:bg-blue-500' }: { loading: boolean, color?: string }) {
   return (
     <button type="submit" disabled={loading} className={`w-full py-5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 italic text-white transition-all ${color} disabled:bg-slate-700`}>
       <Save className="w-5 h-5" /> {loading ? 'Enviando...' : 'Finalizar e Enviar'}
