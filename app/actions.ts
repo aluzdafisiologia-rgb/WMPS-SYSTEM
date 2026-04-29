@@ -2,6 +2,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import { addSession, addWellness, getDb, Session, WellnessEntry, saveProfile } from '@/lib/db';
 
 // Conexão direta e segura
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
