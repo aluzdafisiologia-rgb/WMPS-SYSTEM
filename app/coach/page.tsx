@@ -25,7 +25,8 @@ import {
   Scale,
   Plus,
   UserPlus,
-  Mail
+  Mail,
+  User
 } from 'lucide-react';
 import Link from 'next/link';
 import { getSessions, getWellness, getRegistrationRequests } from '../actions';
