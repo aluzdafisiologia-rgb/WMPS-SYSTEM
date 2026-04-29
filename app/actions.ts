@@ -12,6 +12,12 @@ const supabase = (supabaseUrl && supabaseServiceKey)
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
 
+if (!supabase) {
+  console.error('SERVER-SIDE SUPABASE INITIALIZATION FAILED: Missing URL or Service Key');
+} else {
+  console.log('SERVER-SIDE SUPABASE INITIALIZED SUCCESSFULLY');
+}
+
 // --- FUNÇÕES DE CADASTRO ---
 
 export async function submitRegistrationRequest(request: any) {
@@ -143,5 +149,36 @@ export async function registerProfile(profile: any) {
   } catch (error) {
     console.error('Action error (registerProfile):', error);
     throw error;
+  }
+}
+
+export async function getUserRole(userId: string) {
+  if (!supabase) {
+    console.error('getUserRole: Supabase service client is NULL');
+    return 'athlete';
+  }
+  try {
+    console.log('getUserRole: Buscando papel para ID:', userId);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.error('getUserRole: Erro na query:', error.message);
+      return 'athlete';
+    }
+    
+    if (!data) {
+      console.warn('getUserRole: Nenhum perfil encontrado para ID:', userId);
+      return 'athlete';
+    }
+    
+    console.log('getUserRole: Papel encontrado:', data.role);
+    return data.role;
+  } catch (e) {
+    console.error('getUserRole: Erro inesperado:', e);
+    return 'athlete';
   }
 }

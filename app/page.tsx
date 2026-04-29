@@ -9,7 +9,7 @@ import {
   Trophy, Target, Zap, ChevronLeft
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { registerProfile, submitRegistrationRequest } from './actions';
+import { registerProfile, submitRegistrationRequest, getUserRole } from './actions';
 
 type ViewState = 'login' | 'register' | 'selection';
 
@@ -45,32 +45,33 @@ export default function Home() {
     setError('');
     
     try {
-      if (!supabase) throw new Error('Conexão indisponível');
       const { data, error: loginError } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password
       });
 
-      if (loginError) {
+      if (loginError || !data.user) {
         setError('Credenciais inválidas ou usuário inexistente.');
         setLoading(false);
         return;
       }
 
-      // Buscar o perfil para saber a função
-      if (!supabase) throw new Error('Conexão indisponível');
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('email', email)
-        .single();
+      // Buscar o papel do usuário via Server Action (bypassing RLS client-side)
+      const role = await getUserRole(data.user.id);
+      console.log('Role detectado:', role);
 
-      if (profile?.role === 'coach') {
+      if (role === 'admin') {
+        window.location.href = '/admin';
+      } else if (role === 'coach') {
         window.location.href = '/coach';
       } else {
-        window.location.href = '/athlete';
+        setError(`Acesso negado: Seu cargo atual é "${role}". Contate o administrador.`);
+        setLoading(false);
+        // Opcional: redirecionar após alguns segundos ou deixar o usuário ver o erro
+        setTimeout(() => { window.location.href = '/athlete'; }, 3000);
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Erro inesperado:', err);
       setError('Erro inesperado ao tentar entrar.');
     } finally {
       setLoading(false);

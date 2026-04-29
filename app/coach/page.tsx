@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { getSessions, getWellness, getRegistrationRequests } from '../actions';
+import { getSessions, getWellness, getRegistrationRequests, getUserRole } from '../actions';
 import { Session, WellnessEntry } from '@/lib/db';
 import { 
   XAxis, 
@@ -85,14 +85,9 @@ export default function CoachPage() {
         return;
       }
 
-      if (!supabase) return;
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
+      const role = await getUserRole(session.user.id);
 
-      if (profile?.role !== 'coach') {
+      if (role !== 'coach' && role !== 'admin') {
         window.location.href = '/';
         return;
       }
@@ -125,11 +120,11 @@ export default function CoachPage() {
   };
 
   const filteredSessions = sessions.filter(s => 
-    s.athleteName.toLowerCase().includes(searchTerm.toLowerCase())
+    s.athlete_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredWellness = wellness.filter(w => 
-    w.athleteName.toLowerCase().includes(searchTerm.toLowerCase())
+    w.athlete_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // General Statistics
@@ -165,9 +160,9 @@ export default function CoachPage() {
   const athleteComparisonData = useMemo(() => {
     const athleteSum: Record<string, { total: number, count: number }> = {};
     sessions.forEach(s => {
-      if (!athleteSum[s.athleteName]) athleteSum[s.athleteName] = { total: 0, count: 0 };
-      athleteSum[s.athleteName].total += s.load;
-      athleteSum[s.athleteName].count += 1;
+      if (!athleteSum[s.athlete_name]) athleteSum[s.athlete_name] = { total: 0, count: 0 };
+      athleteSum[s.athlete_name].total += s.load;
+      athleteSum[s.athlete_name].count += 1;
     });
 
     return Object.entries(athleteSum).map(([name, data]) => ({
@@ -178,12 +173,12 @@ export default function CoachPage() {
 
   // Athlete ACWR & Quadrant Data
   const athleteMetrics = useMemo(() => {
-    const athletes = Array.from(new Set(sessions.map(s => s.athleteName)));
+    const athletes = Array.from(new Set(sessions.map(s => s.athlete_name)));
     const today = new Date();
     
     return athletes.map(name => {
-      const athleteSessions = sessions.filter(s => s.athleteName === name);
-      const athleteWellness = wellness.filter(w => w.athleteName === name);
+      const athleteSessions = sessions.filter(s => s.athlete_name === name);
+      const athleteWellness = wellness.filter(w => w.athlete_name === name);
       
       // ACWR Logic
       const acuteSessions = athleteSessions.filter(s => differenceInDays(today, parseISO(s.date)) <= 7);
@@ -240,7 +235,7 @@ export default function CoachPage() {
 
       return { 
         id: metric.name, 
-        athleteName: metric.name, 
+        athlete_name: metric.name, 
         riskLevel, 
         message, 
         wellnessScore: metric.wellness,
@@ -395,7 +390,7 @@ export default function CoachPage() {
                 {riskAlerts.map(alert => (
                   <div key={alert.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-black text-white uppercase italic">{alert.athleteName}</span>
+                        <span className="text-[10px] font-black text-white uppercase italic">{alert.athlete_name}</span>
                         <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${
                           alert.riskLevel === 'high' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-black'
                         }`}>
@@ -559,7 +554,7 @@ export default function CoachPage() {
                          return (
                             <tr key={w.id} className="hover:bg-slate-800/20 transition-colors group">
                                <td className="py-5">
-                                  <p className="text-xs font-black text-white italic uppercase">{w.athleteName}</p>
+                                  <p className="text-xs font-black text-white italic uppercase">{w.athlete_name}</p>
                                   <p className="text-[9px] text-slate-600 font-bold italic">{format(parseISO(w.date), "dd/MM/yy")}</p>
                                </td>
                                <td className="text-center font-black">
@@ -643,7 +638,7 @@ export default function CoachPage() {
                    {filteredSessions.map((session) => (
                       <div key={session.id} className="p-4 bg-slate-900/50 rounded-xl border border-slate-700/50 hover:border-blue-500/50 transition-all flex justify-between items-center">
                          <div>
-                            <p className="text-[10px] font-black text-white italic uppercase">{session.athleteName}</p>
+                            <p className="text-[10px] font-black text-white italic uppercase">{session.athlete_name}</p>
                             <p className="text-[9px] text-slate-500 font-bold">{format(parseISO(session.date), "dd MMM")}</p>
                          </div>
                          <div className="text-right">

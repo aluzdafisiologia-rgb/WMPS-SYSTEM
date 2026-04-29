@@ -2,8 +2,8 @@ import { supabase } from './supabase';
 
 export interface Session {
   id: string;
-  athleteId: string;
-  athleteName: string;
+  athlete_id: string;
+  athlete_name: string;
   date: string;
   rpe: number; // 1-10
   duration: number; // minutes
@@ -14,8 +14,8 @@ export interface Session {
 
 export interface WellnessEntry {
   id: string;
-  athleteId: string;
-  athleteName: string;
+  athlete_id: string;
+  athlete_name: string;
   date: string;
   recovery: number; // 6-20 (TQR)
   sleep: number; // 1-5
