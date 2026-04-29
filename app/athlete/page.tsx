@@ -170,24 +170,61 @@ export default function AthletePage() {
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-slate-200 font-sans pb-20">
-      <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-10">
-        <div className="max-w-xl mx-auto px-6 h-16 flex items-center justify-between">
-          <button onClick={() => activeTab ? setActiveTab(null) : window.location.href = role === 'admin' ? '/admin' : '/'} className="p-2 -ml-2 text-slate-400 hover:text-blue-500 transition-colors">
+      <header className="bg-slate-900/50 backdrop-blur-md border-b border-white/10 sticky top-0 z-50">
+        <div className="max-w-xl mx-auto px-6 h-20 flex items-center justify-between">
+          <button onClick={() => activeTab ? setActiveTab(null) : window.location.href = role === 'admin' ? '/admin' : '/'} className="p-2 -ml-2 text-slate-400 hover:text-emerald-500 transition-all hover:scale-110">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <div className="flex flex-col items-center">
-            <Link href="/" className="bg-black text-emerald-500 border-2 border-emerald-500 font-black px-2.5 py-0.5 rounded-lg text-lg italic skew-x-[-10deg]">WMPS</Link>
+            <Link href="/" className="bg-gradient-to-br from-emerald-400 to-cyan-500 text-black font-black px-4 py-1 rounded-lg text-xl italic skew-x-[-10deg] shadow-[0_0_20px_rgba(52,211,153,0.3)] transition-transform hover:scale-105 active:scale-95">WMPS</Link>
+            <span className="text-[7px] font-black text-emerald-500/60 uppercase tracking-[0.3em] mt-1.5 italic">William Moreira Performance System</span>
           </div>
           <div className="w-10"></div>
         </div>
       </header>
 
-      <main className="max-w-xl mx-auto px-6 mt-8 space-y-8">
+      <main className="max-w-xl mx-auto px-6 mt-8 space-y-8 relative">
+        {/* Decorative background glow */}
+        <div className="fixed top-1/4 -left-20 w-64 h-64 bg-emerald-500/10 blur-[100px] pointer-events-none rounded-full"></div>
+        <div className="fixed bottom-1/4 -right-20 w-64 h-64 bg-blue-500/10 blur-[100px] pointer-events-none rounded-full"></div>
+
         {!activeTab ? (
-          <div className="grid grid-cols-1 gap-6 py-12">
-            <MenuCard title="Anamnese" sub="Triagem Inicial" icon={<FileText className="w-12 h-12 text-purple-500" />} onClick={() => setActiveTab('anamnesis')} color="hover:border-purple-500/50" />
-            <MenuCard title="Wellness" sub="Pré-Treino" icon={<Zap className="w-12 h-12 text-emerald-500" />} onClick={() => setActiveTab('wellness')} color="hover:border-emerald-500/50" />
-            <MenuCard title="Carga Treino" sub="Pós-Treino" icon={<Clock className="w-12 h-12 text-blue-500" />} onClick={() => setActiveTab('workout')} color="hover:border-blue-500/50" />
+          <div className="grid grid-cols-1 gap-6 py-8">
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-blue-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+              <MenuCard 
+                title="Anamnese" 
+                sub="Fase 0: Triagem Clínica" 
+                icon={<FileText className="w-10 h-10 text-purple-400" />} 
+                onClick={() => setActiveTab('anamnesis')} 
+                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-purple-500/30"
+                accentColor="from-purple-500/20 to-transparent"
+              />
+            </div>
+            
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+              <MenuCard 
+                title="Wellness" 
+                sub="Diário de Prontidão" 
+                icon={<Zap className="w-10 h-10 text-emerald-400" />} 
+                onClick={() => setActiveTab('wellness')} 
+                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-emerald-500/30"
+                accentColor="from-emerald-500/20 to-transparent"
+              />
+            </div>
+
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+              <MenuCard 
+                title="Carga Treino" 
+                sub="Monitoramento PSE" 
+                icon={<Clock className="w-10 h-10 text-blue-400" />} 
+                onClick={() => setActiveTab('workout')} 
+                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-blue-500/30"
+                accentColor="from-blue-500/20 to-transparent"
+              />
+            </div>
           </div>
         ) : (
           <div className="space-y-6">
@@ -295,12 +332,31 @@ export default function AthletePage() {
   );
 }
 
-function MenuCard({ title, sub, icon, onClick, color }: { title: string, sub: string, icon: React.ReactNode, onClick: () => void, color: string }) {
+function MenuCard({ title, sub, icon, onClick, color, accentColor }: { title: string, sub: string, icon: React.ReactNode, onClick: () => void, color: string, accentColor: string }) {
   return (
-    <motion.button whileHover={{ y: -5 }} onClick={onClick} className={`p-8 bg-slate-800 border border-slate-700 rounded-[2rem] transition-all text-left relative overflow-hidden ${color}`}>
-      <div className="absolute top-0 right-0 p-8 opacity-10">{icon}</div>
-      <h3 className="text-2xl font-black text-white uppercase italic">{title}</h3>
-      <p className="text-slate-500 text-[10px] font-bold uppercase mt-2">{sub}</p>
+    <motion.button 
+      whileHover={{ scale: 1.02, y: -4 }} 
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick} 
+      className={`w-full p-8 rounded-[2rem] border backdrop-blur-xl transition-all text-left relative overflow-hidden shadow-2xl ${color}`}
+    >
+      <div className={`absolute inset-0 bg-gradient-to-br ${accentColor} opacity-50`}></div>
+      <div className="relative z-10 flex justify-between items-start">
+        <div>
+          <h3 className="text-2xl font-black text-white uppercase italic tracking-tight">{title}</h3>
+          <p className="text-slate-400 text-[10px] font-black uppercase mt-1 tracking-widest opacity-80">{sub}</p>
+        </div>
+        <div className="p-3 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
+          {icon}
+        </div>
+      </div>
+      
+      {/* Decorative arrow */}
+      <div className="absolute bottom-6 right-8 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+          <ArrowLeft className="w-4 h-4 rotate-180 text-white" />
+        </div>
+      </div>
     </motion.button>
   );
 }
