@@ -223,14 +223,14 @@ export default function CoachPage() {
   const riskAlerts = useMemo(() => {
     return athleteMetrics.map(metric => {
       let riskLevel: 'high' | 'medium' | 'low' = 'low';
-      let message = 'EstÃ¡vel';
+      let message = 'Estável';
 
       if (metric.acwr > 1.5) {
         riskLevel = 'high';
         message = 'ACWR EXPLOSIVO';
       } else if (metric.acwr > 1.3 || metric.wellness < 50) {
         riskLevel = 'medium';
-        message = 'ATENÃ‡ÃƒO CARGA';
+        message = 'ATENÇÃO CARGA';
       } else if (metric.acwr < 0.8 && metric.load > 0) {
         riskLevel = 'medium';
         message = 'UNDER-TRAINING';
@@ -334,38 +334,38 @@ export default function CoachPage() {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-6">
               <MenuButton 
-                title="AvaliaÃ§Ã£o de ForÃ§a" 
-                subtitle="Testes de Carga MÃ¡xima" 
+                title="Avaliação de Força" 
+                subtitle="Testes de Carga Máxima" 
                 icon={<Dumbbell className="w-8 h-8 text-blue-500" />} 
                 onClick={() => setActiveModule('assessment_strength')} 
               />
               <MenuButton 
-                title="AvaliaÃ§Ã£o de PotÃªncia" 
-                subtitle="Ciclagem e ExplosÃ£o" 
+                title="Avaliação de Potência" 
+                subtitle="Ciclagem e Explosão" 
                 icon={<Zap className="w-8 h-8 text-yellow-500" />} 
                 onClick={() => setActiveModule('assessment_power')} 
               />
               <MenuButton 
-                title="AvaliaÃ§Ã£o de ResistÃªncia" 
-                subtitle="Capacidade AerÃ³bica" 
+                title="Avaliação de Resistência" 
+                subtitle="Capacidade Aeróbica" 
                 icon={<Timer className="w-8 h-8 text-emerald-500" />} 
                 onClick={() => setActiveModule('assessment_endurance')} 
               />
               <MenuButton 
-                title="AvaliaÃ§Ã£o de Flexibilidade" 
+                title="Avaliação de Flexibilidade" 
                 subtitle="Amplitude de Movimento" 
                 icon={<MoveHorizontal className="w-8 h-8 text-purple-500" />} 
                 onClick={() => setActiveModule('assessment_flexibility')} 
               />
               <MenuButton 
-                title="AvaliaÃ§Ã£o de Agilidade" 
-                subtitle="MudanÃ§a de DireÃ§Ã£o" 
+                title="Avaliação de Agilidade" 
+                subtitle="Mudança de Direção" 
                 icon={<Footprints className="w-8 h-8 text-cyan-500" />} 
                 onClick={() => setActiveModule('assessment_agility')} 
               />
               <MenuButton 
-                title="AvaliaÃ§Ã£o AntropomÃ©trica" 
-                subtitle="Dobra CutÃ¢nea e PerÃ­metros" 
+                title="Avaliação Antropométrica" 
+                subtitle="Dobra Cutânea e Perímetros" 
                 icon={<Scale className="w-8 h-8 text-rose-500" />} 
                 onClick={() => setActiveModule('assessment_anthropometric')} 
               />
@@ -3102,18 +3102,18 @@ function PeriodizationModule() {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8">
                <div className="lg:col-span-8 flex flex-col justify-between p-8 bento-card bg-indigo-600 text-white overflow-hidden relative shadow-2xl">
                   <div className="relative z-10">
-                     <h4 className="text-[10px] font-black uppercase tracking-widest mb-4 opacity-60">FundamentaÃ§Ã£o MetodolÃ³gica</h4>
+                     <h4 className="text-[10px] font-black uppercase tracking-widest mb-4 opacity-60">Fundamentação Metodológica</h4>
                      <p className="text-sm font-bold leading-relaxed max-w-2xl">
-                       {model === 'matveyev' && 'Matveyev (ClÃ¡ssico): Baseada na variaÃ§Ã£o ondulatÃ³ria onde o volume cai e a intensidade sobe linearmente ao longo do tempo.'}
-                       {model === 'issurin' && 'Issurin (ATR): Focada na superposiÃ§Ã£o de efeitos residuais atravÃ©s de blocos altamente concentrados (AcumulaÃ§Ã£o, TransmutaÃ§Ã£o e RealizaÃ§Ã£o).'}
-                       {model === 'verkhoshansky' && 'Verkhoshansky (Choque): Caracterizada por cargas extremamente elevadas e concentradas seguidas por restauraÃ§Ã£o completa e pico.'}
-                       {model === 'bompa' && 'Bompa (SistematizaÃ§Ã£o): Combina perÃ­odos de adaptaÃ§Ã£o com foco em pico de forÃ§a mÃ¡xima antes da conversÃ£o para potÃªncias especÃ­ficas.'}
+                       {model === 'matveyev' && 'Matveyev (Clássico): Baseada na variação ondulatória onde o volume cai e a intensidade sobe linearmente ao longo do tempo.'}
+                       {model === 'issurin' && 'Issurin (ATR): Focada na superposição de efeitos residuais através de blocos altamente concentrados (Acumulação, Transmutação e Realização).'}
+                       {model === 'verkhoshansky' && 'Verkhoshansky (Choque): Caracterizada por cargas extremamente elevadas e concentradas seguidas por restauração completa e pico.'}
+                       {model === 'bompa' && 'Bompa (Sistematização): Combina períodos de adaptação com foco em pico de força máxima antes da conversão para potências específicas.'}
                      </p>
                   </div>
                   <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-                    <PhaseCard title="Objetivo" target={config.goalType === 'aesthetic' ? config.aestheticGoal : config.sportType} desc="Meta primÃ¡ria do ciclo." />
-                    <PhaseCard title="NÃ­vel" target={parseInt(config.age) > 40 ? 'Master' : 'Elite'} desc="Perfil fisiolÃ³gico." />
-                    <PhaseCard title="Volumes" target={model === 'matveyev' ? 'OndulatÃ³rio' : 'Concentrado'} desc="DistribuiÃ§Ã£o de carga." />
+                    <PhaseCard title="Objetivo" target={config.goalType === 'aesthetic' ? config.aestheticGoal : config.sportType} desc="Meta primária do ciclo." />
+                    <PhaseCard title="Nível" target={parseInt(config.age) > 40 ? 'Master' : 'Elite'} desc="Perfil fisiológico." />
+                    <PhaseCard title="Volumes" target={model === 'matveyev' ? 'Ondulatório' : 'Concentrado'} desc="Distribuição de carga." />
                   </div>
                   <Activity className="absolute -right-8 -bottom-8 w-48 h-48 opacity-10" />
                </div>
