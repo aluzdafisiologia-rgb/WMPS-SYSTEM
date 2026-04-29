@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Clock, Zap, Calendar, CheckCircle2, Save, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { logWorkout, logWellness } from '../actions';
+import { logWorkout, logWellness, getUserRole } from '../actions';
 
 
 
@@ -70,6 +70,7 @@ export default function AthletePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<string | null>(null);
 
   React.useEffect(() => {
     async function checkAuth() {
@@ -80,6 +81,9 @@ export default function AthletePage() {
         return;
       }
       setUser(session.user);
+      
+      const role = await getUserRole(session.user.id);
+      setRole(role);
       
       // Auto-preencher o nome do atleta
       if (!supabase) return;
@@ -173,7 +177,7 @@ export default function AthletePage() {
               if (activeTab) {
                 setActiveTab(null);
               } else {
-                window.location.href = '/';
+                window.location.href = role === 'admin' ? '/admin' : '/';
               }
             }}
             className="p-2 -ml-2 text-slate-400 hover:text-blue-500 transition-colors cursor-pointer"

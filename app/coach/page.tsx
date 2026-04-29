@@ -75,6 +75,7 @@ export default function CoachPage() {
   const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'periodization' | 'prescription' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'requests'>('menu');
   const [requests, setRequests] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     async function checkAuth() {
@@ -91,6 +92,7 @@ export default function CoachPage() {
         window.location.href = '/';
         return;
       }
+      setRole(role);
       setUser(session.user);
     }
 
@@ -254,7 +256,7 @@ export default function CoachPage() {
               } else if (activeModule !== 'menu') {
                 setActiveModule('menu');
               } else {
-                window.location.href = '/';
+                window.location.href = role === 'admin' ? '/admin' : '/';
               }
             }}
             className="group flex items-center gap-2 bg-slate-800/50 hover:bg-slate-800 text-slate-400 hover:text-white p-2.5 rounded-xl border border-slate-700 transition-all cursor-pointer"
