@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Clock, Zap, Calendar, CheckCircle2, Save, LogOut, FileText, Mail, User, Dumbbell } from 'lucide-react';
+import { ArrowLeft, Clock, Zap, CheckCircle2, Save, FileText, User, Dumbbell, Activity, Timer, MoveHorizontal, Footprints } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { logWorkout, logWellness, logAnamnesis, getUserRole, getActivePrescription, completeTraining } from '../actions';
@@ -72,7 +72,6 @@ export default function AthletePage() {
     hasKnownDisease: false,
     hasSymptoms: false,
     desiredIntensity: 'moderate' as 'moderate' | 'vigorous',
-    // Novos campos ACSM/NSCA
     familyHistory: false,
     smoking: false,
     hypertension: false,
@@ -87,7 +86,6 @@ export default function AthletePage() {
   const [user, setUser] = useState<any>(null);
   const [activePrescription, setActivePrescription] = useState<any>(null);
   const [completedExercises, setCompletedExercises] = useState<Record<string, boolean>>({});
-  const [trainingSummary, setTrainingSummary] = useState({ rpe: 13, duration: '' });
 
   React.useEffect(() => {
     async function checkAuth() {
@@ -175,24 +173,25 @@ export default function AthletePage() {
     }
   };
 
-  const handleCompleteTraining = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCompleteTraining = async () => {
     if (!activePrescription) return;
-    if (!trainingSummary.duration) return alert('Informe a duração real do treino.');
+    const allKeys = getPrescriptionKeys(activePrescription.data);
+    const completedCount = allKeys.filter(k => completedExercises[k]).length;
+    if (completedCount === 0) return alert('Marque pelo menos um bloco como concluído.');
     
     setIsSubmitting(true);
     try {
       const res = await completeTraining(activePrescription.id, {
         athleteId: user.id,
         athleteName: formData.athleteName,
-        rpe: trainingSummary.rpe,
-        duration: Number(trainingSummary.duration),
-        volume: 0 // Podia ser calculado aqui se necessário
+        completedBlocks: completedCount,
+        totalBlocks: allKeys.length,
       });
 
       if (res.success) {
         setShowSuccess(true);
         setActivePrescription(null);
+        setCompletedExercises({});
         setActiveTab(null);
         setTimeout(() => setShowSuccess(false), 3000);
       } else {
@@ -204,6 +203,16 @@ export default function AthletePage() {
       setIsSubmitting(false);
     }
   };
+
+  function getPrescriptionKeys(data: any): string[] {
+    if (!data) return [];
+    return Object.keys(data).filter(k => {
+      if (k === 'prevVolume') return false;
+      const v = data[k];
+      if (!v || typeof v !== 'object') return false;
+      return Object.values(v).some(val => !!val);
+    });
+  }
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-slate-200 font-sans pb-20">
@@ -368,65 +377,169 @@ export default function AthletePage() {
                   </form>
                 )}
 
-                {activeTab === 'training' && activePrescription && (
-                   <form onSubmit={handleCompleteTraining} className="space-y-8">
-                     <div className="space-y-6">
-                        {Object.entries(activePrescription.data).map(([key, value]: [string, any]) => {
-                          if (typeof value !== 'object' || !value || Object.values(value).every(v => !v)) return null;
-                          
-                          const labels: Record<string, string> = {
-                            strength: 'Treinamento de Força',
-                            hiit: 'HIIT (Laursen & Buchheit)',
-                            continuous: 'Treinamento Contínuo',
-                            plyometrics: 'Pliometria (NSCA)',
-                            agility: 'Agilidade',
-                            power: 'Potência',
-                            flexibility: 'Flexibilidade'
-                          };
+                {activeTab === 'training' && activePrescription && (() => {
+                  const prescKeys = getPrescriptionKeys(activePrescription.data);
+                  const completedCount = prescKeys.filter(k => completedExercises[k]).length;
+                  const totalCount = prescKeys.length;
+                  const allDone = completedCount === totalCount && totalCount > 0;
+
+                  const blockMeta: Record<string, { label: string; icon: React.ReactNode; color: string; accent: string }> = {
+                    strength:    { label: 'Força',        icon: <Dumbbell className="w-5 h-5" />,       color: 'text-blue-400',    accent: 'border-blue-500/40 bg-blue-500/5' },
+                    hiit:        { label: 'HIIT',         icon: <Zap className="w-5 h-5" />,            color: 'text-emerald-400', accent: 'border-emerald-500/40 bg-emerald-500/5' },
+                    continuous:  { label: 'Contínuo',     icon: <Activity className="w-5 h-5" />,       color: 'text-cyan-400',    accent: 'border-cyan-500/40 bg-cyan-500/5' },
+                    plyometrics: { label: 'Pliometria',   icon: <Zap className="w-5 h-5" />,            color: 'text-orange-400',  accent: 'border-orange-500/40 bg-orange-500/5' },
+                    agility:     { label: 'Agilidade',    icon: <Footprints className="w-5 h-5" />,     color: 'text-cyan-400',    accent: 'border-cyan-500/40 bg-cyan-500/5' },
+                    power:       { label: 'Potência',     icon: <Zap className="w-5 h-5" />,            color: 'text-yellow-400',  accent: 'border-yellow-500/40 bg-yellow-500/5' },
+                    flexibility: { label: 'Flexibilidade',icon: <MoveHorizontal className="w-5 h-5" />, color: 'text-purple-400',  accent: 'border-purple-500/40 bg-purple-500/5' },
+                  };
+
+                  const fieldLabels: Record<string, string> = {
+                    method: 'Método', intensity: 'Intensidade', duration: 'Volume/Duração',
+                    restSeries: 'Desc. Séries', restReps: 'Desc. Reps', protocol: 'Protocolo',
+                    workDur: 'Estímulo (s)', recDur: 'Recuperação (s)', series: 'Séries',
+                    reps: 'Reps', workInt: 'Velocidade (km/h)', bSeriesDur: 'Desc. Entre Séries',
+                    modality: 'Modalidade', drill: 'Exercício/Drill', rest: 'Descanso',
+                    jumpType: 'Tipo de Salto', height: 'Altura (cm)', load: 'Carga Extra',
+                    experience: 'Nível', notes: 'Observações'
+                  };
+
+                  return (
+                    <div className="space-y-6">
+                      {/* Progress Header */}
+                      <div className="bg-slate-900/60 border border-slate-700 rounded-2xl p-5">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-[10px] font-black text-slate-500 uppercase italic tracking-widest">Progresso da Sessão</p>
+                          <span className={`text-sm font-black italic ${ allDone ? 'text-emerald-400' : 'text-yellow-400' }`}>
+                            {completedCount}/{totalCount}
+                          </span>
+                        </div>
+                        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                          <motion.div
+                            className={`h-full rounded-full ${ allDone ? 'bg-emerald-500' : 'bg-yellow-500' }`}
+                            animate={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
+                            transition={{ duration: 0.5, ease: 'easeOut' }}
+                          />
+                        </div>
+                        <p className="text-[9px] text-slate-600 font-bold uppercase mt-2 italic">
+                          Marque cada bloco conforme executar. O PSE será registrado no Pós-Treino.
+                        </p>
+                      </div>
+
+                      {/* Prescription Blocks */}
+                      <div className="space-y-4">
+                        {prescKeys.map(key => {
+                          const value = activePrescription.data[key];
+                          const meta = blockMeta[key] || { label: key, icon: <Dumbbell className="w-5 h-5" />, color: 'text-slate-400', accent: 'border-slate-700 bg-slate-900/30' };
+                          const done = completedExercises[key] || false;
 
                           return (
-                            <div key={key} className="p-6 bg-slate-900/50 border border-slate-700 rounded-2xl space-y-4">
-                               <div className="flex items-center justify-between">
-                                  <h4 className="text-[10px] font-black text-yellow-500 uppercase italic tracking-widest">{labels[key] || key}</h4>
-                                  <input 
-                                    type="checkbox" 
-                                    checked={completedExercises[key] || false}
-                                    onChange={(e) => setCompletedExercises({...completedExercises, [key]: e.target.checked})}
-                                    className="w-5 h-5 rounded border-slate-700 bg-slate-800 text-yellow-500 focus:ring-yellow-500"
-                                  />
-                               </div>
-                               <div className="grid grid-cols-2 gap-y-2 gap-x-4">
-                                  {Object.entries(value).map(([field, val]) => {
-                                    if (!val || field === 'totalKm' || field === 'totalTime' || field === 'totalContacts') return null;
-                                    return (
-                                      <div key={field}>
-                                        <p className="text-[8px] font-black text-slate-500 uppercase">{field}</p>
-                                        <p className="text-[10px] font-bold text-white">{val as string}</p>
-                                      </div>
-                                    );
-                                  })}
-                               </div>
-                            </div>
+                            <motion.div
+                              key={key}
+                              layout
+                              className={`rounded-2xl border p-5 transition-all duration-300 ${
+                                done ? 'border-emerald-500/60 bg-emerald-500/5 opacity-80' : meta.accent
+                              }`}
+                            >
+                              {/* Block Header */}
+                              <button
+                                type="button"
+                                onClick={() => setCompletedExercises(prev => ({ ...prev, [key]: !done }))}
+                                className="w-full flex items-center justify-between gap-4 group"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className={`p-2 rounded-xl bg-slate-900 border border-slate-800 ${ done ? 'opacity-50' : meta.color }`}>
+                                    {meta.icon}
+                                  </div>
+                                  <div className="text-left">
+                                    <p className={`text-xs font-black uppercase italic ${ done ? 'text-emerald-400 line-through decoration-emerald-500/50' : 'text-white' }`}>
+                                      {meta.label}
+                                    </p>
+                                    {value.protocol && <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">{value.protocol}</p>}
+                                    {value.modality && !value.protocol && <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">{value.modality}</p>}
+                                    {value.drill && <p className="text-[9px] text-slate-500 font-bold uppercase mt-0.5">{value.drill}</p>}
+                                  </div>
+                                </div>
+                                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                                  done
+                                    ? 'bg-emerald-500 border-emerald-400 shadow-lg shadow-emerald-500/30'
+                                    : 'bg-transparent border-slate-600 group-hover:border-yellow-500'
+                                }`}>
+                                  {done && <CheckCircle2 className="w-5 h-5 text-white" />}
+                                </div>
+                              </button>
+
+                              {/* Block Details (collapsed when done) */}
+                              <AnimatePresence>
+                                {!done && (
+                                  <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.25 }}
+                                    className="overflow-hidden"
+                                  >
+                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-5 pt-4 border-t border-white/5">
+                                      {Object.entries(value).map(([field, val]) => {
+                                        if (!val || ['totalKm','totalTime','totalContacts','experience'].includes(field)) return null;
+                                        return (
+                                          <div key={field}>
+                                            <p className="text-[8px] font-black text-slate-600 uppercase">{fieldLabels[field] || field}</p>
+                                            <p className="text-[11px] font-bold text-white mt-0.5">{val as string}</p>
+                                          </div>
+                                        );
+                                      })}
+                                      {value.totalKm && Number(value.totalKm) > 0 && (
+                                        <div className="col-span-2 mt-1 p-2 bg-slate-900 rounded-xl flex gap-4">
+                                          <div><p className="text-[8px] font-black text-slate-600 uppercase">Volume KM</p><p className="text-[11px] font-bold text-emerald-400">{value.totalKm} km</p></div>
+                                          {value.totalTime && <div><p className="text-[8px] font-black text-slate-600 uppercase">Tempo</p><p className="text-[11px] font-bold text-cyan-400">{value.totalTime} min</p></div>}
+                                        </div>
+                                      )}
+                                      {value.totalContacts && Number(value.totalContacts) > 0 && (
+                                        <div className="col-span-2 mt-1 p-2 bg-slate-900 rounded-xl">
+                                          <p className="text-[8px] font-black text-slate-600 uppercase">Contatos Totais</p>
+                                          <p className="text-[11px] font-bold text-orange-400">{value.totalContacts}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </motion.div>
                           );
                         })}
-                     </div>
+                      </div>
 
-                     <div className="space-y-6 border-t border-slate-700 pt-8">
-                        <p className="text-[10px] font-black text-slate-500 uppercase italic">Dados de Conclusão</p>
-                        <div className="grid grid-cols-2 gap-4">
-                          <Input label="Duração Real (min)" type="number" value={trainingSummary.duration} onChange={(v) => setTrainingSummary({...trainingSummary, duration: v})} />
-                          <div className="flex flex-col justify-end">
-                            <p className="text-[8px] font-black text-slate-600 uppercase mb-2 text-center">Status Geral</p>
-                            <div className="py-3 bg-slate-900 rounded-xl text-center text-[10px] font-black text-emerald-500 uppercase italic">
-                               {Math.round((Object.values(completedExercises).filter(Boolean).length / Object.keys(activePrescription.data).filter(k => k !== 'prevVolume' && (activePrescription.data[k]?.method || activePrescription.data[k]?.protocol || activePrescription.data[k]?.modality || activePrescription.data[k]?.drill)).length || 1) * 100)}% Concluído
-                            </div>
-                          </div>
-                        </div>
-                        <RPESelector label="Esforço Percebido (PSE)" value={trainingSummary.rpe} onChange={(v) => setTrainingSummary({...trainingSummary, rpe: v})} labels={BORG_RPE_LABELS} />
-                        <SubmitButton loading={isSubmitting} color="bg-yellow-600 hover:bg-yellow-500" />
-                     </div>
-                   </form>
-                )}
+                      {/* Finish Button */}
+                      <motion.button
+                        type="button"
+                        onClick={handleCompleteTraining}
+                        disabled={isSubmitting || completedCount === 0}
+                        whileTap={{ scale: 0.97 }}
+                        className={`w-full py-5 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 italic text-white transition-all ${
+                          allDone
+                            ? 'bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-600/20'
+                            : completedCount > 0
+                            ? 'bg-yellow-600 hover:bg-yellow-500'
+                            : 'bg-slate-800 cursor-not-allowed text-slate-500'
+                        } disabled:opacity-60`}
+                      >
+                        <CheckCircle2 className={`w-5 h-5 ${ isSubmitting ? 'animate-spin' : '' }`} />
+                        {isSubmitting
+                          ? 'Enviando...'
+                          : allDone
+                          ? 'Treino Completo — Confirmar!'
+                          : completedCount > 0
+                          ? `Concluir com ${completedCount}/${totalCount} blocos`
+                          : 'Marque ao menos 1 bloco'
+                        }
+                      </motion.button>
+
+                      <p className="text-center text-[9px] text-slate-600 font-bold uppercase italic">
+                        Após confirmar, registre o PSE e duração real na aba "Carga Treino"
+                      </p>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
             <motion.button

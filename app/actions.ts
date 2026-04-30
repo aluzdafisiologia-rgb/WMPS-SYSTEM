@@ -317,29 +317,18 @@ export async function getActivePrescription(athleteId: string) {
 export async function completeTraining(prescriptionId: string, workoutData: any) {
   if (!supabase) throw new Error('Supabase client not initialized');
   try {
-    // 1. Marcar prescrição como concluída
+    // Marcar prescrição como concluída, salvando metadados de blocos executados
     const { error: pError } = await supabase
       .from('training_prescriptions')
       .update({ 
         status: 'completed',
-        completed_at: new Date().toISOString()
+        completed_at: new Date().toISOString(),
+        completed_blocks: workoutData.completedBlocks ?? null,
+        total_blocks: workoutData.totalBlocks ?? null,
       })
       .eq('id', prescriptionId);
 
     if (pError) throw pError;
-
-    // 2. Logar na tabela de sessões para cálculos de carga
-    await supabase.from('sessions').insert([{
-      athlete_id: workoutData.athleteId,
-      athlete_name: workoutData.athleteName,
-      date: new Date().toISOString().split('T')[0],
-      rpe: workoutData.rpe,
-      duration: workoutData.duration,
-      load: workoutData.rpe * workoutData.duration,
-      distance: workoutData.distance || 0,
-      volume: workoutData.volume || 0,
-      training_id: prescriptionId // Link para auditoria
-    }]);
 
     revalidatePath('/coach');
     revalidatePath('/athlete');
