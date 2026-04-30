@@ -3353,12 +3353,12 @@ const PLYO_INTENSITY_OPTIONS = ['Baixa', 'Média', 'Alta'];
 
 const SPRINT_TYPES = ['Sprint Linear', 'Sprint com Mudança de Direção', 'Sprint Resistido', 'Sprint em Ladeira', 'Sprint Curvado'];
 const SPRINT_DISTANCES = [5, 10, 20, 30, 40, 50, 60, 80, 100, 150, 200, 400];
-const SPRINT_VELOCITIES = Array.from({ length: 31 }, (_, i) => i + 15); // 15 to 45 km/h
+const SPRINT_VELOCITIES = Array.from({ length: 43 }, (_, i) => i + 3); // 3 to 45 km/h
 const POWER_SETS = Array.from({ length: 10 }, (_, i) => i + 1);
 const POWER_REPS = Array.from({ length: 20 }, (_, i) => i + 1);
 const POWER_REST = ['30s', '60s', '90s', '2 min', '3 min', '4 min', '5 min'];
 const POWER_WEIGHTS = Array.from({ length: 61 }, (_, i) => i * 5); // 0 to 300kg
-const LPO_INTENSITY_OPTIONS = Array.from({ length: 11 }, (_, i) => `${50 + (i * 5)}% 1RM`);
+const LPO_INTENSITY_OPTIONS = Array.from({ length: 19 }, (_, i) => `${10 + (i * 5)}% 1RM`);
 
 function AdvancedStrengthCard({ values, onChange }: { values: any[], onChange: (newList: any[]) => void }) {
   const addExercise = () => {
