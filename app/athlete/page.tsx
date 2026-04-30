@@ -478,29 +478,56 @@ export default function AthletePage() {
                                     transition={{ duration: 0.25 }}
                                     className="overflow-hidden"
                                   >
-                                    <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-5 pt-4 border-t border-white/5">
-                                      {Object.entries(value).map(([field, val]) => {
-                                        if (!val || ['totalKm','totalTime','totalContacts','experience'].includes(field)) return null;
-                                        return (
-                                          <div key={field}>
-                                            <p className="text-[8px] font-black text-slate-600 uppercase">{fieldLabels[field] || field}</p>
-                                            <p className="text-[11px] font-bold text-white mt-0.5">{val as string}</p>
+                                    {Array.isArray(value) ? (
+                                      <div className="space-y-4 mt-5 pt-4 border-t border-white/5">
+                                        {value.map((ex, i) => (
+                                          <div key={i} className="p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                                            <div className="flex justify-between items-start mb-2">
+                                              <p className="text-[10px] font-black text-white uppercase italic">{ex.name || 'Exercício'}</p>
+                                              <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 uppercase">{ex.intensity}</span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2">
+                                              <div>
+                                                <p className="text-[7px] font-black text-slate-600 uppercase">Séries x Reps</p>
+                                                <p className="text-[10px] font-bold text-white">{ex.sets} x {ex.reps}</p>
+                                              </div>
+                                              <div>
+                                                <p className="text-[7px] font-black text-slate-600 uppercase">Carga</p>
+                                                <p className="text-[10px] font-bold text-emerald-400">{ex.weight ? `${ex.weight}kg` : '--'}</p>
+                                              </div>
+                                              <div>
+                                                <p className="text-[7px] font-black text-slate-600 uppercase">Descanso</p>
+                                                <p className="text-[10px] font-bold text-slate-400">{ex.rest}</p>
+                                              </div>
+                                            </div>
                                           </div>
-                                        );
-                                      })}
-                                      {value.totalKm && Number(value.totalKm) > 0 && (
-                                        <div className="col-span-2 mt-1 p-2 bg-slate-900 rounded-xl flex gap-4">
-                                          <div><p className="text-[8px] font-black text-slate-600 uppercase">Volume KM</p><p className="text-[11px] font-bold text-emerald-400">{value.totalKm} km</p></div>
-                                          {value.totalTime && <div><p className="text-[8px] font-black text-slate-600 uppercase">Tempo</p><p className="text-[11px] font-bold text-cyan-400">{value.totalTime} min</p></div>}
-                                        </div>
-                                      )}
-                                      {value.totalContacts && Number(value.totalContacts) > 0 && (
-                                        <div className="col-span-2 mt-1 p-2 bg-slate-900 rounded-xl">
-                                          <p className="text-[8px] font-black text-slate-600 uppercase">Contatos Totais</p>
-                                          <p className="text-[11px] font-bold text-orange-400">{value.totalContacts}</p>
-                                        </div>
-                                      )}
-                                    </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-5 pt-4 border-t border-white/5">
+                                        {Object.entries(value).map(([field, val]) => {
+                                          if (!val || ['totalKm','totalTime','totalContacts','experience'].includes(field)) return null;
+                                          return (
+                                            <div key={field}>
+                                              <p className="text-[8px] font-black text-slate-600 uppercase">{fieldLabels[field] || field}</p>
+                                              <p className="text-[11px] font-bold text-white mt-0.5">{val as string}</p>
+                                            </div>
+                                          );
+                                        })}
+                                        {value.totalKm && Number(value.totalKm) > 0 && (
+                                          <div className="col-span-2 mt-1 p-2 bg-slate-900 rounded-xl flex gap-4">
+                                            <div><p className="text-[8px] font-black text-slate-600 uppercase">Volume KM</p><p className="text-[11px] font-bold text-emerald-400">{value.totalKm} km</p></div>
+                                            {value.totalTime && <div><p className="text-[8px] font-black text-slate-600 uppercase">Tempo</p><p className="text-[11px] font-bold text-cyan-400">{value.totalTime} min</p></div>}
+                                          </div>
+                                        )}
+                                        {value.totalContacts && Number(value.totalContacts) > 0 && (
+                                          <div className="col-span-2 mt-1 p-2 bg-slate-900 rounded-xl">
+                                            <p className="text-[8px] font-black text-slate-600 uppercase">Contatos Totais</p>
+                                            <p className="text-[11px] font-bold text-orange-400">{value.totalContacts}</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                                   </motion.div>
                                 )}
                               </AnimatePresence>

@@ -278,7 +278,6 @@ export async function saveTrainingPrescription(prescription: any) {
         athlete_id: prescription.athlete_id,
         coach_id: prescription.coach_id,
         athlete_name: prescription.athlete_name,
-        date: new Date().toISOString().split('T')[0],
         status: 'pending',
         data: prescription.data
       }])
@@ -319,7 +318,7 @@ export async function getAthletePrescriptions(athleteId: string) {
   try {
     const { data, error } = await supabase
       .from('training_prescriptions')
-      .select('id, athlete_id, athlete_name, date, status, completed_at, completed_blocks, total_blocks, created_at, data')
+      .select('id, athlete_id, athlete_name, status, completed_at, completed_blocks, total_blocks, created_at, data')
       .eq('athlete_id', athleteId)
       .order('created_at', { ascending: true });
 
@@ -336,7 +335,7 @@ export async function getAllPrescriptions() {
   try {
     const { data, error } = await supabase
       .from('training_prescriptions')
-      .select('id, athlete_id, athlete_name, date, status, completed_at, completed_blocks, total_blocks, created_at')
+      .select('id, athlete_id, athlete_name, status, completed_at, completed_blocks, total_blocks, created_at')
       .order('created_at', { ascending: false });
 
     if (error) throw error;

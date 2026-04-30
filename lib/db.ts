@@ -46,7 +46,7 @@ export interface TrainingPrescription {
   athlete_id: string;
   coach_id: string;
   athlete_name: string;
-  date: string;
+  date?: string;
   status: 'pending' | 'completed';
   data: any;
   created_at?: string;

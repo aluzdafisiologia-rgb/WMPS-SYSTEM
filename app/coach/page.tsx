@@ -28,7 +28,8 @@ import {
   Mail,
   User,
   LogOut,
-  CheckCircle2
+  CheckCircle2,
+  Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -63,6 +64,7 @@ const HOOPER_SCALE = {
   5: { label: 'Ótimo', abbr: 'OT', color: 'text-blue-400' }
 };
 
+
 const WELLNESS_CLASS = (score: number) => {
   if (score < 40) return { label: 'MR', fullName: 'Muito Ruim', color: 'bg-red-500' };
   if (score < 60) return { label: 'R', fullName: 'Ruim', color: 'bg-orange-500' };
@@ -79,46 +81,6 @@ export default function CoachPage() {
   const [requests, setRequests] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function checkAuth() {
-      if (!supabase) return;
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        window.location.href = '/';
-        return;
-      }
-
-      const role = await getUserRole(session.user.id);
-
-      if (role !== 'coach' && role !== 'admin') {
-        window.location.href = '/';
-        return;
-      }
-      setRole(role);
-      setUser(session.user);
-    }
-
-    async function loadData() {
-      try {
-        const [sessionData, wellnessData, reqData] = await Promise.all([
-          getSessions(),
-          getWellness(),
-          getRegistrationRequests()
-        ]);
-        setSessions(sessionData);
-        setWellness(wellnessData);
-        setRequests(reqData.filter((r: any) => r.status === 'pendente'));
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    checkAuth().then(loadData);
-  }, []);
-
   const handleLogout = async () => {
     if (supabase) await supabase.auth.signOut();
     window.location.href = '/';
@@ -281,7 +243,7 @@ export default function CoachPage() {
         </div>
         <div className="flex items-center gap-4 bg-slate-800/50 p-2 pl-4 rounded-xl border border-slate-700">
           <div className="text-right">
-            <p className="text-[10px] text-slate-500 uppercase font-black tracking-tighter">Ãrea do Professor</p>
+            <p className="text-[10px] text-slate-500 uppercase font-black tracking-tighter">Ã rea do Professor</p>
             <p className="text-sm font-bold text-white">Monitoramento Ativo</p>
           </div>
           <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center font-black text-white italic">WM</div>
@@ -461,7 +423,7 @@ export default function CoachPage() {
                     <XAxis dataKey="name" stroke="#64748b" fontSize={10} fontWeight={800} tickLine={false} axisLine={false} />
                     <YAxis stroke="#64748b" fontSize={10} fontWeight={800} tickLine={false} axisLine={false} />
                     <Tooltip cursor={{ fill: '#334155', opacity: 0.4 }} contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px' }} />
-                    <ReferenceLine y={teamStats.avgLoad} stroke="#ef4444" strokeDasharray="5 5" label={{ position: 'right', value: 'ReferÃªncia', fill: '#ef4444', fontSize: 10, fontWeight: 900 }} />
+                    <ReferenceLine y={teamStats.avgLoad} stroke="#ef4444" strokeDasharray="5 5" label={{ position: 'right', value: 'Referência', fill: '#ef4444', fontSize: 10, fontWeight: 900 }} />
                     <Bar dataKey="avg" radius={[4, 4, 0, 0]} barSize={40}>
                       {athleteComparisonData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.avg > teamStats.avgLoad ? '#ef4444' : '#3b82f6'} />
@@ -538,7 +500,7 @@ export default function CoachPage() {
                     <Info className="w-4 h-4 text-slate-500" />
                     <p className="label-caps italic uppercase">Painel de Controle Interno</p>
                   </div>
-                  <h3 className="text-xl font-black text-white uppercase italic">ÃƒÃƒâ€šÃ‚ÂÃndice de Hooper & Bem-Estar Geral</h3>
+                  <h3 className="text-xl font-black text-white uppercase italic">Índice de Hooper & Bem-Estar Geral</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                    {['OT', 'MB', 'B', 'R', 'P'].map((s) => (
@@ -2752,7 +2714,7 @@ function PeriodizationModule() {
           </button>
           <div>
             <h2 className="text-2xl font-black text-white uppercase italic">
-              {selectedAthlete?.full_name} <span className="text-amber-500">â€” Progresso Real</span>
+              {selectedAthlete?.full_name} <span className="text-amber-500">â€” Progressão Real</span>
             </h2>
             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Histórico de PrescriÃ§Ãµes Concluídas</p>
           </div>
@@ -3331,6 +3293,188 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
   );
 }
 
+const STRENGTH_EXERCISES = [
+  'Agachamento (Squat)',
+  'Supino (Bench Press)',
+  'Levantamento Terra (Deadlift)',
+  'Prensa de Pernas (Leg Press)',
+  'Extensão de Pernas',
+  'Flexão de Pernas',
+  'Puxada Alta (Lat Pulldown)',
+  'Remada Baixa',
+  'Desenvolvimento (Shoulder Press)',
+  'Rosca Direta',
+  'Tríceps Pulley',
+  'Afundo (Lunge)',
+  'Elevação Lateral',
+  'Prancha Abdominal',
+  'Flexão de Braços (Push-up)'
+];
+
+const INTENSITY_OPTIONS = [
+  '60% 1RM (Força Iniciante)',
+  '70% 1RM (Força Intermediária)',
+  '80% 1RM (Força Avançada)',
+  '85% 1RM (Força Máxima)',
+  '90% 1RM (Potência)',
+  'RPE 6 (Muito Leve)',
+  'RPE 7 (Leve)',
+  'RPE 8 (Moderado)',
+  'RPE 9 (Forte)',
+  'RPE 10 (Máximo)'
+];
+
+function AdvancedStrengthCard({ values, onChange }: { values: any[], onChange: (newList: any[]) => void }) {
+  const addExercise = () => {
+    onChange([...values, { name: '', intensity: '', sets: '4', reps: '10', rest: '90s', weight: '', volumePercent: '100' }]);
+  };
+
+  const removeExercise = (index: number) => {
+    if (values.length <= 1) return;
+    const newList = [...values];
+    newList.splice(index, 1);
+    onChange(newList);
+  };
+
+  const updateExercise = (index: number, field: string, val: string) => {
+    const newList = [...values];
+    newList[index] = { ...newList[index], [field]: val };
+    onChange(newList);
+  };
+
+  return (
+    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
+            <Dumbbell className="w-5 h-5 text-blue-500" />
+          </div>
+          <h4 className="text-sm font-black text-white uppercase italic">!!! NOVO - LISTA DE EXERCÍCIOS !!!</h4>
+        </div>
+        <button 
+          onClick={addExercise}
+          className="p-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-white transition-all shadow-lg shadow-blue-600/20"
+          title="Adicionar Exercício"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        {values.map((ex, idx) => {
+          const volumeTotal = (parseInt(ex.sets) || 0) * (parseInt(ex.reps) || 0);
+          const effectiveVolume = Math.round(volumeTotal * (parseInt(ex.volumePercent) || 100) / 100);
+          const loadTotal = volumeTotal * (parseFloat(ex.weight) || 0);
+
+          return (
+            <motion.div 
+              key={idx}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="p-4 bg-slate-950/50 border border-slate-800 rounded-2xl space-y-4 relative group"
+            >
+              {values.length > 1 && (
+                <button 
+                  onClick={() => removeExercise(idx)}
+                  className="absolute top-4 right-4 text-slate-700 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Exercício</label>
+                  <select 
+                    value={ex.name}
+                    onChange={(e) => updateExercise(idx, 'name', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="">Selecione...</option>
+                    {STRENGTH_EXERCISES.map(e => <option key={e} value={e}>{e}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Intensidade</label>
+                  <select 
+                    value={ex.intensity}
+                    onChange={(e) => updateExercise(idx, 'intensity', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="">Selecione...</option>
+                    {INTENSITY_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Intervalo Descanso</label>
+                  <input 
+                    value={ex.rest}
+                    onChange={(e) => updateExercise(idx, 'rest', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none"
+                    placeholder="Ex: 90s"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
+                  <input 
+                    type="number"
+                    value={ex.sets}
+                    onChange={(e) => updateExercise(idx, 'sets', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Repetições</label>
+                  <input 
+                    type="number"
+                    value={ex.reps}
+                    onChange={(e) => updateExercise(idx, 'reps', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Carga (kg)</label>
+                  <input 
+                    type="number"
+                    value={ex.weight}
+                    onChange={(e) => updateExercise(idx, 'weight', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                    placeholder="Opcional"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">% Volume Prescrito</label>
+                  <select 
+                    value={ex.volumePercent}
+                    onChange={(e) => updateExercise(idx, 'volumePercent', e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                  >
+                    {[100, 90, 80, 70, 60, 50, 40, 30].map(p => <option key={p} value={p}>{p}%</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                  <p className="text-[8px] font-black text-slate-600 uppercase">Volume Total ({ex.volumePercent}%)</p>
+                  <p className="text-sm font-black text-emerald-400 italic">{effectiveVolume} <span className="text-[9px] text-slate-500 not-italic">reps</span></p>
+                </div>
+                <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                  <p className="text-[8px] font-black text-slate-600 uppercase">Load Total (Volume x Kg)</p>
+                  <p className="text-sm font-black text-blue-400 italic">{loadTotal.toLocaleString()} <span className="text-[9px] text-slate-500 not-italic">kg</span></p>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PrescriptionModule({ coachId }: { coachId?: string }) {
   const [athletes, setAthletes] = useState<any[]>([]);
   const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
@@ -3339,7 +3483,7 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
   const [searchAthlete, setSearchAthlete] = useState('');
   const [sending, setSending] = useState(false);
   const [prescription, setPrescription] = useState({
-    strength: { method: '', intensity: '', duration: '', restSeries: '', restReps: '' },
+    strength: [{ name: '', intensity: '', sets: '4', reps: '10', rest: '90s', weight: '', volumePercent: '100' }],
     hiit: { protocol: '', workDur: '', recDur: '', workInt: '', recInt: '', series: '', reps: '', bSeriesDur: '', totalKm: '0', totalTime: '0', modality: '' },
     continuous: { intensity: '', duration: '', modality: '', totalKm: '0', totalTime: '0' },
     agility: { protocol: '', drills: '', series: '', reps: '', restSeries: '', notes: '' },
@@ -3516,11 +3660,9 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
 
               {/* Prescription Forms */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <PrescriptionCard 
-                  title="Treinamento de Força" 
-                  icon={<Dumbbell className="w-5 h-5 text-blue-500" />}
+                <AdvancedStrengthCard 
                   values={prescription.strength}
-                  onChange={(field, val) => setPrescription({...prescription, strength: {...prescription.strength, [field]: val}})}
+                  onChange={(newList) => setPrescription({...prescription, strength: newList})}
                 />
                 <HIITCard 
                   values={prescription.hiit}
