@@ -56,11 +56,11 @@ import { format, parseISO, eachDayOfInterval, isSameDay, differenceInDays } from
 
 // Hooper Index Scale
 const HOOPER_SCALE = {
-  1: { label: 'PÃ©ssimo', abbr: 'P', color: 'text-red-500' },
+  1: { label: 'Péssimo', abbr: 'P', color: 'text-red-500' },
   2: { label: 'Ruim', abbr: 'R', color: 'text-orange-500' },
   3: { label: 'Bom', abbr: 'B', color: 'text-emerald-500' },
   4: { label: 'Muito Bom', abbr: 'MB', color: 'text-blue-500' },
-  5: { label: 'Ã“timo', abbr: 'OT', color: 'text-blue-400' }
+  5: { label: 'Ótimo', abbr: 'OT', color: 'text-blue-400' }
 };
 
 const WELLNESS_CLASS = (score: number) => {
@@ -225,14 +225,14 @@ export default function CoachPage() {
   const riskAlerts = useMemo(() => {
     return athleteMetrics.map(metric => {
       let riskLevel: 'high' | 'medium' | 'low' = 'low';
-      let message = 'EstÃ¡vel';
+      let message = 'Estável';
 
       if (metric.acwr > 1.5) {
         riskLevel = 'high';
         message = 'ACWR EXPLOSIVO';
       } else if (metric.acwr > 1.3 || metric.wellness < 50) {
         riskLevel = 'medium';
-        message = 'ATENÃ‡ÃƒO CARGA';
+        message = 'ATENÇÃO CARGA';
       } else if (metric.acwr < 0.8 && metric.load > 0) {
         riskLevel = 'medium';
         message = 'UNDER-TRAINING';
@@ -299,25 +299,25 @@ export default function CoachPage() {
               onClick={() => setActiveModule('dashboard')} 
             />
             <MenuButton 
-              title="AvaliaÃ§Ãµes" 
+              title="Avaliações" 
               subtitle="Antropometria e Testes" 
               icon={<ClipboardList className="w-8 h-8 text-emerald-500" />} 
               onClick={() => setActiveModule('assessment')} 
             />
             <MenuButton 
-              title="PeriodizaÃ§Ã£o" 
+              title="Periodização" 
               subtitle="Planejamento Macrociclo" 
               icon={<Target className="w-8 h-8 text-amber-500" />} 
               onClick={() => setActiveModule('periodization')} 
             />
             <MenuButton 
-              title="PrescriÃ§Ã£o" 
+              title="Prescrição" 
               subtitle="Montagem de Treinos" 
               icon={<FileText className="w-8 h-8 text-purple-500" />} 
               onClick={() => setActiveModule('prescription')} 
             />
             <MenuButton 
-              title="SolicitaÃ§Ãµes" 
+              title="Solicitações" 
               subtitle={`${requests.length} pendente${requests.length !== 1 ? 's' : ''}`} 
               icon={<UserPlus className="w-8 h-8 text-rose-500" />} 
               onClick={() => setActiveModule('requests')} 
@@ -338,44 +338,44 @@ export default function CoachPage() {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-6">
               <MenuButton 
-                title="AvaliaÃ§Ã£o de ForÃ§a" 
-                subtitle="Testes de Carga MÃ¡xima" 
+                title="Avaliação de Força" 
+                subtitle="Testes de Carga Máxima" 
                 icon={<Dumbbell className="w-8 h-8 text-blue-500" />} 
                 onClick={() => setActiveModule('assessment_strength')} 
               />
               <MenuButton 
-                title="AvaliaÃ§Ã£o de PotÃªncia" 
-                subtitle="Ciclagem e ExplosÃ£o" 
+                title="Avaliação de Potência" 
+                subtitle="Ciclagem e Explosão" 
                 icon={<Zap className="w-8 h-8 text-yellow-500" />} 
                 onClick={() => setActiveModule('assessment_power')} 
               />
               <MenuButton 
-                title="AvaliaÃ§Ã£o de ResistÃªncia" 
-                subtitle="Capacidade AerÃ³bica" 
+                title="Avaliação de Resistência" 
+                subtitle="Capacidade Aeróbica" 
                 icon={<Timer className="w-8 h-8 text-emerald-500" />} 
                 onClick={() => setActiveModule('assessment_endurance')} 
               />
               <MenuButton 
-                title="AvaliaÃ§Ã£o de Flexibilidade" 
+                title="Avaliação de Flexibilidade" 
                 subtitle="Amplitude de Movimento" 
                 icon={<MoveHorizontal className="w-8 h-8 text-purple-500" />} 
                 onClick={() => setActiveModule('assessment_flexibility')} 
               />
               <MenuButton 
-                title="AvaliaÃ§Ã£o de Agilidade" 
-                subtitle="MudanÃ§a de DireÃ§Ã£o" 
+                title="Avaliação de Agilidade" 
+                subtitle="Mudança de Direção" 
                 icon={<Footprints className="w-8 h-8 text-cyan-500" />} 
                 onClick={() => setActiveModule('assessment_agility')} 
               />
               <MenuButton 
-                title="AvaliaÃ§Ã£o AntropomÃ©trica" 
-                subtitle="Dobra CutÃ¢nea e PerÃ­metros" 
+                title="Avaliação Antropométrica" 
+                subtitle="Dobra Cutânea e Perímetros" 
                 icon={<Scale className="w-8 h-8 text-rose-500" />} 
                 onClick={() => setActiveModule('assessment_anthropometric')} 
               />
               <MenuButton 
                 title="Anamnese" 
-                subtitle="HistÃ³rico e SaÃºde" 
+                subtitle="Histórico e Saúde" 
                 icon={<FileText className="w-8 h-8 text-blue-400" />} 
                 onClick={() => setActiveModule('assessment_anamnesis')} 
               />
@@ -423,8 +423,8 @@ export default function CoachPage() {
 
         {/* Top Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <StatCard title="Carga MÃ©dia Equipe" value={`${teamStats.avgLoad} AU`} icon={<TrendingUp className="w-5 h-5 text-blue-400" />} color="bg-slate-900 border border-slate-800" />
-          <StatCard title="DistÃ¢ncia Total" value={`${athleteMetrics.reduce((acc, m) => acc + m.distance, 0).toFixed(1)} km`} icon={<Activity className="w-5 h-5 text-emerald-400" />} color="bg-slate-900 border border-slate-800" />
+          <StatCard title="Carga Média Equipe" value={`${teamStats.avgLoad} AU`} icon={<TrendingUp className="w-5 h-5 text-blue-400" />} color="bg-slate-900 border border-slate-800" />
+          <StatCard title="Distância Total" value={`${athleteMetrics.reduce((acc, m) => acc + m.distance, 0).toFixed(1)} km`} icon={<Activity className="w-5 h-5 text-emerald-400" />} color="bg-slate-900 border border-slate-800" />
           <StatCard title="Volume Total" value={`${athleteMetrics.reduce((acc, m) => acc + m.volume, 0)} kg`} icon={<Activity className="w-5 h-5 text-yellow-400" />} color="bg-slate-900 border border-slate-800" />
           <div className="bento-card bg-blue-600 border-none flex flex-col justify-center">
              <p className="text-[9px] font-black text-white/50 uppercase italic mb-1 tracking-widest">Carga Semanal Acumulada</p>
@@ -440,16 +440,16 @@ export default function CoachPage() {
              <div className="flex justify-between items-center mb-10">
                 <div>
                    <p className="label-caps italic mb-1">Carga por Atleta</p>
-                   <h3 className="text-xl font-black text-white uppercase italic">Comparativo vs MÃ©dia da Equipe</h3>
+                   <h3 className="text-xl font-black text-white uppercase italic">Comparativo vs Média da Equipe</h3>
                 </div>
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded bg-blue-500"></span>
-                    <span className="text-[9px] font-black uppercase text-slate-500">Abaixo MÃ©d.</span>
+                    <span className="text-[9px] font-black uppercase text-slate-500">Abaixo Méd.</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-3 h-3 rounded bg-red-500"></span>
-                    <span className="text-[9px] font-black uppercase text-slate-500">Acima MÃ©d.</span>
+                    <span className="text-[9px] font-black uppercase text-slate-500">Acima Méd.</span>
                   </div>
                 </div>
              </div>
@@ -702,7 +702,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para Avaliações
             </button>
             
             <StrengthAssessmentModule />
@@ -714,7 +714,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para Avaliações
             </button>
             
             <PowerAssessmentModule />
@@ -726,7 +726,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para Avaliações
             </button>
             
             <AnthropometricAssessmentModule />
@@ -738,7 +738,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para Avaliações
             </button>
             
             <EnduranceAssessmentModule />
@@ -750,7 +750,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para Avaliações
             </button>
             
             <AgilityAssessmentModule />
@@ -762,7 +762,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para Avaliações
             </button>
             
             <FlexibilityAssessmentModule />
@@ -774,7 +774,7 @@ export default function CoachPage() {
               className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
             >
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar para AvaliaÃ§Ãµes
+              Voltar para Avaliações
             </button>
             
             <AnamnesisModule />
@@ -824,8 +824,8 @@ export default function CoachPage() {
                <Info className="w-10 h-10 text-slate-500" />
             </div>
             <div>
-              <h3 className="text-xl font-black text-white uppercase italic">MÃ³dulo em Desenvolvimento</h3>
-              <p className="text-slate-500 text-sm font-medium mt-2">Esta funcionalidade estarÃ¡ disponÃ­vel em breve no WMPS.</p>
+              <h3 className="text-xl font-black text-white uppercase italic">Módulo em Desenvolvimento</h3>
+              <p className="text-slate-500 text-sm font-medium mt-2">Esta funcionalidade estarÃ¡ disponível em breve no WMPS.</p>
             </div>
             <button 
               onClick={() => {
@@ -851,7 +851,7 @@ export default function CoachPage() {
                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest italic">Monitoramento de Risco Ativo</span>
               </div>
               <div className="hidden sm:block h-4 w-px bg-slate-800"></div>
-              <p className="hidden sm:block text-[10px] text-slate-600 font-bold italic">ClassificaÃ§Ã£o Hooper baseada em P, R, B, MB, OT.</p>
+              <p className="hidden sm:block text-[10px] text-slate-600 font-bold italic">Classificação Hooper baseada em P, R, B, MB, OT.</p>
            </div>
            <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.1em] text-center sm:text-right">
              William Moreira Performance System V1.0 <span className="mx-2 text-slate-700 hidden sm:inline">|</span> <br className="sm:hidden" />
@@ -1002,7 +1002,7 @@ function StrengthAssessmentModule() {
             </div>
 
             <div className="space-y-3">
-              <label className="label-caps italic text-xs">Protocolo / EquaÃ§Ã£o</label>
+              <label className="label-caps italic text-xs">Protocolo / Equação</label>
               <div className="grid grid-cols-2 gap-2">
                 <button 
                   onClick={() => setFormula('brzycki')}
@@ -1029,7 +1029,7 @@ function StrengthAssessmentModule() {
                 <span className="text-[10px] font-black text-blue-400 uppercase italic">ReferÃªncia CientÃ­fica</span>
               </div>
               <p className="text-[9px] text-blue-400/70 font-bold uppercase leading-relaxed">
-                As equaÃ§Ãµes de prediÃ§Ã£o de 1RM sÃƒÃƒâ€šÃ‚Â£o recomendadas para atÃ© 10 repetiÃ§Ãµes. Protocolos acimade 10 reps podem apresentar maior margem de erro.
+                As equaÃ§Ãµes de prediÃ§Ã£o de 1RM sÃƒÃƒâ€šÃ‚Â£o recomendadas para atÃ© 10 repetições. Protocolos acimade 10 reps podem apresentar maior margem de erro.
               </p>
             </div>
           </div>
@@ -1041,7 +1041,7 @@ function StrengthAssessmentModule() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bento-card border-none bg-blue-600 p-8 flex flex-col justify-between overflow-hidden relative">
              <div className="relative z-10">
-                <p className="text-[10px] font-black text-white/60 uppercase italic tracking-[0.2em] mb-2">Estimativa de Carga MÃ¡xima</p>
+                <p className="text-[10px] font-black text-white/60 uppercase italic tracking-[0.2em] mb-2">Estimativa de Carga Máxima</p>
                 <h3 className="text-5xl font-black text-white italic">{Math.round(oneRM)}<span className="text-xl ml-2 opacity-50 underline decoration-white/20">KG</span></h3>
              </div>
              <Dumbbell className="absolute -right-8 -bottom-8 w-48 h-48 opacity-10 rotate-12" />
@@ -1062,7 +1062,7 @@ function StrengthAssessmentModule() {
                       <h4 className="text-xs font-black text-white uppercase italic">{formula === 'brzycki' ? 'ACSM (Brzycki)' : 'NSCA (Epley)'}</h4>
                       <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 leading-tight">
                         {formula === 'brzycki' 
-                          ? 'EquaÃ§Ã£o linear baseada na reduÃ§Ã£o percentual por repetiÃ§Ã£o. Amplamente utilizada em contextos clÃ­nicos e de saÃºde.' 
+                          ? 'Equação linear baseada na reduÃ§Ã£o percentual por repetiÃ§Ã£o. Amplamente utilizada em contextos clÃ­nicos e de saÃºde.' 
                           : 'Abordagem baseada no percentual de 1RM por repetiÃ§Ã£o (3% por rep). Preferida pela NSCA para atletas de forÃ§a.'}
                       </p>
                    </div>
@@ -1074,7 +1074,7 @@ function StrengthAssessmentModule() {
         <div className="bento-card bg-slate-900 border-slate-800 p-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <p className="label-caps italic mb-1">PrescriÃ§Ã£o</p>
+              <p className="label-caps italic mb-1">Prescrição</p>
               <h3 className="text-xl font-black text-white uppercase italic">Zonas de Treinamento e Intensidade</h3>
             </div>
             <div className="flex gap-2">
@@ -1101,9 +1101,9 @@ function StrengthAssessmentModule() {
           </div>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-slate-800">
-             <IntensityZone label="ForÃ§a MÃ¡xima" range="85-100%" reps="1-6" color="text-red-500" />
+             <IntensityZone label="Força Máxima" range="85-100%" reps="1-6" color="text-red-500" />
              <IntensityZone label="Hipertrofia" range="70-85%" reps="6-12" color="text-yellow-500" />
-             <IntensityZone label="ResistÃªncia" range="50-70%" reps="15+" color="text-emerald-500" />
+             <IntensityZone label="Resistência" range="50-70%" reps="15+" color="text-emerald-500" />
           </div>
         </div>
       </div>
@@ -1130,14 +1130,14 @@ function PowerAssessmentModule() {
       // Sayers Equation (Watts) - Peak Power
       const peakPower = (60.7 * v) + (45.3 * m) - 2055;
       const relativePower = peakPower / m;
-      return { peakPower, relativePower, label: 'PotÃªncia de Pico (Vertical)', unit: 'W' };
+      return { peakPower, relativePower, label: 'Potência de Pico (Vertical)', unit: 'W' };
     } else if (testType === 'horizontal_jump') {
       const v = parseFloat(value);
       if (!v) return null;
       // Power estimation from horizontal jump
       const distM = v / 100;
       const estPower = 2.21 * m * Math.sqrt(9.81 * distM);
-      return { peakPower: estPower, relativePower: estPower / m, label: 'PotÃªncia Estimada (Horizontal)', unit: 'W' };
+      return { peakPower: estPower, relativePower: estPower / m, label: 'Potência Estimada (Horizontal)', unit: 'W' };
     } else if (testType === 'medball') {
       const v = parseFloat(value); // distance in meters
       if (!v) return null;
@@ -1145,7 +1145,7 @@ function PowerAssessmentModule() {
       // The system uses a 3kg med ball as standard; relative power = W/kg body mass
       const ballMass = 3; // kg (standard med ball for upper body test)
       const estPower = ballMass * 9.81 * v;
-      return { peakPower: estPower, relativePower: estPower / m, label: 'PotÃªncia Estimada (MS Ã¢Ã¢Ã¢â‚¬Å¡Ã‚Â¬Ã¢Ã¢â€šÂ¬Ã‚Â Med Ball 3kg)', unit: 'W' };
+      return { peakPower: estPower, relativePower: estPower / m, label: 'Potência Estimada (MS Ã¢Ã¢Ã¢â‚¬Å¡Ã‚Â¬Ã¢Ã¢â€šÂ¬Ã‚Â Med Ball 3kg)', unit: 'W' };
     } else if (testType === 'sprint') {
       const v = parseFloat(value);
       if (!v) return null;
@@ -1153,7 +1153,7 @@ function PowerAssessmentModule() {
       const dist = 40;
       const v_avg = dist / v;
       const power = 0.5 * m * v_avg * v_avg / v;
-      return { peakPower: power, relativePower: power / m, label: 'PotÃªncia AnaerÃ Â³bica (Sprint)', unit: 'W' };
+      return { peakPower: power, relativePower: power / m, label: 'Potência AnaerÃ Â³bica (Sprint)', unit: 'W' };
     } else if (testType === 'ssc_analytics') {
       const sj = parseFloat(sjHeight);
       const cmj = parseFloat(cmjHeight);
@@ -1176,7 +1176,7 @@ function PowerAssessmentModule() {
       return { 
         peakPower: rsi, 
         relativePower: rsi, 
-        label: 'ÃƒÃƒâ€šÃ‚Ândice de ForÃ§a Reativa (RSI)', 
+        label: 'ÃƒÃƒâ€šÃ‚Ândice de Força Reativa (RSI)', 
         isRsi: true,
         rsiValue: rsi
       };
@@ -1189,8 +1189,8 @@ function PowerAssessmentModule() {
       <div className="lg:col-span-4 space-y-6">
         <div className="bento-card bg-slate-900/50 border-slate-800 p-8">
           <div className="mb-8">
-            <p className="label-caps italic mb-1">AvaliaÃ§Ã£o BioenergÃ©tica</p>
-            <h3 className="text-xl font-black text-white uppercase italic">Capacidade de PotÃªncia</h3>
+            <p className="label-caps italic mb-1">Avaliação BioenergÃ©tica</p>
+            <h3 className="text-xl font-black text-white uppercase italic">Capacidade de Potência</h3>
           </div>
 
           <div className="space-y-6">
@@ -1199,11 +1199,11 @@ function PowerAssessmentModule() {
               <div className="grid grid-cols-1 gap-2">
                 {[
                   { id: 'jump', title: 'Salto Vertical (MIII)', subtitle: 'Sayers Equation' },
-                  { id: 'horizontal_jump', title: 'Salto Horizontal', subtitle: 'PotÃªncia de ExplosÃƒÃƒâ€šÃ‚Â£o' },
+                  { id: 'horizontal_jump', title: 'Salto Horizontal', subtitle: 'Potência de ExplosÃƒÃƒâ€šÃ‚Â£o' },
                   { id: 'medball', title: 'MedBall Throw (MS)', subtitle: 'Membros Superiores' },
                   { id: 'sprint', title: 'Sprint 40m', subtitle: 'Protocolo AnaerÃ Â³bico' },
                   { id: 'ssc_analytics', title: 'AnÃ¡lise EUR & SSC%', subtitle: 'CMJ vs SJ Analytics' },
-                  { id: 'rsi', title: 'ÃƒÃƒâ€šÃ‚Ândice ForÃ§a Reativa', subtitle: 'RSI (RelaÃ§Ã£o H/TC)' }
+                  { id: 'rsi', title: 'ÃƒÃƒâ€šÃ‚Ândice Força Reativa', subtitle: 'RSI (Relação H/TC)' }
                 ].map(t => (
                   <button 
                     key={t.id}
@@ -1280,7 +1280,7 @@ function PowerAssessmentModule() {
               ) : (
                 <div className="space-y-2">
                   <label className="label-caps italic text-xs">
-                    {testType === 'jump' ? 'Altura do Salto (cm)' : testType === 'horizontal_jump' ? 'DistÃ¢ncia do Salto (cm)' : testType === 'medball' ? 'DistÃ¢ncia do LanÃ§amento (m)' : 'Tempo do Sprint 40m (s)'}
+                    {testType === 'jump' ? 'Altura do Salto (cm)' : testType === 'horizontal_jump' ? 'Distância do Salto (cm)' : testType === 'medball' ? 'Distância do LanÃ§amento (m)' : 'Tempo do Sprint 40m (s)'}
                   </label>
                   <input 
                     type="number"
@@ -1311,7 +1311,7 @@ function PowerAssessmentModule() {
                 <Zap className={`absolute -right-8 -bottom-8 w-48 h-48 opacity-10 rotate-12 ${testType.includes('analytics') || testType === 'rsi' ? 'text-white' : 'text-black'}`} />
                 <div className="relative z-10 mt-6 flex gap-3">
                   <span className={`px-3 py-1 ${testType.includes('analytics') || testType === 'rsi' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'} rounded-full text-[10px] font-black italic uppercase`}>
-                    {testType === 'ssc_analytics' ? 'Taxa de UtilizaÃ§Ã£o' : testType === 'rsi' ? 'ÃƒÃƒâ€šÃ‚Ândice Reativo' : 'PotÃªncia Estimada'}
+                    {testType === 'ssc_analytics' ? 'Taxa de Utilização' : testType === 'rsi' ? 'ÃƒÃƒâ€šÃ‚Ândice Reativo' : 'Potência Estimada'}
                   </span>
                 </div>
               </div>
@@ -1344,13 +1344,13 @@ function PowerAssessmentModule() {
             <div className="bento-card bg-slate-900 border-slate-800 p-8">
               <div className="mb-8">
                 <p className="label-caps italic mb-1">AnÃ¡lise Normativa</p>
-                <h3 className="text-xl font-black text-white uppercase italic">ClassificaÃ§Ã£o e Zonas</h3>
+                <h3 className="text-xl font-black text-white uppercase italic">Classificação e Zonas</h3>
               </div>
 
               <div className="space-y-6">
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <PowerClassCard 
-                      label="ExplosÃ£o" 
+                      label="Explosão" 
                       value={testType === 'ssc_analytics' ? (results.sscDiff as number > 15 ? 'AltÃ­ssima' : 'Normal') : 'Avaliado'} 
                       icon={<Zap className="w-5 h-5" />} 
                     />
@@ -1366,13 +1366,13 @@ function PowerAssessmentModule() {
                     <h4 className="text-[10px] font-black text-white uppercase italic mb-4">TransferÃªncia para o Treinamento</h4>
                     <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
                       {testType === 'ssc_analytics' ? (
-                        `O Ciclo Alongamento-Encurtamento (SSC) apresenta uma vantagem de ${results.sscDiff?.toFixed(1)}%. Um EUR acima de 1.10 indica boa utilizaÃ§Ã£o elÃ¡stica. 
+                        `O Ciclo Alongamento-Encurtamento (SSC) apresenta uma vantagem de ${results.sscDiff?.toFixed(1)}%. Um EUR acima de 1.10 indica boa utilização elÃ¡stica. 
                         Se estiver abaixo desse valor, priorize treinamentos de potÃªncia explosiva e saltos pliomÃ©tricos.`
                       ) : testType === 'rsi' ? (
-                        `O Ãndice de ForÃ§a Reativa de ${results.rsiValue?.toFixed(2)} indica a capacidade de transiÃ§Ã£o rÃ¡pida da aÃ§Ã£o excÃªntrica para a concÃªntrica. 
+                        `O Ãndice de Força Reativa de ${results.rsiValue?.toFixed(2)} indica a capacidade de transiÃ§Ã£o rÃ¡pida da ação excÃªntrica para a concÃªntrica. 
                         Valores acima de 2.0 sÃ£o tÃ­picos de atletas bem treinados em pliometria.`
                       ) : (
-                        `Capacidade detectada para o teste de ${testType}. Os dados sugerem foco em ${results.relativePower as number < 40 ? 'PotÃªncia de Base' : 'Pliometria e Velocidade'}.`
+                        `Capacidade detectada para o teste de ${testType}. Os dados sugerem foco em ${results.relativePower as number < 40 ? 'Potência de Base' : 'Pliometria e Velocidade'}.`
                       )}
                     </p>
                  </div>
@@ -1498,14 +1498,14 @@ function AnthropometricAssessmentModule() {
     if (bodyFat) {
       if (gender === 'male') {
         // ACSM 11th ed. (2022) norms - Men
-        if (bodyFat < 6) classification = "MÃ­nimo Essencial";
+        if (bodyFat < 6) classification = "Mínimo Essencial";
         else if (bodyFat <= 13) classification = "Atleta/Excelente";
         else if (bodyFat <= 17) classification = "Fitness/Bom";
         else if (bodyFat <= 24) classification = "AceitÃ¡vel";
         else classification = "Obesidade/Risco";
       } else {
         // ACSM 11th ed. (2022) norms - Women
-        if (bodyFat < 14) classification = "MÃ­nimo Essencial";
+        if (bodyFat < 14) classification = "Mínimo Essencial";
         else if (bodyFat <= 20) classification = "Atleta/Excelente";
         else if (bodyFat <= 24) classification = "Fitness/Bom";
         else if (bodyFat <= 31) classification = "AceitÃ¡vel";
@@ -1537,7 +1537,7 @@ function AnthropometricAssessmentModule() {
              <div className="w-8 h-8 rounded-lg bg-blue-600/20 flex items-center justify-center border border-blue-500/30">
                 <Scale className="w-4 h-4 text-blue-500" />
              </div>
-             <h3 className="text-sm font-black text-white uppercase italic">Perfil BÃ¡sico</h3>
+             <h3 className="text-sm font-black text-white uppercase italic">Perfil Básico</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
              <InputField label="Peso (kg)" value={weight} set={setWeight} />
@@ -1563,7 +1563,7 @@ function AnthropometricAssessmentModule() {
              <div className="w-8 h-8 rounded-lg bg-emerald-600/20 flex items-center justify-center border border-emerald-500/30">
                 <MoveHorizontal className="w-4 h-4 text-emerald-500" />
              </div>
-             <h3 className="text-sm font-black text-white uppercase italic">PerÃ­metros (cm)</h3>
+             <h3 className="text-sm font-black text-white uppercase italic">Perímetros (cm)</h3>
           </div>
           <div className="grid grid-cols-2 gap-4">
              <InputField label="Cintura" value={waist} set={setWaist} />
@@ -1583,14 +1583,14 @@ function AnthropometricAssessmentModule() {
              <h3 className="text-sm font-black text-white uppercase italic">Dobras (mm)</h3>
           </div>
           <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 xl:grid-cols-2 gap-3">
-             <InputField label="TrÃ­ceps" value={triceps} set={setTriceps} />
+             <InputField label="Tríceps" value={triceps} set={setTriceps} />
              <InputField label="Subescap." value={subscapular} set={setSubscapular} />
              <InputField label="Supra-ilÃ­aca" value={suprailiac} set={setSuprailiac} />
              <InputField label="Abdominal" value={abdominal} set={setAbdominal} />
              <InputField label="Peitoral" value={chest} set={setChest} />
              <InputField label="Coxa" value={thigh} set={setThigh} />
              <InputField label="Axilar M." value={midaxillary} set={setMidaxillary} />
-             <InputField label="BÃ­ceps" value={biceps} set={setBiceps} />
+             <InputField label="Bíceps" value={biceps} set={setBiceps} />
           </div>
         </div>
       </div>
@@ -1662,7 +1662,7 @@ function AnthropometricAssessmentModule() {
                     <ProtocolSummary 
                       title="Slaughter (Jovens)" 
                       val={results.bodyFatSlaughter} 
-                      desc="EquaÃ§Ã£o padrÃƒÃƒâ€šÃ‚Â£o para fase de maturaÃ§Ã£o." 
+                      desc="Equação padrÃƒÃƒâ€šÃ‚Â£o para fase de maturação." 
                     />
                  </div>
               </div>
@@ -1697,11 +1697,11 @@ function AnthropometricAssessmentModule() {
            </div>
 
            <div className="bento-card bg-slate-900 border-slate-800 p-8">
-              <h4 className="text-[10px] font-black text-slate-500 uppercase italic mb-4">Normas de ClassificaÃ§Ã£o</h4>
+              <h4 className="text-[10px] font-black text-slate-500 uppercase italic mb-4">Normas de Classificação</h4>
                <div className="space-y-3">
                   <RankingRow label="Atleta" range="6-13% (M) | 12-20% (F)" active={results?.bodyFat ? results.bodyFat < 13 : false} />
                   <RankingRow label="SaudÃ¡vel" range="14-17% (M) | 21-25% (F)" active={results?.bodyFat ? results.bodyFat >= 14 && results.bodyFat <= 17 : false} />
-                  <RankingRow label="MÃ©dia" range="18-24% (M) | 26-31% (F)" active={results?.bodyFat ? results.bodyFat >= 18 && results.bodyFat <= 24 : false} />
+                  <RankingRow label="Média" range="18-24% (M) | 26-31% (F)" active={results?.bodyFat ? results.bodyFat >= 18 && results.bodyFat <= 24 : false} />
                   <RankingRow label="Excesso" range=">25% (M) | >32% (F)" active={results?.bodyFat ? results.bodyFat > 25 : false} />
                </div>
            </div>
@@ -1808,7 +1808,7 @@ function EnduranceAssessmentModule() {
         const v_mmin_vo2max = (vo2max_est - 3.5) / 0.2;  // m/min
         const vVO2max = v_mmin_vo2max * 60 / 1000; // back to km/h
         
-        return { vo2max: vo2max_est, vVO2max, speed: v, type: 'SubmÃ¡ximo (Pred. ÃƒÃ¢Ã¢â€šÂ¬Ã‚Â¦strand/Tanaka)' };
+        return { vo2max: vo2max_est, vVO2max, speed: v, type: 'Submáximo (Pred. ÃƒÃ¢Ã¢â€šÂ¬Ã‚Â¦strand/Tanaka)' };
       }
     }
 
@@ -1866,7 +1866,7 @@ function EnduranceAssessmentModule() {
              <div className="w-8 h-8 rounded-lg bg-emerald-600/20 flex items-center justify-center border border-emerald-500/30">
                 <Timer className="w-4 h-4 text-emerald-500" />
              </div>
-             <h3 className="text-sm font-black text-white uppercase italic">ConfiguraÃ§Ã£o do Teste</h3>
+             <h3 className="text-sm font-black text-white uppercase italic">Configuração do Teste</h3>
           </div>
 
           <div className="space-y-4">
@@ -1880,7 +1880,7 @@ function EnduranceAssessmentModule() {
                    <option value="beep">Beep Test (20m Shuttle)</option>
                    <option value="yoyo">Yo-Yo Intermittent Recovery</option>
                    <option value="vift">VIFT 30-15</option>
-                   <option value="submax">SubmÃ¡ximo (Esteira/Bike)</option>
+                   <option value="submax">Submáximo (Esteira/Bike)</option>
                    <option value="vcrit">Velocidade CrÃ­tica (Vcrit)</option>
                 </select>
              </div>
@@ -1897,12 +1897,12 @@ function EnduranceAssessmentModule() {
                 )}
                 
                 {testType === 'beep' && (
-                  <InputField label="ÃƒÃƒâ€¦Ã‚Â¡ltimo EstÃ¡gio Completado" value={beepStage} set={setBeepStage} />
+                  <InputField label="ÃƒÃƒâ€¦Ã‚Â¡ltimo Estágio Completado" value={beepStage} set={setBeepStage} />
                 )}
                 
                 {testType === 'yoyo' && (
                   <div className="space-y-2">
-                    <InputField label="DistÃ¢ncia Total Percorrida (m)" value={yoyoLevel} set={setYoyoLevel} />
+                    <InputField label="Distância Total Percorrida (m)" value={yoyoLevel} set={setYoyoLevel} />
                     <p className="text-[9px] text-slate-600 font-bold italic">* Dist. total acumulada da folha de resultado (ex: 1120m)</p>
                   </div>
                 )}
@@ -1914,11 +1914,11 @@ function EnduranceAssessmentModule() {
                 {testType === 'vcrit' && (
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                      <InputField label="DistÃ¢ncia 1 (m)" value={dist1} set={setDist1} />
+                      <InputField label="Distância 1 (m)" value={dist1} set={setDist1} />
                       <InputField label="Tempo 1 (seg)" value={time1} set={setTime1} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <InputField label="DistÃ¢ncia 2 (m)" value={dist2} set={setDist2} />
+                      <InputField label="Distância 2 (m)" value={dist2} set={setDist2} />
                       <InputField label="Tempo 2 (seg)" value={time2} set={setTime2} />
                     </div>
                   </div>
@@ -1952,7 +1952,7 @@ function EnduranceAssessmentModule() {
               <div className="bento-card bg-slate-900 border-slate-800 p-8 flex flex-col justify-between">
                  <div className="space-y-6">
                     <div>
-                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Velocidade AerÃ Â³bica MÃ¡xima (vVO2max)</p>
+                       <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Velocidade AerÃ Â³bica Máxima (vVO2max)</p>
                        <div className="flex items-baseline gap-2 mt-1">
                           <h4 className="text-4xl font-black text-white italic">{results.vVO2max?.toFixed(1) || "--"}</h4>
                           <span className="text-sm font-black text-slate-600">km/h</span>
@@ -1983,7 +1983,7 @@ function EnduranceAssessmentModule() {
                   </div>
                </div>
                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <EnduranceZone label="RecuperaÃ§Ã£o" pct="< 70%" speed={results.vVO2max ? (results.vVO2max * 0.7).toFixed(1) : "--"} />
+                  <EnduranceZone label="Recuperação" pct="< 70%" speed={results.vVO2max ? (results.vVO2max * 0.7).toFixed(1) : "--"} />
                   <EnduranceZone label="AerÃ Â³bico" pct="70-80%" speed={results.vVO2max ? (results.vVO2max * 0.8).toFixed(1) : "--"} />
                   <EnduranceZone label="Limiar" pct="85-92%" speed={results.vVO2max ? (results.vVO2max * 0.9).toFixed(1) : "--"} />
                   <EnduranceZone label="Intervalado" pct="> 100%" speed={results.vVO2max ? (results.vVO2max * 1.1).toFixed(1) : "--"} />
@@ -2019,7 +2019,7 @@ function BeepReferenceTable() {
        <div className="space-y-2">
           {stages.map(item => (
             <div key={item.s} className="flex items-center justify-between p-2 hover:bg-slate-800 rounded-lg transition-colors group">
-               <span className="text-[10px] font-black text-white italic">EstÃ¡gio {item.s}</span>
+               <span className="text-[10px] font-black text-white italic">Estágio {item.s}</span>
                <div className="flex gap-4">
                   <span className="text-[10px] font-bold text-emerald-500">{item.v} km/h</span>
                   <span className="text-[10px] font-bold text-slate-600">{item.m}m</span>
@@ -2082,7 +2082,7 @@ function AgilityAssessmentModule() {
       if (t < 9.5) return { label: 'Excelente', color: 'text-emerald-500' };
       if (t < 10.5) return { label: 'Bom', color: 'text-blue-500' };
       if (t < 11.5) return { label: 'MÃ©dio', color: 'text-yellow-500' };
-      return { label: 'Abaixo da MÃ©dia', color: 'text-rose-500' };
+      return { label: 'Abaixo da Média', color: 'text-rose-500' };
     }
 
     if (testType === 'illinois') {
@@ -2094,8 +2094,8 @@ function AgilityAssessmentModule() {
 
     if (testType === 'pro-agility') {
       if (t < 4.4) return { label: 'Elite', color: 'text-emerald-500' };
-      if (t < 4.7) return { label: 'Acima da MÃ©dia', color: 'text-blue-500' };
-      return { label: 'MÃ©dia', color: 'text-slate-500' };
+      if (t < 4.7) return { label: 'Acima da Média', color: 'text-blue-500' };
+      return { label: 'Média', color: 'text-slate-500' };
     }
 
     return null;
@@ -2189,7 +2189,7 @@ function AgilityAssessmentModule() {
                           <Zap className="w-12 h-12 text-cyan-500" />
                        </div>
                        <div className="space-y-2">
-                          <h4 className="text-2xl font-black text-white uppercase italic">Iniciar Teste de ReaÃ§Ã£o</h4>
+                          <h4 className="text-2xl font-black text-white uppercase italic">Iniciar Teste de Reação</h4>
                           <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">O sinal serÃ¡ disparado aleatoriamente</p>
                        </div>
                     </button>
@@ -2200,7 +2200,7 @@ function AgilityAssessmentModule() {
             {reactionTime && (
               <div className="bento-card bg-emerald-600 border-none p-8 flex flex-col justify-between overflow-hidden relative shadow-2xl text-white">
                 <div className="relative z-10">
-                  <p className="text-[10px] font-black text-white/50 uppercase italic tracking-widest mb-2">Tempo de ReaÃ§Ã£o</p>
+                  <p className="text-[10px] font-black text-white/50 uppercase italic tracking-widest mb-2">Tempo de Reação</p>
                   <div className="flex items-baseline gap-2">
                      <h3 className="text-6xl font-black italic">{(reactionTime / 1000).toFixed(3)}</h3>
                      <span className="text-xl font-black text-white/40">segundos</span>
@@ -2239,7 +2239,7 @@ function AgilityAssessmentModule() {
                            style={{ width: `${Math.min(100, (20 / parseFloat(time)) * 100)}%` }} 
                          />
                       </div>
-                      <p className="text-[8px] text-slate-600 font-bold uppercase italic mt-2">ClassificaÃ§Ã£o baseada em normas NSCA para atletas universitÃ¡rios.</p>
+                      <p className="text-[8px] text-slate-600 font-bold uppercase italic mt-2">Classificação baseada em normas NSCA para atletas universitÃ¡rios.</p>
                    </div>
                 </div>
               </div>
@@ -2248,7 +2248,7 @@ function AgilityAssessmentModule() {
                  <Footprints className="w-16 h-16 text-slate-800 mb-6 group-hover:scale-110 transition-transform" />
                  <h3 className="text-xl font-black text-slate-500 uppercase italic">CronÃƒÃƒâ€šÃ‚Â´metro Zerado</h3>
                  <p className="text-slate-600 text-[10px] font-bold uppercase mt-2 max-w-[280px]">
-                    Insira o tempo final do percurso para visualizar a classificaÃ§Ã£o de agilidade e mudanÃ§a de direÃ§Ã£o.
+                    Insira o tempo final do percurso para visualizar a classificação de agilidade e mudanÃ§a de direÃ§Ã£o.
                  </p>
               </div>
             )}
@@ -2257,17 +2257,17 @@ function AgilityAssessmentModule() {
 
         <div className="bento-card bg-slate-900 border-slate-800 p-8">
            <div className="flex items-center justify-between mb-8">
-              <p className="label-caps italic">ExplicaÃ§Ã£o do Protocolo</p>
+              <p className="label-caps italic">Explicação do Protocolo</p>
               <h3 className="text-sm font-black text-white uppercase italic">Diretrizes NSCA</h3>
            </div>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
-                 <h4 className="text-[10px] font-black text-cyan-500 uppercase">MudanÃ§a de DireÃ§Ã£o (COD)</h4>
-                 <p className="text-[10px] text-slate-500 leading-tight">Testes como Illinois e T-Test medem a capacidade prÃ©-planejada de mudar de curso. Foco em biomecÃ¢nica de frenagem e aceleraÃ§Ã£o.</p>
+                 <h4 className="text-[10px] font-black text-cyan-500 uppercase">Mudança de Direção (COD)</h4>
+                 <p className="text-[10px] text-slate-500 leading-tight">Testes como Illinois e T-Test medem a capacidade prÃ©-planejada de mudar de curso. Foco em biomecÃ¢nica de frenagem e aceleração.</p>
               </div>
               <div className="space-y-3">
                  <h4 className="text-[10px] font-black text-rose-500 uppercase">Agilidade Reativa</h4>
-                 <p className="text-[10px] text-slate-500 leading-tight">Envolve o componente cognitivo de processar um estÃ­mulo (visual/sonoro) antes da execuÃ§Ã£o fÃ­sica. Essencial para esportes abertos.</p>
+                 <p className="text-[10px] text-slate-500 leading-tight">Envolve o componente cognitivo de processar um estÃ­mulo (visual/sonoro) antes da execuÃ§Ã£o física. Essencial para esportes abertos.</p>
               </div>
            </div>
         </div>
@@ -2280,11 +2280,11 @@ function AgilityGuide({ testType }: { testType: string }) {
   const content = {
     't-test': {
       title: 'Setup T-Test',
-      steps: ['Corra 10m ÃƒÃƒâ€šÃ‚Â  frente', 'Deslocamento lateral 5m esquerda', 'Deslocamento lateral 10m direita', 'Lateral 5m volta ao centro', 'Corra 10m de costas para o inÃ­cio']
+      steps: ['Corra 10m ÃƒÃƒâ€šÃ‚Â  frente', 'Deslocamento lateral 5m esquerda', 'Deslocamento lateral 10m direita', 'Lateral 5m volta ao centro', 'Corra 10m de costas para o início']
     },
     'illinois': {
       title: 'Setup Illinois',
-      steps: ['InÃ­cio deitado de bruÃ§os', 'Sprint 10m e volta', 'Drible entre 4 cones (3.3m cada)', 'Sprint final 10m']
+      steps: ['Início deitado de bruÃ§os', 'Sprint 10m e volta', 'Drible entre 4 cones (3.3m cada)', 'Sprint final 10m']
     },
     'pro-agility': {
       title: 'Setup 5-10-5',
@@ -2335,8 +2335,8 @@ function FlexibilityAssessmentModule() {
     // Cotovelo / AntebraÃ§o
     { group: 'Cotovelo', name: 'Cotovelo - FlexÃƒÃƒâ€šÃ‚Â£o', normal: 150, range: '140-150ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: 120 },
     { group: 'Cotovelo', name: 'Cotovelo - ExtensÃƒÃƒâ€šÃ‚Â£o', normal: 0, range: '0ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: -10 },
-    { group: 'Cotovelo', name: 'AntebraÃ§o - PronaÃ§Ã£o', normal: 80, range: '75-80ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: 60 },
-    { group: 'Cotovelo', name: 'AntebraÃ§o - SupinaÃ§Ã£o', normal: 80, range: '80-85ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: 60 },
+    { group: 'Cotovelo', name: 'AntebraÃ§o - Pronação', normal: 80, range: '75-80ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: 60 },
+    { group: 'Cotovelo', name: 'AntebraÃ§o - Supinação', normal: 80, range: '80-85ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: 60 },
     // Punho
     { group: 'Punho', name: 'Punho - FlexÃƒÃƒâ€šÃ‚Â£o', normal: 80, range: '70-80ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: 60 },
     { group: 'Punho', name: 'Punho - ExtensÃƒÃƒâ€šÃ‚Â£o', normal: 70, range: '60-70ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: 50 },
@@ -2360,7 +2360,7 @@ function FlexibilityAssessmentModule() {
     // Coluna
     { group: 'Coluna', name: 'Coluna - FlexÃƒÃƒâ€šÃ‚Â£o (lombar)', normal: 60, range: '40-60ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: 30 },
     { group: 'Coluna', name: 'Coluna - ExtensÃƒÃƒâ€šÃ‚Â£o (lombar)', normal: 25, range: '20-30ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: 10 },
-    { group: 'Coluna', name: 'Coluna - RotaÃ§Ã£o (cervical)', normal: 80, range: '70-80ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: 50 },
+    { group: 'Coluna', name: 'Coluna - Rotação (cervical)', normal: 80, range: '70-80ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: 50 },
     { group: 'Coluna', name: 'Coluna - FlexÃƒÃƒâ€šÃ‚Â£o Lateral', normal: 35, range: '25-35ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â°', low: 15 },
   ];
 
@@ -2388,19 +2388,19 @@ function FlexibilityAssessmentModule() {
           if (val >= 34) return { label: 'Excelente', color: 'bg-emerald-500' };
           if (val >= 28) return { label: 'Bom', color: 'bg-blue-500' };
           if (val >= 21) return { label: 'MÃ©dio', color: 'bg-yellow-500' };
-          if (val >= 15) return { label: 'Abaixo da MÃ©dia', color: 'bg-orange-500' };
+          if (val >= 15) return { label: 'Abaixo da Média', color: 'bg-orange-500' };
           return { label: 'Fraco', color: 'bg-rose-500' };
         } else {
           if (val >= 38) return { label: 'Excelente', color: 'bg-emerald-500' };
           if (val >= 33) return { label: 'Bom', color: 'bg-blue-500' };
           if (val >= 26) return { label: 'MÃ©dio', color: 'bg-yellow-500' };
-          if (val >= 20) return { label: 'Abaixo da MÃ©dia', color: 'bg-orange-500' };
+          if (val >= 20) return { label: 'Abaixo da Média', color: 'bg-orange-500' };
           return { label: 'Fraco', color: 'bg-rose-500' };
         }
       } else {
         if (val >= 15) return { label: 'Excelente', color: 'bg-emerald-500' };
         if (val >= 5) return { label: 'Bom', color: 'bg-blue-500' };
-        if (val >= 0) return { label: 'MÃ©dia', color: 'bg-yellow-500' };
+        if (val >= 0) return { label: 'Média', color: 'bg-yellow-500' };
         return { label: 'Limitado', color: 'bg-rose-500' };
       }
     }
@@ -2481,7 +2481,7 @@ function FlexibilityAssessmentModule() {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">ArticulaÃ§Ã£o / Movimento</span>
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Articulação / Movimento</span>
                     <select 
                       value={joint}
                       onChange={e => { setJoint(e.target.value); setAngle(''); }}
@@ -2609,11 +2609,11 @@ function FlexibilityAssessmentModule() {
             </div>
 
             <div className="bento-card bg-slate-900/50 border-slate-800 p-6">
-              <p className="text-[9px] font-black text-pink-500 uppercase tracking-widest mb-2">InterpretaÃ§Ã£o ClÃ­nica</p>
+              <p className="text-[9px] font-black text-pink-500 uppercase tracking-widest mb-2">Interpretação ClÃ­nica</p>
               <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
                 {goniometryClassification?.label === 'ADM Normal'
                   ? `A amplitude de movimento de ${angle}ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â° para ${joint} estÃ¡ dentro dos valores normais segundo a AAOS (${currentJoint.range}). ManutenÃ§Ã£o com exercÃ­cios de mobilidade preventiva.`
-                  : `A amplitude de ${angle}ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â° estÃ¡ abaixo do esperado para ${joint} (Normal: ${currentJoint.range}). Recomenda-se avaliaÃ§Ã£o clÃ­nica detalhada e protocolo de mobilizaÃ§Ã£o articular especÃ­fico.`
+                  : `A amplitude de ${angle}ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â° estÃ¡ abaixo do esperado para ${joint} (Normal: ${currentJoint.range}). Recomenda-se avaliação clÃ­nica detalhada e protocolo de mobilização articular especÃ­fico.`
                 }
               </p>
             </div>
@@ -2754,7 +2754,7 @@ function PeriodizationModule() {
             <h2 className="text-2xl font-black text-white uppercase italic">
               {selectedAthlete?.full_name} <span className="text-amber-500">â€” Progresso Real</span>
             </h2>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">HistÃ³rico de PrescriÃ§Ãµes ConcluÃ­das</p>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Histórico de PrescriÃ§Ãµes Concluídas</p>
           </div>
         </div>
 
@@ -2769,7 +2769,7 @@ function PeriodizationModule() {
                 <p className="text-3xl font-black text-white italic">{totalPrescribed}</p>
               </div>
               <div className="bento-card bg-emerald-600 border-none p-6 text-center">
-                <p className="text-[9px] font-black text-white/60 uppercase mb-1">SessÃµes ConcluÃ­das</p>
+                <p className="text-[9px] font-black text-white/60 uppercase mb-1">SessÃµes Concluídas</p>
                 <p className="text-3xl font-black text-white italic">{totalCompleted}</p>
               </div>
               <div className="bento-card bg-slate-900 border-slate-800 p-6 text-center">
@@ -2787,11 +2787,11 @@ function PeriodizationModule() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <p className="label-caps italic mb-1">AvanÃ§o do Macrociclo</p>
-                  <h3 className="text-xl font-black text-white uppercase italic">ProgressÃ£o Semanal â€” Prescrito vs ConcluÃ­do</h3>
+                  <h3 className="text-xl font-black text-white uppercase italic">ProgressÃ£o Semanal â€” Prescrito vs Concluído</h3>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-blue-500"></span><span className="text-[9px] font-black uppercase text-slate-500">Prescrito</span></div>
-                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-emerald-500"></span><span className="text-[9px] font-black uppercase text-slate-500">ConcluÃ­do</span></div>
+                  <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-emerald-500"></span><span className="text-[9px] font-black uppercase text-slate-500">Concluído</span></div>
                 </div>
               </div>
               <div className="h-48 flex items-end gap-3">
@@ -2820,7 +2820,7 @@ function PeriodizationModule() {
 
             {/* Lista de sessÃµes */}
             <div className="bento-card bg-slate-900 border-slate-800 p-8 space-y-4">
-              <h3 className="text-sm font-black text-white uppercase italic">HistÃ³rico Detalhado</h3>
+              <h3 className="text-sm font-black text-white uppercase italic">Histórico Detalhado</h3>
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                 {prescriptions.length === 0 ? (
                   <div className="text-center py-10 text-slate-600 font-black uppercase italic text-xs">Nenhuma prescriÃ§Ã£o encontrada para este atleta.</div>
@@ -2839,7 +2839,7 @@ function PeriodizationModule() {
                             {done ? 'âœ“' : `${totalPrescribed - i}`}
                           </div>
                           <div>
-                            <p className="text-xs font-black text-white uppercase italic">SessÃ£o #{totalPrescribed - i}</p>
+                            <p className="text-xs font-black text-white uppercase italic">Sessão #{totalPrescribed - i}</p>
                             <p className="text-[9px] text-slate-500 font-bold uppercase">
                               {format(parseISO(p.created_at.split('T')[0]), 'dd/MM/yyyy')}
                               {blocksText && ` Â· ${blocksText}`}
@@ -2850,7 +2850,7 @@ function PeriodizationModule() {
                           <span className={`text-[10px] font-black uppercase px-3 py-1 rounded-lg ${
                             done ? 'bg-emerald-500/10 text-emerald-400' : 'bg-yellow-500/10 text-yellow-400'
                           }`}>
-                            {done ? 'ConcluÃ­do' : 'Pendente'}
+                            {done ? 'Concluído' : 'Pendente'}
                           </span>
                           {done && p.completed_at && (
                             <p className="text-[8px] text-slate-600 mt-1">{format(parseISO(p.completed_at.split('T')[0]), 'dd/MM')}</p>
@@ -2904,7 +2904,7 @@ function PeriodizationModule() {
         )}
 
         <div className="text-center space-y-2">
-          <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">ConfiguraÃ§Ã£o da PeriodizaÃ§Ã£o</h2>
+          <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Configuração da Periodização</h2>
           <p className="text-slate-400">Insira os dados do aluno para gerar a estrutura ideal de treinamento.</p>
         </div>
       </div>
@@ -2986,13 +2986,13 @@ function AnamnesisModule() {
     const intensity = data.desiredIntensity;
 
     if (!isPActive) {
-      if (hasS) return { status: 'danger', msg: 'LiberaÃ§Ã£o MÃ©dica OBRIGATÃ“RIA antes de iniciar.', action: 'Proibir exercÃ­cio' };
-      if (hasD) return { status: 'warning', msg: 'LiberaÃ§Ã£o MÃ©dica recomendada.', action: 'Consultar MÃ©dico' };
+      if (hasS) return { status: 'danger', msg: 'Liberação MÃ©dica OBRIGATÃ“RIA antes de iniciar.', action: 'Proibir exercÃ­cio' };
+      if (hasD) return { status: 'warning', msg: 'Liberação MÃ©dica recomendada.', action: 'Consultar MÃ©dico' };
       return { status: 'success', msg: 'Liberado para Intensidade Leve/Moderada.', action: 'Iniciar Gradual' };
     } else {
-      if (hasS) return { status: 'danger', msg: 'DESCONTINUAR exercÃ­cio e buscar liberaÃ§Ã£o mÃ©dica.', action: 'Interromper' };
+      if (hasS) return { status: 'danger', msg: 'DESCONTINUAR exercÃ­cio e buscar liberação mÃ©dica.', action: 'Interromper' };
       if (hasD) {
-        if (intensity === 'vigorous') return { status: 'warning', msg: 'LiberaÃ§Ã£o MÃ©dica recomendada para alta intensidade.', action: 'Consultar MÃ©dico' };
+        if (intensity === 'vigorous') return { status: 'warning', msg: 'Liberação MÃ©dica recomendada para alta intensidade.', action: 'Consultar MÃ©dico' };
         return { status: 'success', msg: 'Liberado para Intensidade Moderada.', action: 'Manter' };
       }
       return { status: 'success', msg: 'Liberado para Intensidade Moderada/Vigorosa.', action: 'Liberado Total' };
@@ -3050,7 +3050,7 @@ function AnamnesisModule() {
               <div className="flex justify-between items-center border-b border-slate-800 pb-6">
                 <div>
                   <h3 className="text-2xl font-black text-white uppercase italic">{selectedRecord.athlete_name}</h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-widest">RelatÃ³rio de Triagem PrÃ©-ParticipaÃ§Ã£o</p>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase mt-1 tracking-widest">RelatÃ³rio de Triagem Pré-Participação</p>
                 </div>
                 <div className={`px-6 py-2 rounded-xl border ${
                   getACSMAnalysis(selectedRecord.data).status === 'danger' ? 'bg-red-500/10 border-red-500/30 text-red-500' : 
@@ -3066,18 +3066,18 @@ function AnamnesisModule() {
                   <h5 className="text-[10px] font-black text-purple-400 uppercase italic tracking-[0.2em]">Respostas PAR-Q+</h5>
                   <div className="space-y-2">
                     {[
-                      { l: 'Problema CoraÃ§Ã£o/PressÃ£o', v: selectedRecord.data.q1 },
+                      { l: 'Problema Coração/PressÃ£o', v: selectedRecord.data.q1 },
                       { l: 'Dor no Peito', v: selectedRecord.data.q2 },
                       { l: 'Tontura/DesequilÃ­brio', v: selectedRecord.data.q3 },
                       { l: 'CondiÃ§Ã£o CrÃ´nica', v: selectedRecord.data.q4 },
                       { l: 'Uso de Medicamentos', v: selectedRecord.data.q5 },
                       { l: 'Problema Ã“sseo/Artic.', v: selectedRecord.data.q6 },
-                      { l: 'RemÃ©dio CoraÃ§Ã£o/PressÃ£o', v: selectedRecord.data.q7 },
+                      { l: 'RemÃ©dio Coração/PressÃ£o', v: selectedRecord.data.q7 },
                     ].map((item, i) => (
                       <div key={i} className="flex justify-between items-center p-3 bg-slate-900 rounded-xl border border-slate-800">
                         <span className="text-[9px] font-bold text-slate-500 uppercase">{item.l}</span>
                         <span className={`text-[10px] font-black uppercase ${item.v ? 'text-red-500' : 'text-emerald-500'}`}>
-                          {item.v ? 'Sim' : 'NÃ£o'}
+                          {item.v ? 'Sim' : 'Não'}
                         </span>
                       </div>
                     ))}
@@ -3090,7 +3090,7 @@ function AnamnesisModule() {
                     <RiskFactor label="Ativo regular?" value={selectedRecord.data.isPhysicallyActive} invert />
                     <RiskFactor label="DoenÃ§a CV/Metab./Renal" value={selectedRecord.data.hasKnownDisease} />
                     <RiskFactor label="Sinais ou Sintomas" value={selectedRecord.data.hasSymptoms} />
-                    <RiskFactor label="HistÃ³rico Familiar" value={selectedRecord.data.familyHistory} />
+                    <RiskFactor label="Histórico Familiar" value={selectedRecord.data.familyHistory} />
                     <RiskFactor label="Fumante" value={selectedRecord.data.smoking} />
                     <RiskFactor label="HipertensÃ£o" value={selectedRecord.data.hypertension} />
                     <RiskFactor label="Diabetes" value={selectedRecord.data.diabetes} />
@@ -3106,7 +3106,7 @@ function AnamnesisModule() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {selectedRecord.data.previousInjuries && (
                   <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800">
-                    <p className="text-[10px] font-black text-rose-400 uppercase italic mb-2">HistÃ³rico de LesÃµes</p>
+                    <p className="text-[10px] font-black text-rose-400 uppercase italic mb-2">Histórico de LesÃµes</p>
                     <p className="text-xs text-white font-medium leading-relaxed">{selectedRecord.data.previousInjuries}</p>
                   </div>
                 )}
@@ -3136,7 +3136,7 @@ function RiskFactor({ label, value, invert = false }: { label: string, value: bo
     <div className="flex justify-between items-center p-3 bg-slate-900 rounded-xl border border-slate-800">
       <span className="text-[9px] font-bold text-slate-500 uppercase">{label}</span>
       <span className={`text-[10px] font-black uppercase ${isDanger ? 'text-red-500' : 'text-emerald-500'}`}>
-        {value ? 'Sim' : 'NÃ£o'}
+        {value ? 'Sim' : 'Não'}
       </span>
     </div>
   );
@@ -3226,7 +3226,7 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
 
             {/* Welcome Message Preview */}
             <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700 text-[10px] text-slate-400 leading-relaxed font-medium space-y-1">
-              <p className="font-black text-slate-300 uppercase text-[9px] tracking-widest mb-2">PrÃ©via da mensagem de boas-vindas:</p>
+              <p className="font-black text-slate-300 uppercase text-[9px] tracking-widest mb-2">Prévia da mensagem de boas-vindas:</p>
               <p>ðŸ‹ï¸ <strong className="text-white">WMPS â€” William Moreira Performance System</strong></p>
               <p>OlÃ¡, <strong className="text-white">{credentials.fullName}</strong>!</p>
               <p>Seu acesso foi aprovado. Utilize as credenciais acima para entrar na plataforma.</p>
@@ -3259,7 +3259,7 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-black text-white uppercase italic">SolicitaÃ§Ãµes de Acesso</h2>
+          <h2 className="text-3xl font-black text-white uppercase italic">Solicitações de Acesso</h2>
           <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Gerencie os novos cadastros de atletas</p>
         </div>
         {localRequests.length > 0 && (
@@ -3273,7 +3273,7 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
         {localRequests.length === 0 ? (
           <div className="bento-card bg-slate-900/50 border-slate-800 p-16 text-center">
             <UserPlus className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-            <p className="text-slate-500 font-black uppercase italic text-sm">Nenhuma solicitaÃ§Ã£o pendente</p>
+            <p className="text-slate-500 font-black uppercase italic text-sm">Nenhuma solicitação pendente</p>
             <p className="text-slate-700 text-[10px] font-bold uppercase mt-2">Todos os cadastros foram processados</p>
           </div>
         ) : (
@@ -3362,7 +3362,7 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
       });
 
       if (result.success) {
-        alert('PrescriÃ§Ã£o enviada com sucesso para ' + selectedAthlete.full_name);
+        alert('Prescrição enviada com sucesso para ' + selectedAthlete.full_name);
       } else {
         alert('Erro ao enviar: ' + result.error);
       }
@@ -3410,7 +3410,7 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-white uppercase italic">PrescriÃ§Ã£o de Treinamento</h2>
+          <h2 className="text-3xl font-black text-white uppercase italic">Prescrição de Treinamento</h2>
           <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">Painel de Controle Individual do Atleta</p>
         </div>
       </div>
@@ -3508,7 +3508,7 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
 
               {/* physiological metrics */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <MetricBox label="% 1RM" value="85%" subValue="ForÃ§a" color="text-red-500" />
+                <MetricBox label="% 1RM" value="85%" subValue="Força" color="text-red-500" />
                 <MetricBox label="% vVO2max" value="105%" subValue="Cardio" color="text-blue-500" />
                 <MetricBox label="% FCmax" value="92%" subValue="EsforÃ§o" color="text-orange-500" />
                 <MetricBox label="% FCres" value="80%" subValue="Reserva" color="text-emerald-500" />
@@ -3517,7 +3517,7 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
               {/* Prescription Forms */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <PrescriptionCard 
-                  title="Treinamento de ForÃ§a" 
+                  title="Treinamento de Força" 
                   icon={<Dumbbell className="w-5 h-5 text-blue-500" />}
                   values={prescription.strength}
                   onChange={(field, val) => setPrescription({...prescription, strength: {...prescription.strength, [field]: val}})}
@@ -3539,7 +3539,7 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
                   onChange={(field, val) => setPrescription({...prescription, plyometrics: {...prescription.plyometrics, [field]: val}})}
                 />
                 <PrescriptionCard 
-                  title="PotÃªncia / ExplosÃ£o" 
+                  title="Potência / Explosão" 
                   icon={<Zap className="w-5 h-5 text-yellow-500" />}
                   values={prescription.power}
                   onChange={(field, val) => setPrescription({...prescription, power: {...prescription.power, [field]: val}})}
@@ -3571,7 +3571,7 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
                       />
                     </div>
                     <div className="flex-1 text-center">
-                      <p className="text-[8px] font-black text-slate-600 uppercase">VariaÃ§Ã£o %</p>
+                      <p className="text-[8px] font-black text-slate-600 uppercase">Variação %</p>
                       {(() => {
                         const currentVol = (Number(prescription.hiit.totalKm) || 0) + (Number(prescription.continuous.totalKm) || 0);
                         const prevVol = Number(prescription.prevVolume) || 0;
@@ -3602,7 +3602,7 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
                    </div>
                    <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className="text-[8px] font-black text-slate-600 uppercase">DistÃ¢ncia Total</p>
+                        <p className="text-[8px] font-black text-slate-600 uppercase">Distância Total</p>
                         <p className="text-2xl font-black text-white italic">
                           {((Number(prescription.hiit.totalKm) || 0) + (Number(prescription.continuous.totalKm) || 0)).toFixed(2)} <span className="text-xs text-slate-500 not-italic">KM</span>
                         </p>
@@ -3625,7 +3625,7 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
                 }`}
               >
                 <Download className={`w-5 h-5 ${sending ? 'animate-spin' : 'group-hover:translate-y-1 transition-transform'}`} />
-                {sending ? 'Enviando...' : 'Salvar e Enviar PrescriÃ§Ã£o'}
+                {sending ? 'Enviando...' : 'Salvar e Enviar Prescrição'}
               </button>
             </div>
           ) : (
@@ -3661,12 +3661,12 @@ function PrescriptionCard({ title, icon, values, onChange }: { title: string, ic
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Meio / MÃ©todo</label>
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Meio / Método</label>
             <input 
               value={values.method}
               onChange={(e) => onChange('method', e.target.value)}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none" 
-              placeholder="Ex: MusculaÃ§Ã£o"
+              placeholder="Ex: Musculação"
             />
           </div>
           <div className="space-y-1.5">
@@ -3681,7 +3681,7 @@ function PrescriptionCard({ title, icon, values, onChange }: { title: string, ic
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">DuraÃ§Ã£o / Volume</label>
+          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Duração / Volume</label>
           <input 
             value={values.duration}
             onChange={(e) => onChange('duration', e.target.value)}
@@ -3692,7 +3692,7 @@ function PrescriptionCard({ title, icon, values, onChange }: { title: string, ic
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Desc. SÃ©ries</label>
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Desc. Séries</label>
             <input 
               value={values.restSeries}
               onChange={(e) => onChange('restSeries', e.target.value)}
@@ -3787,18 +3787,18 @@ function HIITCard({ values, onChange }: { values: any, onChange: (field: string,
 
         <div className="grid grid-cols-2 gap-4">
            <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">RecuperaÃ§Ã£o (seg)</label>
+              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Recuperação (seg)</label>
               <input type="number" value={values.recDur} onChange={e => onChange('recDur', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 120" />
            </div>
            <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Desc. SÃ©ries (seg)</label>
+              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Desc. Séries (seg)</label>
               <input type="number" value={values.bSeriesDur} onChange={e => onChange('bSeriesDur', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 120" />
            </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
            <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">SÃ©ries</label>
+              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
               <input type="number" value={values.series} onChange={e => onChange('series', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 1" />
            </div>
            <div className="space-y-1">
@@ -3873,7 +3873,7 @@ function ContinuousCard({ values, onChange }: { values: any, onChange: (field: s
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">DuraÃ§Ã£o (minutos)</label>
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Duração (minutos)</label>
             <input 
               value={values.duration}
               onChange={(e) => onChange('duration', e.target.value)}
@@ -3903,10 +3903,10 @@ function ContinuousCard({ values, onChange }: { values: any, onChange: (field: s
 
 function AgilityCard({ values, onChange }: { values: any, onChange: (field: string, val: string) => void }) {
   const drills = [
-    { id: 't_drill', name: 'T-Drill', desc: 'MudanÃ§a de direÃ§Ã£o em T' },
+    { id: 't_drill', name: 'T-Drill', desc: 'Mudança de direÃ§Ã£o em T' },
     { id: 'shuttle_20', name: '20-yd Shuttle', desc: 'Pro Agility Drill' },
-    { id: 'shuttle_60', name: '60-yd Shuttle Run', desc: 'ResistÃªncia de Agilidade' },
-    { id: 'sprint_40', name: '40-yd Sprint Variations', desc: 'AceleraÃ§Ã£o e Troca' },
+    { id: 'shuttle_60', name: '60-yd Shuttle Run', desc: 'Resistência de Agilidade' },
+    { id: 'sprint_40', name: '40-yd Sprint Variations', desc: 'Aceleração e Troca' },
     { id: 'figure_8', name: 'Figure 8 Drill', desc: 'Controle de Curva' },
     { id: 'square', name: 'Square Drills', desc: 'Deslocamento Lateral' },
     { id: 'x_pattern', name: 'X-Pattern Drills', desc: 'Crossover' },
@@ -3951,7 +3951,7 @@ function AgilityCard({ values, onChange }: { values: any, onChange: (field: stri
 
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">SÃ©ries</label>
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
             <input 
               value={values.series}
               onChange={(e) => onChange('series', e.target.value)}
@@ -3980,7 +3980,7 @@ function AgilityCard({ values, onChange }: { values: any, onChange: (field: stri
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">ObservaÃ§Ãµes TÃ©cnicas</label>
+          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">ObservaÃ§Ãµes Técnicas</label>
           <textarea 
             value={values.notes}
             onChange={(e) => onChange('notes', e.target.value)}
@@ -4045,7 +4045,7 @@ function PlyometricsCard({ values, onChange }: { values: any, onChange: (field: 
           >
             <option value="Beginner">Iniciante</option>
             <option value="Intermediate">IntermediÃ¡rio</option>
-            <option value="Advanced">AvanÃ§ado</option>
+            <option value="Advanced">Avançado</option>
           </select>
           <p className="text-[8px] font-black text-slate-500 uppercase italic">Meta: {volumeTargets[values.experience as keyof typeof volumeTargets]} contatos</p>
         </div>
@@ -4102,7 +4102,7 @@ function PlyometricsCard({ values, onChange }: { values: any, onChange: (field: 
 
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">SÃ©ries</label>
+            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
             <input 
               value={values.series}
               onChange={(e) => onChange('series', e.target.value)}
@@ -4131,7 +4131,7 @@ function PlyometricsCard({ values, onChange }: { values: any, onChange: (field: 
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Notas TÃ©cnicas (Fase AmortizaÃ§Ã£o)</label>
+          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Notas Técnicas (Fase Amortização)</label>
           <textarea 
             value={values.notes}
             onChange={(e) => onChange('notes', e.target.value)}
