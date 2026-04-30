@@ -384,23 +384,22 @@ export default function AthletePage() {
                   const allDone = completedCount === totalCount && totalCount > 0;
 
                   const blockMeta: Record<string, { label: string; icon: React.ReactNode; color: string; accent: string }> = {
-                    strength:    { label: 'Força',        icon: <Dumbbell className="w-5 h-5" />,       color: 'text-blue-400',    accent: 'border-blue-500/40 bg-blue-500/5' },
-                    hiit:        { label: 'HIIT',         icon: <Zap className="w-5 h-5" />,            color: 'text-emerald-400', accent: 'border-emerald-500/40 bg-emerald-500/5' },
-                    continuous:  { label: 'Contínuo',     icon: <Activity className="w-5 h-5" />,       color: 'text-cyan-400',    accent: 'border-cyan-500/40 bg-cyan-500/5' },
-                    plyometrics: { label: 'Pliometria',   icon: <Zap className="w-5 h-5" />,            color: 'text-orange-400',  accent: 'border-orange-500/40 bg-orange-500/5' },
-                    agility:     { label: 'Agilidade',    icon: <Footprints className="w-5 h-5" />,     color: 'text-cyan-400',    accent: 'border-cyan-500/40 bg-cyan-500/5' },
-                    power:       { label: 'Potência',     icon: <Zap className="w-5 h-5" />,            color: 'text-yellow-400',  accent: 'border-yellow-500/40 bg-yellow-500/5' },
-                    flexibility: { label: 'Flexibilidade',icon: <MoveHorizontal className="w-5 h-5" />, color: 'text-purple-400',  accent: 'border-purple-500/40 bg-purple-500/5' },
+                    strength:      { label: 'Força',        icon: <Dumbbell className="w-5 h-5" />,       color: 'text-blue-400',    accent: 'border-blue-500/40 bg-blue-500/5' },
+                    hiit:          { label: 'HIIT',         icon: <Zap className="w-5 h-5" />,            color: 'text-emerald-400', accent: 'border-emerald-500/40 bg-emerald-500/5' },
+                    continuous:    { label: 'Contínuo',     icon: <Activity className="w-5 h-5" />,       color: 'text-cyan-400',    accent: 'border-cyan-500/40 bg-cyan-500/5' },
+                    powerTraining: { label: 'Potência',     icon: <Zap className="w-5 h-5" />,            color: 'text-yellow-400',  accent: 'border-yellow-500/40 bg-yellow-500/5' },
+                    agility:       { label: 'Agilidade',    icon: <Footprints className="w-5 h-5" />,     color: 'text-cyan-400',    accent: 'border-cyan-500/40 bg-cyan-500/5' },
+                    flexibility:   { label: 'Flexibilidade',icon: <MoveHorizontal className="w-5 h-5" />, color: 'text-purple-400',  accent: 'border-purple-500/40 bg-purple-500/5' },
                   };
 
                   const fieldLabels: Record<string, string> = {
-                    method: 'Método', intensity: 'Intensidade', duration: 'Volume/Duração',
+                    type: 'Tipo', method: 'Método', intensity: 'Intensidade', duration: 'Volume/Duração',
                     restSeries: 'Desc. Séries', restReps: 'Desc. Reps', protocol: 'Protocolo',
                     workDur: 'Estímulo (s)', recDur: 'Recuperação (s)', series: 'Séries',
                     reps: 'Reps', workInt: 'Velocidade (km/h)', bSeriesDur: 'Desc. Entre Séries',
                     modality: 'Modalidade', drill: 'Exercício/Drill', rest: 'Descanso',
                     jumpType: 'Tipo de Salto', height: 'Altura (cm)', load: 'Carga Extra',
-                    experience: 'Nível', notes: 'Observações'
+                    experience: 'Nível', notes: 'Observações', distance: 'Distância (m)', weight: 'Carga (kg)'
                   };
 
                   return (
@@ -486,15 +485,46 @@ export default function AthletePage() {
                                               <p className="text-[10px] font-black text-white uppercase italic">{ex.name || 'Exercício'}</p>
                                               <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 uppercase">{ex.intensity}</span>
                                             </div>
-                                            <div className="grid grid-cols-3 gap-2">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3">
+                                              {ex.type && (
+                                                <div className="col-span-full mb-1">
+                                                  <span className="text-[8px] font-black px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-500 uppercase">{ex.type}</span>
+                                                </div>
+                                              )}
                                               <div>
                                                 <p className="text-[7px] font-black text-slate-600 uppercase">Séries x Reps</p>
                                                 <p className="text-[10px] font-bold text-white">{ex.sets} x {ex.reps}</p>
                                               </div>
-                                              <div>
-                                                <p className="text-[7px] font-black text-slate-600 uppercase">Carga</p>
-                                                <p className="text-[10px] font-bold text-emerald-400">{ex.weight ? `${ex.weight}kg` : '--'}</p>
-                                              </div>
+                                              {ex.weight && (
+                                                <div>
+                                                  <p className="text-[7px] font-black text-slate-600 uppercase">Carga</p>
+                                                  <p className="text-[10px] font-bold text-emerald-400">{ex.weight}kg</p>
+                                                </div>
+                                              )}
+                                              {ex.jumpType && (
+                                                <div>
+                                                  <p className="text-[7px] font-black text-slate-600 uppercase">Salto</p>
+                                                  <p className="text-[10px] font-bold text-orange-400">{ex.jumpType === 'bipodal' ? 'Bipodal' : 'Unipodal'}</p>
+                                                </div>
+                                              )}
+                                              {ex.distance && (
+                                                <div>
+                                                  <p className="text-[7px] font-black text-slate-600 uppercase">Distância</p>
+                                                  <p className="text-[10px] font-bold text-cyan-400">{ex.distance}m</p>
+                                                </div>
+                                              )}
+                                              {ex.velocity && (
+                                                <div>
+                                                  <p className="text-[7px] font-black text-slate-600 uppercase">Velocidade</p>
+                                                  <p className="text-[10px] font-bold text-yellow-500">{ex.velocity} km/h</p>
+                                                </div>
+                                              )}
+                                              {ex.duration && (
+                                                <div>
+                                                  <p className="text-[7px] font-black text-slate-600 uppercase">Tempo Alvo</p>
+                                                  <p className="text-[10px] font-bold text-cyan-400">{ex.duration}s</p>
+                                                </div>
+                                              )}
                                               <div>
                                                 <p className="text-[7px] font-black text-slate-600 uppercase">Descanso</p>
                                                 <p className="text-[10px] font-bold text-slate-400">{ex.rest}</p>

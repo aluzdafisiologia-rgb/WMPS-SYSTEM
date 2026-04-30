@@ -3324,6 +3324,33 @@ const INTENSITY_OPTIONS = [
   'RPE 10 (Máximo)'
 ];
 
+const LPO_EXERCISES = [
+  'Snatch (Arranco)',
+  'Clean & Jerk (Arremesso)',
+  'Power Clean',
+  'Power Snatch',
+  'Hang Clean',
+  'Hang Snatch',
+  'Push Press',
+  'Jerk',
+  'Clean Pull',
+  'Snatch Pull'
+];
+
+const JUMP_TYPES = [
+  { id: 'bipodal', name: 'Bipodal (2 contatos)', multiplier: 2 },
+  { id: 'unipodal', name: 'Unipodal (1 contato)', multiplier: 1 }
+];
+
+const PLYO_EXERCISES = [
+  'Pogos', 'Side-to-side ankle hop', 'Jump and reach', 'Squat jump', 'Standing long jump', 
+  'Cone hops', 'Skipping', 'MB Chest pass', 'Barrier jumps', 'Tuck jumps', 'Split squat jump', 
+  'Double leg hops', 'Box jumps', 'Plyo push-up', 'Triple jump', 'Pike jump', 
+  'Single-leg vertical jump', 'Single-leg hops', 'Depth plyo push-up', 'Single-leg bounding', 'Depth jump'
+];
+
+const PLYO_INTENSITY_OPTIONS = ['Baixa', 'Média', 'Alta'];
+
 function AdvancedStrengthCard({ values, onChange }: { values: any[], onChange: (newList: any[]) => void }) {
   const addExercise = () => {
     onChange([...values, { name: '', intensity: '', sets: '4', reps: '10', rest: '90s', weight: '', volumePercent: '100' }]);
@@ -3475,6 +3502,278 @@ function AdvancedStrengthCard({ values, onChange }: { values: any[], onChange: (
   );
 }
 
+function AdvancedPowerTrainingCard({ values, onChange }: { values: any[], onChange: (newList: any[]) => void }) {
+  const addExercise = () => {
+    onChange([...values, { 
+      type: 'LPO', // LPO, Pliometria, Sprint
+      name: '', 
+      intensity: '', 
+      sets: '3', 
+      reps: '5', 
+      rest: '2 min', 
+      weight: '', 
+      volumePercent: '100',
+      jumpType: 'bipodal', // for Plyo
+      distance: '', // for Sprint
+      velocity: '', // for Sprint (km/h)
+      duration: '' // for Sprint (calculated)
+    }]);
+  };
+
+  const removeExercise = (index: number) => {
+    if (values.length <= 1) return;
+    const newList = [...values];
+    newList.splice(index, 1);
+    onChange(newList);
+  };
+
+  const updateExercise = (index: number, field: string, val: string) => {
+    const newList = [...values];
+    newList[index] = { ...newList[index], [field]: val };
+    onChange(newList);
+  };
+
+  return (
+    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
+            <Zap className="w-5 h-5 text-yellow-500" />
+          </div>
+          <h4 className="text-sm font-black text-white uppercase italic">Treinamento de Potência</h4>
+        </div>
+        <button 
+          onClick={addExercise}
+          className="p-2 bg-yellow-600 hover:bg-yellow-500 rounded-xl text-white transition-all shadow-lg shadow-yellow-600/20"
+          title="Adicionar Exercício de Potência"
+        >
+          <Plus className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        {values.map((ex, idx) => {
+          const isPlyo = ex.type === 'Pliometria';
+          const isLPO = ex.type === 'LPO';
+          const isSprint = ex.type === 'Sprint';
+
+          let volumeTotal = 0;
+          let metricLabel = 'reps';
+
+          if (isLPO) {
+            volumeTotal = (parseInt(ex.sets) || 0) * (parseInt(ex.reps) || 0);
+          } else if (isPlyo) {
+            const multiplier = JUMP_TYPES.find(j => j.id === ex.jumpType)?.multiplier || 1;
+            volumeTotal = (parseInt(ex.sets) || 0) * (parseInt(ex.reps) || 0) * multiplier;
+            metricLabel = 'contatos';
+          } else if (isSprint) {
+            volumeTotal = (parseInt(ex.sets) || 0) * (parseInt(ex.reps) || 0) * (parseFloat(ex.distance) || 0);
+            metricLabel = 'metros';
+          }
+
+          const effectiveVolume = Math.round(volumeTotal * (parseInt(ex.volumePercent) || 100) / 100);
+          
+          // Sprint calculation: Time = Dist / (Vel / 3.6)
+          const calculatedSprintTime = isSprint && ex.distance && ex.velocity 
+            ? (parseFloat(ex.distance) / (parseFloat(ex.velocity) / 3.6)).toFixed(2)
+            : null;
+
+          // Sync duration for athlete view
+          if (isSprint && calculatedSprintTime && ex.duration !== calculatedSprintTime) {
+            setTimeout(() => updateExercise(idx, 'duration', calculatedSprintTime), 0);
+          }
+
+          return (
+            <motion.div 
+              key={idx}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="p-4 bg-slate-950/50 border border-slate-800 rounded-2xl space-y-4 relative group"
+            >
+              {values.length > 1 && (
+                <button 
+                  onClick={() => removeExercise(idx)}
+                  className="absolute top-4 right-4 text-slate-700 hover:text-red-500 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Tipo</label>
+                  <select 
+                    value={ex.type}
+                    onChange={(e) => updateExercise(idx, 'type', e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                  >
+                    <option value="LPO">LPO</option>
+                    <option value="Pliometria">Pliometria</option>
+                    <option value="Sprint">Sprint</option>
+                  </select>
+                </div>
+
+                <div className="md:col-span-2 space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">
+                    {isPlyo ? 'Salto / Exercício' : isSprint ? 'Tipo de Sprint' : 'Exercício LPO'}
+                  </label>
+                  {isLPO ? (
+                    <select 
+                      value={ex.name}
+                      onChange={(e) => updateExercise(idx, 'name', e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                    >
+                      <option value="">Selecione LPO...</option>
+                      {LPO_EXERCISES.map(e => <option key={e} value={e}>{e}</option>)}
+                    </select>
+                  ) : isPlyo ? (
+                    <select 
+                      value={ex.name}
+                      onChange={(e) => updateExercise(idx, 'name', e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                    >
+                      <option value="">Selecione Salto...</option>
+                      {PLYO_EXERCISES.map(e => <option key={e} value={e}>{e}</option>)}
+                    </select>
+                  ) : (
+                    <input 
+                      value={ex.name}
+                      onChange={(e) => updateExercise(idx, 'name', e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                      placeholder="Ex: 100m Raso"
+                    />
+                  )}
+                </div>
+
+                {!isSprint && (
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Intensidade</label>
+                    {isPlyo ? (
+                      <select 
+                        value={ex.intensity}
+                        onChange={(e) => updateExercise(idx, 'intensity', e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                      >
+                        <option value="">Selecione...</option>
+                        {PLYO_INTENSITY_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    ) : (
+                      <input 
+                        value={ex.intensity}
+                        onChange={(e) => updateExercise(idx, 'intensity', e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                        placeholder="Ex: 85%"
+                      />
+                    )}
+                  </div>
+                )}
+                {isSprint && (
+                   <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Tempo Previsto</label>
+                    <div className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-black text-yellow-500 italic">
+                      {calculatedSprintTime ? `${calculatedSprintTime}s` : '--'}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {isPlyo && (
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Tipo Salto</label>
+                    <select 
+                      value={ex.jumpType}
+                      onChange={(e) => updateExercise(idx, 'jumpType', e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                    >
+                      {JUMP_TYPES.map(j => <option key={j.id} value={j.id}>{j.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {isSprint && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Distância (m)</label>
+                      <input 
+                        value={ex.distance}
+                        onChange={(e) => updateExercise(idx, 'distance', e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                        placeholder="Ex: 50"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Velocidade (km/h)</label>
+                      <input 
+                        value={ex.velocity}
+                        onChange={(e) => updateExercise(idx, 'velocity', e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                        placeholder="Ex: 30"
+                      />
+                    </div>
+                  </>
+                )}
+                {isLPO && (
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Carga (kg)</label>
+                    <input 
+                      type="number"
+                      value={ex.weight}
+                      onChange={(e) => updateExercise(idx, 'weight', e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                    />
+                  </div>
+                )}
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
+                  <input 
+                    type="number"
+                    value={ex.sets}
+                    onChange={(e) => updateExercise(idx, 'sets', e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Reps / Ciclo</label>
+                  <input 
+                    type="number"
+                    value={ex.reps}
+                    onChange={(e) => updateExercise(idx, 'reps', e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Descanso</label>
+                  <input 
+                    value={ex.rest}
+                    onChange={(e) => updateExercise(idx, 'rest', e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                    placeholder="Ex: 2 min"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">% Volume</label>
+                  <select 
+                    value={ex.volumePercent}
+                    onChange={(e) => updateExercise(idx, 'volumePercent', e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                  >
+                    {[100, 90, 80, 70, 60, 50, 40, 30].map(p => <option key={p} value={p}>{p}%</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/50 p-3 rounded-xl border border-slate-800/50">
+                <p className="text-[8px] font-black text-slate-600 uppercase">Volume Final ({ex.volumePercent}%)</p>
+                <p className="text-sm font-black text-yellow-500 italic">{effectiveVolume.toLocaleString()} <span className="text-[9px] text-slate-500 not-italic">{metricLabel}</span></p>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function PrescriptionModule({ coachId }: { coachId?: string }) {
   const [athletes, setAthletes] = useState<any[]>([]);
   const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
@@ -3487,9 +3786,8 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
     hiit: { protocol: '', workDur: '', recDur: '', workInt: '', recInt: '', series: '', reps: '', bSeriesDur: '', totalKm: '0', totalTime: '0', modality: '' },
     continuous: { intensity: '', duration: '', modality: '', totalKm: '0', totalTime: '0' },
     agility: { protocol: '', drills: '', series: '', reps: '', restSeries: '', notes: '' },
-    plyometrics: { drill: '', experience: 'Beginner', jumpType: 'Bilateral', series: '', reps: '', restSeries: '', totalContacts: '0', notes: '' },
+    powerTraining: [{ type: 'LPO', name: '', intensity: '', sets: '3', reps: '5', rest: '2 min', weight: '', volumePercent: '100', jumpType: 'bipodal', distance: '', duration: '' }],
     flexibility: { method: '', intensity: '', duration: '', restSeries: '', restReps: '' },
-    power: { method: '', intensity: '', duration: '', restSeries: '', restReps: '' },
     prevVolume: ''
   });
 
@@ -3676,15 +3974,9 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
                   values={prescription.agility}
                   onChange={(field, val) => setPrescription({...prescription, agility: {...prescription.agility, [field]: val}})}
                 />
-                <PlyometricsCard 
-                  values={prescription.plyometrics}
-                  onChange={(field, val) => setPrescription({...prescription, plyometrics: {...prescription.plyometrics, [field]: val}})}
-                />
-                <PrescriptionCard 
-                  title="Potência / Explosão" 
-                  icon={<Zap className="w-5 h-5 text-yellow-500" />}
-                  values={prescription.power}
-                  onChange={(field, val) => setPrescription({...prescription, power: {...prescription.power, [field]: val}})}
+                <AdvancedPowerTrainingCard 
+                  values={prescription.powerTraining}
+                  onChange={(newList) => setPrescription({...prescription, powerTraining: newList})}
                 />
                 <PrescriptionCard 
                   title="Flexibilidade / Mobilidade" 
