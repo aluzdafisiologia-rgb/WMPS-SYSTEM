@@ -3351,6 +3351,15 @@ const PLYO_EXERCISES = [
 
 const PLYO_INTENSITY_OPTIONS = ['Baixa', 'Média', 'Alta'];
 
+const SPRINT_TYPES = ['Sprint Linear', 'Sprint com Mudança de Direção', 'Sprint Resistido', 'Sprint em Ladeira', 'Sprint Curvado'];
+const SPRINT_DISTANCES = [5, 10, 20, 30, 40, 50, 60, 80, 100, 150, 200, 400];
+const SPRINT_VELOCITIES = Array.from({ length: 31 }, (_, i) => i + 15); // 15 to 45 km/h
+const POWER_SETS = Array.from({ length: 10 }, (_, i) => i + 1);
+const POWER_REPS = Array.from({ length: 20 }, (_, i) => i + 1);
+const POWER_REST = ['30s', '60s', '90s', '2 min', '3 min', '4 min', '5 min'];
+const POWER_WEIGHTS = Array.from({ length: 61 }, (_, i) => i * 5); // 0 to 300kg
+const LPO_INTENSITY_OPTIONS = Array.from({ length: 11 }, (_, i) => `${50 + (i * 5)}% 1RM`);
+
 function AdvancedStrengthCard({ values, onChange }: { values: any[], onChange: (newList: any[]) => void }) {
   const addExercise = () => {
     onChange([...values, { name: '', intensity: '', sets: '4', reps: '10', rest: '90s', weight: '', volumePercent: '100' }]);
@@ -3636,12 +3645,14 @@ function AdvancedPowerTrainingCard({ values, onChange }: { values: any[], onChan
                       {PLYO_EXERCISES.map(e => <option key={e} value={e}>{e}</option>)}
                     </select>
                   ) : (
-                    <input 
+                    <select 
                       value={ex.name}
                       onChange={(e) => updateExercise(idx, 'name', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
-                      placeholder="Ex: 100m Raso"
-                    />
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                    >
+                      <option value="">Selecione Sprint...</option>
+                      {SPRINT_TYPES.map(e => <option key={e} value={e}>{e}</option>)}
+                    </select>
                   )}
                 </div>
 
@@ -3658,12 +3669,14 @@ function AdvancedPowerTrainingCard({ values, onChange }: { values: any[], onChan
                         {PLYO_INTENSITY_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     ) : (
-                      <input 
+                      <select 
                         value={ex.intensity}
                         onChange={(e) => updateExercise(idx, 'intensity', e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
-                        placeholder="Ex: 85%"
-                      />
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                      >
+                        <option value="">Selecione...</option>
+                        {LPO_INTENSITY_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
                     )}
                   </div>
                 )}
@@ -3694,61 +3707,70 @@ function AdvancedPowerTrainingCard({ values, onChange }: { values: any[], onChan
                   <>
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Distância (m)</label>
-                      <input 
+                      <select 
                         value={ex.distance}
                         onChange={(e) => updateExercise(idx, 'distance', e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
-                        placeholder="Ex: 50"
-                      />
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                      >
+                        <option value="">Selecione...</option>
+                        {SPRINT_DISTANCES.map(d => <option key={d} value={d}>{d}m</option>)}
+                      </select>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Velocidade (km/h)</label>
-                      <input 
+                      <select 
                         value={ex.velocity}
                         onChange={(e) => updateExercise(idx, 'velocity', e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
-                        placeholder="Ex: 30"
-                      />
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                      >
+                        <option value="">Selecione...</option>
+                        {SPRINT_VELOCITIES.map(v => <option key={v} value={v}>{v} km/h</option>)}
+                      </select>
                     </div>
                   </>
                 )}
                 {isLPO && (
                   <div className="space-y-1.5">
                     <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Carga (kg)</label>
-                    <input 
-                      type="number"
+                    <select 
                       value={ex.weight}
                       onChange={(e) => updateExercise(idx, 'weight', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
-                    />
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                    >
+                      <option value="">Selecione...</option>
+                      {POWER_WEIGHTS.map(w => <option key={w} value={w}>{w}kg</option>)}
+                    </select>
                   </div>
                 )}
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
-                  <input 
-                    type="number"
+                  <select 
                     value={ex.sets}
                     onChange={(e) => updateExercise(idx, 'sets', e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
-                  />
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                  >
+                    {POWER_SETS.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Reps / Ciclo</label>
-                  <input 
-                    type="number"
+                  <select 
                     value={ex.reps}
                     onChange={(e) => updateExercise(idx, 'reps', e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
-                  />
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                  >
+                    {POWER_REPS.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Descanso</label>
-                  <input 
+                  <select 
                     value={ex.rest}
                     onChange={(e) => updateExercise(idx, 'rest', e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
-                    placeholder="Ex: 2 min"
-                  />
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
+                  >
+                    {POWER_REST.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-black text-slate-500 uppercase ml-1">% Volume</label>
