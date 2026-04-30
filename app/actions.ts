@@ -314,6 +314,39 @@ export async function getActivePrescription(athleteId: string) {
   }
 }
 
+export async function getAthletePrescriptions(athleteId: string) {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('training_prescriptions')
+      .select('id, athlete_id, athlete_name, date, status, completed_at, completed_blocks, total_blocks, created_at, data')
+      .eq('athlete_id', athleteId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting athlete prescriptions:', error);
+    return [];
+  }
+}
+
+export async function getAllPrescriptions() {
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from('training_prescriptions')
+      .select('id, athlete_id, athlete_name, date, status, completed_at, completed_blocks, total_blocks, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error getting all prescriptions:', error);
+    return [];
+  }
+}
+
 export async function completeTraining(prescriptionId: string, workoutData: any) {
   if (!supabase) throw new Error('Supabase client not initialized');
   try {
