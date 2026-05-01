@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, 
   TrendingUp, 
@@ -29,13 +29,20 @@ import {
   User,
   LogOut,
   CheckCircle2,
-  Trash2
+  Trash2,
+  X,
+  Users,
+  Phone,
+  ChevronRight,
+  Check
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis, getAthletes, saveTrainingPrescription, approveRegistration, getAthletePrescriptions, getAllPrescriptions } from '../actions';
+import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis, getAthletes, saveTrainingPrescription, approveRegistration, getAthletePrescriptions, getAllPrescriptions, deleteRegistrationRequest, updateProfilePhoto } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
 import { Session, WellnessEntry } from '@/lib/db';
+import { calculateACWR, calculateMonotony, calculateRiskScore } from '@/lib/periodization-engine';
+import PeriodizationWizard from '../components/PeriodizationWizard';
 import { 
   XAxis, 
   YAxis, 
@@ -53,7 +60,7 @@ import {
   ZAxis,
   LabelList
 } from 'recharts';
-import { format, parseISO, eachDayOfInterval, isSameDay, differenceInDays } from 'date-fns';
+import { format, parseISO, eachDayOfInterval, isSameDay, differenceInDays, startOfDay, startOfWeek, startOfMonth, startOfYear, subDays, isAfter } from 'date-fns';
 
 // Hooper Index Scale
 const HOOPER_SCALE = {
@@ -77,10 +84,41 @@ export default function CoachPage() {
   const [wellness, setWellness] = useState<WellnessEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'periodization' | 'prescription' | 'requests' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'assessment_anamnesis'>('menu');
+  const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'periodization' | 'prescription' | 'requests' | 'athletes' | 'teams' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'assessment_anamnesis'>('menu');
   const [requests, setRequests] = useState<any[]>([]);
+  const [athletes, setAthletes] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [showWizard, setShowWizard] = useState(false);
+  const [wizardAthlete, setWizardAthlete] = useState<any>(null);
+
+  useEffect(() => {
+    async function initAuth() {
+      if (!supabase) return;
+      const { data: { user: u } } = await supabase.auth.getUser();
+      if (u) {
+        setUser(u);
+        const r = await getUserRole(u.id);
+        setRole(r);
+      }
+    }
+    initAuth();
+
+    async function loadData() {
+      const [s, w, reqs, aths] = await Promise.all([
+        getSessions(),
+        getWellness(),
+        getRegistrationRequests(),
+        getAthletes()
+      ]);
+      setSessions(s);
+      setWellness(w);
+      setRequests(reqs);
+      setAthletes(aths);
+      setLoading(false);
+    }
+    loadData();
+  }, []);
   const handleLogout = async () => {
     if (supabase) await supabase.auth.signOut();
     window.location.href = '/';
@@ -188,16 +226,27 @@ export default function CoachPage() {
     return athleteMetrics.map(metric => {
       let riskLevel: 'high' | 'medium' | 'low' = 'low';
       let message = 'Estável';
+      let action = 'Manter plano';
+
+      const athleteSessions = sessions.filter(s => s.athlete_name === metric.name).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const consecutiveHighRpe = athleteSessions.slice(0, 3).every(s => s.rpe >= 8);
 
       if (metric.acwr > 1.5) {
         riskLevel = 'high';
         message = 'ACWR EXPLOSIVO';
+        action = 'Redução imediata de 40% no volume';
+      } else if (consecutiveHighRpe) {
+        riskLevel = 'high';
+        message = 'FADIGA AGUDA';
+        action = 'Inserir dia de recuperação total';
       } else if (metric.acwr > 1.3 || metric.wellness < 50) {
         riskLevel = 'medium';
         message = 'ATENÇÃO CARGA';
+        action = 'Monitorar próxima sessão';
       } else if (metric.acwr < 0.8 && metric.load > 0) {
         riskLevel = 'medium';
-        message = 'UNDER-TRAINING';
+        message = 'SUB-ESTÍMULO';
+        action = 'Aumentar carga progressivamente';
       }
 
       return { 
@@ -205,18 +254,20 @@ export default function CoachPage() {
         athlete_name: metric.name, 
         riskLevel, 
         message, 
+        action,
         wellnessScore: metric.wellness,
         load: metric.load,
         acwr: metric.acwr
       };
     }).filter(a => a.riskLevel !== 'low').slice(0, 3);
-  }, [athleteMetrics]);
+  }, [athleteMetrics, sessions]);
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-slate-200 font-sans pb-12">
       {user?.id && <ForcePasswordReset userId={user.id} />}
-      <header className="flex flex-col sm:flex-row justify-between items-center p-6 px-10 gap-4">
-        <div className="flex items-center gap-4">
+      <header className="flex flex-col md:flex-row justify-between items-center p-8 px-10 gap-8 border-b border-white/5 bg-slate-900/20 backdrop-blur-sm">
+        {/* Left: Branding */}
+        <div className="flex items-center gap-6 w-full md:w-auto">
           <button 
             onClick={() => {
               if (activeModule.startsWith('assessment_')) {
@@ -227,26 +278,43 @@ export default function CoachPage() {
                 window.location.href = role === 'admin' ? '/admin' : '/';
               }
             }}
-            className="group flex items-center gap-2 bg-slate-800/50 hover:bg-slate-800 text-slate-400 hover:text-white p-2.5 rounded-xl border border-slate-700 transition-all cursor-pointer"
+            className="group flex items-center gap-2 bg-slate-800/50 hover:bg-slate-800 text-slate-400 hover:text-white p-3 rounded-2xl border border-slate-700 transition-all cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
+          
           <div className="flex flex-col items-center gap-1">
-            <Link href="/" className="bg-black text-emerald-500 border-2 border-emerald-500 font-black px-6 py-1 rounded-lg text-2xl italic skew-x-[-10deg] shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-transform hover:scale-105 active:scale-95">
+            <div className="bg-black text-emerald-500 border-2 border-emerald-500 font-black px-4 py-1 rounded-lg text-lg italic skew-x-[-15deg] shadow-[0_0_20px_rgba(16,185,129,0.3)] border-l-4">
               WMPS
-            </Link>
+            </div>
             <div className="text-center">
-              <h1 className="text-xs font-black leading-tight text-white uppercase italic tracking-[0.2em]">William Moreira</h1>
-              <p className="text-[10px] text-emerald-500 uppercase tracking-[0.3em] font-black -mt-0.5">Performance System</p>
+              <h1 className="text-[8px] font-black leading-tight text-white uppercase italic tracking-[0.1em]">William Moreira</h1>
+              <p className="text-[6px] text-emerald-500 uppercase tracking-[0.3em] font-black -mt-0.5">Performance System</p>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4 bg-slate-800/50 p-2 pl-4 rounded-xl border border-slate-700">
-          <div className="text-right">
-            <p className="text-[10px] text-slate-500 uppercase font-black tracking-tighter">Ã rea do Professor</p>
-            <p className="text-sm font-bold text-white">Monitoramento Ativo</p>
+
+        {/* Center: Main Title */}
+        <div className="flex flex-col items-center flex-1">
+          <h2 className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-[0.15em] drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+            Área do Professor
+          </h2>
+          <div className="flex items-center gap-2 mt-1">
+             <div className="h-[2px] w-8 bg-emerald-500 rounded-full"></div>
+             <span className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] italic">William Moreira Performance System</span>
+             <div className="h-[2px] w-8 bg-emerald-500 rounded-full"></div>
           </div>
-          <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center font-black text-white italic">WM</div>
+        </div>
+
+        {/* Right: Actions (Logout) */}
+        <div className="w-full md:w-auto flex justify-end">
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-6 py-3 bg-slate-800/40 hover:bg-rose-500/10 border border-slate-700 hover:border-rose-500/30 rounded-2xl text-slate-400 hover:text-rose-500 transition-all group"
+          >
+            <span className="text-[10px] font-black uppercase tracking-widest">Sair</span>
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </header>
 
@@ -255,8 +323,8 @@ export default function CoachPage() {
         {activeModule === 'menu' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 py-12">
             <MenuButton 
-              title="Dashboard" 
-              subtitle="Monitoramento de Carga" 
+              title="PÓS-TREINO" 
+              subtitle="Carga e PSE" 
               icon={<LayoutDashboard className="w-8 h-8 text-blue-500" />} 
               onClick={() => setActiveModule('dashboard')} 
             />
@@ -284,6 +352,18 @@ export default function CoachPage() {
               icon={<UserPlus className="w-8 h-8 text-rose-500" />} 
               onClick={() => setActiveModule('requests')} 
               badge={requests.length}
+            />
+            <MenuButton 
+              title="Alunos" 
+              subtitle="Gestão de Atletas" 
+              icon={<User className="w-8 h-8 text-cyan-400" />} 
+              onClick={() => setActiveModule('athletes')} 
+            />
+            <MenuButton 
+              title="Equipes" 
+              subtitle="Grupos e Elencos" 
+              icon={<Users className="w-8 h-8 text-emerald-400" />} 
+              onClick={() => setActiveModule('teams')} 
             />
 
           </div>
@@ -363,14 +443,35 @@ export default function CoachPage() {
              </div>
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {riskAlerts.map(alert => (
-                  <div key={alert.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between">
+                  <div key={alert.id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col justify-between group">
                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-[10px] font-black text-white uppercase italic">{alert.athlete_name}</span>
-                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${
-                          alert.riskLevel === 'high' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-black'
-                        }`}>
-                          {alert.message}
-                        </span>
+                        <div className="flex flex-col">
+                           <span className="text-[10px] font-black text-white uppercase italic">{alert.athlete_name}</span>
+                           <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase mt-1 w-fit ${
+                             alert.riskLevel === 'high' ? 'bg-red-500 text-white' : 'bg-yellow-500 text-black'
+                           }`}>
+                             {alert.message}
+                           </span>
+                        </div>
+                        <button 
+                           onClick={() => {
+                             const ath = athletes.find(a => a.full_name === alert.athlete_name);
+                             if (ath) {
+                               setWizardAthlete(ath);
+                               setShowWizard(true);
+                             }
+                           }}
+                           className="p-2 bg-blue-600/10 hover:bg-blue-600 text-blue-500 hover:text-white border border-blue-500/20 rounded-lg transition-all"
+                           title="Ajustar Periodização"
+                        >
+                           <Target className="w-3 h-3" />
+                        </button>
+                     </div>
+                     <div className="mb-4">
+                        <p className="text-[9px] font-black text-slate-500 uppercase mb-1">Ação Sugerida:</p>
+                        <p className={`text-[10px] font-bold italic ${alert.riskLevel === 'high' ? 'text-red-400' : 'text-yellow-500'}`}>
+                           {alert.action}
+                        </p>
                      </div>
                      <div className="flex justify-between items-end">
                         <div className="text-[9px] text-slate-500 font-bold uppercase">Load: <span className="text-white">{alert.load}</span></div>
@@ -385,7 +486,7 @@ export default function CoachPage() {
 
         {/* Top Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <StatCard title="Carga Média Equipe" value={`${teamStats.avgLoad} AU`} icon={<TrendingUp className="w-5 h-5 text-blue-400" />} color="bg-slate-900 border border-slate-800" />
+          <StatCard title="Pós-Treino Médio" value={`${teamStats.avgLoad} AU`} icon={<TrendingUp className="w-5 h-5 text-blue-400" />} color="bg-slate-900 border border-slate-800" />
           <StatCard title="Distância Total" value={`${athleteMetrics.reduce((acc, m) => acc + m.distance, 0).toFixed(1)} km`} icon={<Activity className="w-5 h-5 text-emerald-400" />} color="bg-slate-900 border border-slate-800" />
           <StatCard title="Volume Total" value={`${athleteMetrics.reduce((acc, m) => acc + m.volume, 0)} kg`} icon={<Activity className="w-5 h-5 text-yellow-400" />} color="bg-slate-900 border border-slate-800" />
           <div className="bento-card bg-blue-600 border-none flex flex-col justify-center">
@@ -402,7 +503,7 @@ export default function CoachPage() {
              <div className="flex justify-between items-center mb-10">
                 <div>
                    <p className="label-caps italic mb-1">Carga por Atleta</p>
-                   <h3 className="text-xl font-black text-white uppercase italic">Comparativo vs Média da Equipe</h3>
+                   <h3 className="text-xl font-black text-white uppercase italic">Pós-Treino vs Média da Equipe</h3>
                 </div>
                 <div className="flex gap-4">
                   <div className="flex items-center gap-2">
@@ -500,7 +601,7 @@ export default function CoachPage() {
                     <Info className="w-4 h-4 text-slate-500" />
                     <p className="label-caps italic uppercase">Painel de Controle Interno</p>
                   </div>
-                  <h3 className="text-xl font-black text-white uppercase italic">Índice de Hooper & Bem-Estar Geral</h3>
+                  <h3 className="text-xl font-black text-white uppercase italic">PRÉ-TREINO: Hooper & Bem-Estar</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                    {['OT', 'MB', 'B', 'R', 'P'].map((s) => (
@@ -572,7 +673,7 @@ export default function CoachPage() {
           <div className="col-span-12 bento-card bg-slate-800/20 p-4 sm:p-8">
              <div className="flex items-center gap-2 mb-8">
                 <CalendarIcon className="w-4 h-4 text-blue-500" />
-                <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Resumo Semanal de Carga</h3>
+                <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Resumo Semanal Pós-Treino</h3>
              </div>
              <div className="h-[250px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
@@ -750,8 +851,7 @@ export default function CoachPage() {
               <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
               Voltar ao Menu
             </button>
-            
-            <PeriodizationModule />
+            <PeriodizationModule setWizardAthlete={setWizardAthlete} setShowWizard={setShowWizard} />
           </div>
         ) : activeModule === 'prescription' ? (
           <div className="space-y-8">
@@ -780,6 +880,30 @@ export default function CoachPage() {
               onApproved={(updatedReqs) => setRequests(updatedReqs)}
             />
           </div>
+        ) : activeModule === 'athletes' ? (
+          <div className="space-y-8">
+            <button 
+              onClick={() => setActiveModule('menu')}
+              className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              Voltar ao Menu
+            </button>
+            
+            <AthletesModule coachId={user?.id} onPeriodize={(athlete) => { setWizardAthlete(athlete); setShowWizard(true); }} />
+          </div>
+        ) : activeModule === 'teams' ? (
+          <div className="space-y-8">
+            <button 
+              onClick={() => setActiveModule('menu')}
+              className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              Voltar ao Menu
+            </button>
+            
+            <TeamsModule />
+          </div>
         ) : (
           <div className="py-20 flex flex-col items-center justify-center text-center space-y-6">
             <div className="w-20 h-20 bg-slate-800 rounded-3xl flex items-center justify-center border border-slate-700">
@@ -787,7 +911,7 @@ export default function CoachPage() {
             </div>
             <div>
               <h3 className="text-xl font-black text-white uppercase italic">Módulo em Desenvolvimento</h3>
-              <p className="text-slate-500 text-sm font-medium mt-2">Esta funcionalidade estarÃ¡ disponível em breve no WMPS.</p>
+              <p className="text-slate-500 text-sm font-medium mt-2">Esta funcionalidade estará disponível em breve no WMPS.</p>
             </div>
             <button 
               onClick={() => {
@@ -805,18 +929,48 @@ export default function CoachPage() {
           </div>
         )}
 
+        <AnimatePresence>
+          {showWizard && wizardAthlete && (
+            <PeriodizationWizard 
+              athlete={wizardAthlete}
+              sessions={sessions}
+              onClose={() => setShowWizard(false)}
+              onSave={async (planData) => {
+                const result = await saveTrainingPrescription({
+                  athlete_id: planData.athlete_id,
+                  coach_id: user?.id,
+                  athlete_name: planData.athlete_name,
+                  data: {
+                    type: 'periodization_plan',
+                    goals: planData.goals,
+                    duration: planData.duration,
+                    weeks: planData.plan
+                  }
+                });
+                
+                if (result.success) {
+                  setShowWizard(false);
+                  // Opcional: Adicionar um toast de sucesso aqui
+                } else {
+                  alert('Erro ao salvar: ' + result.error);
+                }
+              }}
+            />
+          )}
+        </AnimatePresence>
+
         {/* Footer/System Bar */}
-        <div className="col-span-12 bento-card bg-slate-900/50 border-slate-800 flex items-center justify-between py-4 px-10">
-           <div className="flex items-center gap-6">
+        <div className="col-span-12 bento-card bg-slate-900/50 border-slate-800 flex flex-col lg:flex-row items-center justify-between gap-4 py-4 px-4 lg:px-10 text-center lg:text-left">
+           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6">
               <div className="flex items-center gap-2">
                  <AlertTriangle className="w-4 h-4 text-orange-500" />
-                 <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest italic">Monitoramento de Risco Ativo</span>
+                 <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest italic text-center">Monitoramento de Risco Ativo</span>
               </div>
               <div className="hidden sm:block h-4 w-px bg-slate-800"></div>
-              <p className="hidden sm:block text-[10px] text-slate-600 font-bold italic">Classificação Hooper baseada em P, R, B, MB, OT.</p>
+              <p className="hidden sm:block text-[10px] text-slate-600 font-bold italic text-center">Classificação Hooper baseada em P, R, B, MB, OT.</p>
            </div>
-           <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.1em] text-center sm:text-right">
-             William Moreira Performance System V1.0 <span className="mx-2 text-slate-700 hidden sm:inline">|</span> <br className="sm:hidden" />
+           <p className="text-[9px] text-slate-500 font-black uppercase tracking-[0.1em] text-center lg:text-right">
+             William Moreira Performance System V1.0 <span className="mx-2 text-slate-700 hidden lg:inline">|</span> <br className="lg:hidden" />
              @2026 WMPS Todos os direitos reservados
            </p>
         </div>
@@ -2638,7 +2792,7 @@ interface PeriodizationPlan {
   mesocycles: Mesocycle[];
 }
 
-function PeriodizationModule() {
+function PeriodizationModule({ setWizardAthlete, setShowWizard }: { setWizardAthlete: any, setShowWizard: any }) {
   const [view, setView] = useState<'setup' | 'dashboard' | 'tracking'>('setup');
   const [athletes, setAthletes] = useState<any[]>([]);
   const [selectedAthleteId, setSelectedAthleteId] = useState<string | null>(null);
@@ -2707,17 +2861,28 @@ function PeriodizationModule() {
   if (view === 'tracking') {
     return (
       <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex items-center gap-4">
-          <button onClick={() => setView('setup')} className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors group">
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span className="text-[10px] font-black uppercase italic">Voltar</span>
-          </button>
-          <div>
-            <h2 className="text-2xl font-black text-white uppercase italic">
-              {selectedAthlete?.full_name} <span className="text-amber-500">â€” Progressão Real</span>
-            </h2>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Histórico de PrescriÃ§Ãµes Concluídas</p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setView('setup')} className="flex items-center gap-2 text-slate-500 hover:text-white transition-colors group">
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+              <span className="text-[10px] font-black uppercase italic">Voltar</span>
+            </button>
+            <div>
+              <h2 className="text-2xl font-black text-white uppercase italic tracking-widest">{selectedAthlete?.full_name}</h2>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Acompanhamento de Periodização Ativo</p>
+            </div>
           </div>
+          
+          <button 
+            onClick={() => {
+              setWizardAthlete(selectedAthlete);
+              setShowWizard(true);
+            }}
+            className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest italic shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-3 group"
+          >
+            <Target className="w-4 h-4 group-hover:rotate-45 transition-transform" />
+            Nova Periodização de Elite
+          </button>
         </div>
 
         {loadingTracking ? (
@@ -2833,13 +2998,13 @@ function PeriodizationModule() {
   if (view === 'setup') {
     return (
       <div className="space-y-8">
-        {/* VisÃ£o geral de adesÃ£o */}
+        {/* Visão geral de adesão */}
         {athleteSummary.length > 0 && (
           <div className="bento-card bg-slate-900 border-slate-800 p-8">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <p className="label-caps italic mb-1">Monitoramento Real</p>
-                <h3 className="text-xl font-black text-white uppercase italic">AdesÃ£o por Atleta</h3>
+                <h3 className="text-xl font-black text-white uppercase italic">Adesão por Atleta</h3>
               </div>
               <CheckCircle2 className="w-5 h-5 text-emerald-500" />
             </div>
@@ -2851,7 +3016,7 @@ function PeriodizationModule() {
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-black text-white uppercase italic group-hover:text-amber-400 transition-colors">{a.full_name}</span>
                       <div className="flex items-center gap-3">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase">{a.completed}/{a.total} sessÃµes</span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase">{a.completed}/{a.total} sessões</span>
                         <span className={`text-[10px] font-black italic ${ pct >= 80 ? 'text-emerald-400' : pct >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>{pct}%</span>
                       </div>
                     </div>
@@ -3128,7 +3293,7 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
         const updated = localRequests.filter(r => r.id !== req.id);
         setLocalRequests(updated);
         onApproved(updated);
-        alert(`O e-mail ${req.email} jÃ¡ possui uma conta cadastrada. Status atualizado para aprovado.`);
+        alert(`O e-mail ${req.email} já possui uma conta cadastrada. Status atualizado para aprovado.`);
       } else {
         alert('Erro ao aprovar: ' + result.error);
       }
@@ -3137,9 +3302,26 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
     }
   };
 
+  const handleDelete = async (requestId: string) => {
+    if (!confirm('Tem certeza que deseja remover esta solicitação?')) return;
+    setLoadingId(requestId);
+    try {
+      const result = await deleteRegistrationRequest(requestId);
+      if (result.success) {
+        const updated = localRequests.filter(r => r.id !== requestId);
+        setLocalRequests(updated);
+        onApproved(updated);
+      } else {
+        alert('Erro ao remover: ' + result.error);
+      }
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
   const handleCopyCredentials = () => {
     if (!credentials) return;
-    const text = `ðŸ‹ï¸ WMPS â€” William Moreira Performance System\n\nOlÃ¡, ${credentials.fullName}!\n\nSeu acesso foi aprovado. Utilize as credenciais abaixo para entrar na plataforma:\n\nðŸ“§ Login (E-mail): ${credentials.email}\nðŸ”‘ Senha provisÃ³ria: ${credentials.password}\n\nâš ï¸ IMPORTANTE: Ao fazer o primeiro acesso, vocÃª serÃ¡ solicitado(a) a criar uma nova senha pessoal.\n\nAcesse em: ${typeof window !== 'undefined' ? window.location.origin : ''}\n\nBem-vindo(a) Ã  equipe! ðŸ’ª`;
+    const text = `🏋️‍♂️ WMPS — William Moreira Performance System\n\nOlá, ${credentials.fullName}!\n\nSeu acesso foi aprovado. Utilize as credenciais abaixo para entrar na plataforma:\n\n📧 Login (E-mail): ${credentials.email}\n🔑 Senha provisória: ${credentials.password}\n\n⚠️ IMPORTANTE: Ao fazer o primeiro acesso, você será solicitado(a) a criar uma nova senha pessoal.\n\nAcesse em: ${typeof window !== 'undefined' ? window.location.origin : ''}\n\nBem-vindo(a) à equipe! 💪`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
@@ -3179,7 +3361,7 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
               </div>
               <div className="bg-slate-950 rounded-2xl p-4 border border-emerald-500/20 flex justify-between items-center">
                 <div>
-                  <p className="text-[9px] font-black text-slate-500 uppercase mb-0.5">Senha ProvisÃ³ria</p>
+                  <p className="text-[9px] font-black text-slate-500 uppercase mb-0.5">Senha Provisória</p>
                   <p className="text-lg font-black text-emerald-400 tracking-widest font-mono">{credentials.password}</p>
                 </div>
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -3189,10 +3371,10 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
             {/* Welcome Message Preview */}
             <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700 text-[10px] text-slate-400 leading-relaxed font-medium space-y-1">
               <p className="font-black text-slate-300 uppercase text-[9px] tracking-widest mb-2">Prévia da mensagem de boas-vindas:</p>
-              <p>ðŸ‹ï¸ <strong className="text-white">WMPS â€” William Moreira Performance System</strong></p>
-              <p>OlÃ¡, <strong className="text-white">{credentials.fullName}</strong>!</p>
+              <p>🏋️‍♂️ <strong className="text-white">WMPS — William Moreira Performance System</strong></p>
+              <p>Olá, <strong className="text-white">{credentials.fullName}</strong>!</p>
               <p>Seu acesso foi aprovado. Utilize as credenciais acima para entrar na plataforma.</p>
-              <p className="text-yellow-500">âš ï¸ No primeiro acesso, vocÃª criarÃ¡ uma nova senha pessoal.</p>
+              <p className="text-yellow-500">⚠️ No primeiro acesso, você criará uma nova senha pessoal.</p>
             </div>
 
             {/* Actions */}
@@ -3205,7 +3387,7 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
                     : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
                 }`}
               >
-                {copied ? 'âœ“ Copiado!' : 'ðŸ“‹ Copiar Mensagem'}
+                {copied ? '✓ Copiado!' : '📋 Copiar Mensagem'}
               </button>
               <button
                 onClick={() => setCredentials(null)}
@@ -3273,6 +3455,14 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
                 </div>
               </div>
               <div className="flex items-center gap-3 w-full md:w-auto shrink-0">
+                <button
+                  onClick={() => handleDelete(req.id)}
+                  disabled={loadingId === req.id}
+                  className="p-3 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-xl transition-all border border-red-500/20"
+                  title="Remover solicitação"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => handleApprove(req)}
                   disabled={loadingId === req.id}
@@ -3359,6 +3549,7 @@ const POWER_REPS = Array.from({ length: 20 }, (_, i) => i + 1);
 const POWER_REST = ['30s', '60s', '90s', '2 min', '3 min', '4 min', '5 min'];
 const POWER_WEIGHTS = Array.from({ length: 61 }, (_, i) => i * 5); // 0 to 300kg
 const LPO_INTENSITY_OPTIONS = Array.from({ length: 19 }, (_, i) => `${10 + (i * 5)}% 1RM`);
+const VOLUME_OPTIONS = Array.from({ length: 15 }, (_, i) => 100 - (i * 5)).filter(v => v >= 30);
 
 function AdvancedStrengthCard({ values, onChange }: { values: any[], onChange: (newList: any[]) => void }) {
   const addExercise = () => {
@@ -3385,7 +3576,7 @@ function AdvancedStrengthCard({ values, onChange }: { values: any[], onChange: (
           <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
             <Dumbbell className="w-5 h-5 text-blue-500" />
           </div>
-          <h4 className="text-sm font-black text-white uppercase italic">!!! NOVO - LISTA DE EXERCÍCIOS !!!</h4>
+          <h4 className="text-sm font-black text-white uppercase italic">Treinamento de Força</h4>
         </div>
         <button 
           onClick={addExercise}
@@ -3488,7 +3679,7 @@ function AdvancedStrengthCard({ values, onChange }: { values: any[], onChange: (
                     onChange={(e) => updateExercise(idx, 'volumePercent', e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
                   >
-                    {[100, 90, 80, 70, 60, 50, 40, 30].map(p => <option key={p} value={p}>{p}%</option>)}
+                    {VOLUME_OPTIONS.map(p => <option key={p} value={p}>{p}%</option>)}
                   </select>
                 </div>
               </div>
@@ -3779,7 +3970,7 @@ function AdvancedPowerTrainingCard({ values, onChange }: { values: any[], onChan
                     onChange={(e) => updateExercise(idx, 'volumePercent', e.target.value)}
                     className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none appearance-none cursor-pointer"
                   >
-                    {[100, 90, 80, 70, 60, 50, 40, 30].map(p => <option key={p} value={p}>{p}%</option>)}
+                    {VOLUME_OPTIONS.map(p => <option key={p} value={p}>{p}%</option>)}
                   </select>
                 </div>
               </div>
@@ -3805,11 +3996,8 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
   const [sending, setSending] = useState(false);
   const [prescription, setPrescription] = useState({
     strength: [{ name: '', intensity: '', sets: '4', reps: '10', rest: '90s', weight: '', volumePercent: '100' }],
-    hiit: { protocol: '', workDur: '', recDur: '', workInt: '', recInt: '', series: '', reps: '', bSeriesDur: '', totalKm: '0', totalTime: '0', modality: '' },
-    continuous: { intensity: '', duration: '', modality: '', totalKm: '0', totalTime: '0' },
-    agility: { protocol: '', drills: '', series: '', reps: '', restSeries: '', notes: '' },
+    cardio: [{ type: 'HIIT', protocol: '', workDur: '', recDur: '', workInt: '', recInt: '', series: '', reps: '', bSeriesDur: '', totalKm: '0', totalTime: '0', modality: '', duration: '', notes: '' }],
     powerTraining: [{ type: 'LPO', name: '', intensity: '', sets: '3', reps: '5', rest: '2 min', weight: '', volumePercent: '100', jumpType: 'bipodal', distance: '', duration: '' }],
-    flexibility: { method: '', intensity: '', duration: '', restSeries: '', restReps: '' },
     prevVolume: ''
   });
 
@@ -3984,94 +4172,17 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
                   values={prescription.strength}
                   onChange={(newList) => setPrescription({...prescription, strength: newList})}
                 />
-                <HIITCard 
-                  values={prescription.hiit}
-                  onChange={(field, val) => setPrescription({...prescription, hiit: {...prescription.hiit, [field]: val}})}
-                />
-                <ContinuousCard 
-                  values={prescription.continuous}
-                  onChange={(field, val) => setPrescription({...prescription, continuous: {...prescription.continuous, [field]: val}})}
-                />
-                <AgilityCard 
-                  values={prescription.agility}
-                  onChange={(field, val) => setPrescription({...prescription, agility: {...prescription.agility, [field]: val}})}
+                <AdvancedCardioCard 
+                  values={prescription.cardio}
+                  onChange={(newList) => setPrescription({...prescription, cardio: newList})}
                 />
                 <AdvancedPowerTrainingCard 
                   values={prescription.powerTraining}
                   onChange={(newList) => setPrescription({...prescription, powerTraining: newList})}
                 />
-                <PrescriptionCard 
-                  title="Flexibilidade / Mobilidade" 
-                  icon={<MoveHorizontal className="w-5 h-5 text-purple-500" />}
-                  values={prescription.flexibility}
-                  onChange={(field, val) => setPrescription({...prescription, flexibility: {...prescription.flexibility, [field]: val}})}
-                />
               </div>
 
-              {/* Load Analysis and Alerts */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bento-card bg-slate-900 border-slate-800 p-6 flex flex-col justify-center">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-[10px] font-black text-slate-500 uppercase italic">AnÃ¡lise de ProgressÃ£o (KM)</p>
-                    <Scale className="w-4 h-4 text-blue-500" />
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="flex-1 space-y-1">
-                      <label className="text-[8px] font-black text-slate-600 uppercase">Vol. Semana Anterior (KM)</label>
-                      <input 
-                        type="number" 
-                        value={prescription.prevVolume}
-                        onChange={(e) => setPrescription({...prescription, prevVolume: e.target.value})}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white outline-none"
-                        placeholder="Ex: 15"
-                      />
-                    </div>
-                    <div className="flex-1 text-center">
-                      <p className="text-[8px] font-black text-slate-600 uppercase">Variação %</p>
-                      {(() => {
-                        const currentVol = (Number(prescription.hiit.totalKm) || 0) + (Number(prescription.continuous.totalKm) || 0);
-                        const prevVol = Number(prescription.prevVolume) || 0;
-                        if (!prevVol) return <p className="text-xl font-black text-slate-500">--</p>;
-                        const diff = ((currentVol - prevVol) / prevVol) * 100;
-                        const isHighRisk = diff > 10;
-                        return (
-                          <div className="space-y-1">
-                            <p className={`text-xl font-black italic ${diff > 0 ? (isHighRisk ? 'text-red-500' : 'text-emerald-500') : 'text-blue-500'}`}>
-                              {diff > 0 ? '+' : ''}{diff.toFixed(1)}%
-                            </p>
-                            {isHighRisk && (
-                              <div className="flex items-center justify-center gap-1 text-[8px] font-black text-red-500 uppercase animate-pulse">
-                                <AlertTriangle className="w-3 h-3" /> Risco de LesÃ£o
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bento-card bg-slate-900 border-slate-800 p-6 flex flex-col justify-center">
-                   <div className="flex items-center justify-between mb-2">
-                      <p className="text-[10px] font-black text-slate-500 uppercase italic">Volume Total Prescrito</p>
-                      <Activity className="w-4 h-4 text-emerald-500" />
-                   </div>
-                   <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-[8px] font-black text-slate-600 uppercase">Distância Total</p>
-                        <p className="text-2xl font-black text-white italic">
-                          {((Number(prescription.hiit.totalKm) || 0) + (Number(prescription.continuous.totalKm) || 0)).toFixed(2)} <span className="text-xs text-slate-500 not-italic">KM</span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-[8px] font-black text-slate-600 uppercase">Tempo Total</p>
-                        <p className="text-2xl font-black text-white italic">
-                          {((Number(prescription.hiit.totalTime) || 0) + (Number(prescription.continuous.totalTime) || 0)).toFixed(0)} <span className="text-xs text-slate-500 not-italic">MIN</span>
-                        </p>
-                      </div>
-                   </div>
-                </div>
-              </div>
+              {/* Final Send Button */}
 
                <button 
                 onClick={handleSendPrescription}
@@ -4106,496 +4217,1112 @@ function MetricBox({ label, value, subValue, color }: { label: string, value: st
   );
 }
 
-function PrescriptionCard({ title, icon, values, onChange }: { title: string, icon: React.ReactNode, values: any, onChange: (field: string, val: string) => void }) {
-  return (
-    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">{icon}</div>
-        <h4 className="text-sm font-black text-white uppercase italic">{title}</h4>
-      </div>
-
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Meio / Método</label>
-            <input 
-              value={values.method}
-              onChange={(e) => onChange('method', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none" 
-              placeholder="Ex: Musculação"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Intensidade</label>
-            <input 
-              value={values.intensity}
-              onChange={(e) => onChange('intensity', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none"
-              placeholder="Ex: 85% 1RM"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Duração / Volume</label>
-          <input 
-            value={values.duration}
-            onChange={(e) => onChange('duration', e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none"
-            placeholder="Ex: 4 x 8-10 reps"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Desc. Séries</label>
-            <input 
-              value={values.restSeries}
-              onChange={(e) => onChange('restSeries', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none"
-              placeholder="Ex: 90s"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Desc. Reps (se houver)</label>
-            <input 
-              value={values.restReps}
-              onChange={(e) => onChange('restReps', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none"
-              placeholder="Ex: 10s"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-function HIITCard({ values, onChange }: { values: any, onChange: (field: string, val: string) => void }) {
+function AdvancedCardioCard({ values, onChange }: { values: any[], onChange: (newList: any[]) => void }) {
   const protocols = [
-    { id: 'sit', name: 'SIT (Sprint Interval)', desc: '160-180% vVO2 | 85-95% MSS', workDur: '30s', recDur: '2-4 min', workInt: '18', recInt: '0', series: '1', reps: '6' },
-    { id: 'rst', name: 'RST (Repeated Sprint)', desc: '120-160% vVO2 | 75-85% MSS', workDur: '6s', recDur: '20s', workInt: '22', recInt: '0', series: '2', reps: '8' },
-    { id: 'short', name: 'HIIT Curto Intervalo', desc: '100-120% vVO2', workDur: '30s', recDur: '30s', workInt: '15', recInt: '8', series: '2', reps: '12' },
-    { id: 'long', name: 'HIIT Longo Intervalo', desc: '90-100% vVO2', workDur: '120s', recDur: '120s', workInt: '11.5', recInt: '8', series: '1', reps: '4' }
+    { id: 'sit', name: 'SIT (Sprint Interval)', workDur: '30', recDur: '120', workInt: '18', series: '1', reps: '6' },
+    { id: 'rst', name: 'RST (Repeated Sprint)', workDur: '6', recDur: '20', workInt: '22', series: '2', reps: '8' },
+    { id: 'short', name: 'HIIT Curto', workDur: '30', recDur: '30', workInt: '15', series: '2', reps: '12' },
+    { id: 'long', name: 'HIIT Longo', workDur: '120', recDur: '120', workInt: '11.5', series: '1', reps: '4' }
   ];
 
-  useEffect(() => {
-    const speed = parseFloat(values.workInt) || 0;
-    const workDur = parseFloat(values.workDur) || 0;
-    const reps = parseInt(values.reps) || 0;
-    const series = parseInt(values.series) || 0;
-    const recDur = parseFloat(values.recDur) || 0;
-    const bSeriesDur = parseFloat(values.bSeriesDur) || 0;
+  const calculateHIITVolume = (workDur: string, speed: string, series: string, reps: string) => {
+    const s = parseFloat(speed) || 0;
+    const d = parseFloat(workDur) || 0;
+    const r = parseInt(reps) || 0;
+    const se = parseInt(series) || 0;
+    const distPerRep = (s * d) / 3.6;
+    return ((distPerRep * r * se) / 1000).toFixed(3);
+  };
 
-    const distPerRep = (speed * workDur) / 3.6;
-    const totalDist = (distPerRep * reps * series) / 1000;
-    
-    const timeWork = (workDur * reps * series) / 60;
-    const timeRec = (recDur * (reps - 1) * series) / 60;
-    const timeBSeries = (bSeriesDur * (series - 1)) / 60;
-    const totalTime = timeWork + timeRec + timeBSeries;
+  const calculateHIITTime = (workDur: string, recDur: string, series: string, reps: string, bSeriesDur: string = '0') => {
+    const d = parseFloat(workDur) || 0;
+    const r = parseFloat(recDur) || 0;
+    const rp = parseInt(reps) || 0;
+    const se = parseInt(series) || 0;
+    const bs = parseFloat(bSeriesDur) || 0;
+    const timeWork = (d * rp * se) / 60;
+    const timeRec = (r * (rp - 1) * se) / 60;
+    const timeBSeries = (bs * (se - 1)) / 60;
+    return (timeWork + timeRec + timeBSeries).toFixed(1);
+  };
 
-    if (totalDist !== values.totalKm || totalTime !== values.totalTime) {
-      onChange('totalKm', totalDist.toFixed(3));
-      onChange('totalTime', totalTime.toFixed(1));
+  const addSession = () => {
+    onChange([...values, { type: 'HIIT', protocol: '', workDur: '', recDur: '', workInt: '', recInt: '', series: '1', reps: '4', bSeriesDur: '0', totalKm: '0', totalTime: '0', modality: '', duration: '', notes: '' }]);
+  };
+
+  const removeSession = (idx: number) => {
+    onChange(values.filter((_, i) => i !== idx));
+  };
+
+  const updateSession = (idx: number, field: string, val: any) => {
+    const newList = [...values];
+    newList[idx] = { ...newList[idx], [field]: val };
+
+    // Auto-calculations
+    const s = newList[idx];
+    if (s.type === 'HIIT') {
+      s.totalKm = calculateHIITVolume(s.workDur, s.workInt, s.series, s.reps);
+      s.totalTime = calculateHIITTime(s.workDur, s.recDur, s.series, s.reps);
+    } else {
+      const time = parseFloat(s.duration) || 0;
+      const speed = parseFloat(s.workInt) || 0;
+      if (time > 0 && speed > 0) {
+        s.totalKm = ((speed * time) / 60).toFixed(2);
+        s.totalTime = time.toString();
+      }
     }
-  }, [values.workInt, values.workDur, values.reps, values.series, values.recDur, values.bSeriesDur]);
+
+    onChange(newList);
+  };
 
   return (
-    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6">
+    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6 md:col-span-2">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
             <Timer className="w-5 h-5 text-emerald-500" />
           </div>
-          <h4 className="text-sm font-black text-white uppercase italic">HIIT (Volume Auto)</h4>
+          <h4 className="text-sm font-black text-white uppercase italic">Treinamento Cardiovascular</h4>
         </div>
-        <select 
-          onChange={(e) => {
-            const p = protocols.find(x => x.id === e.target.value);
-            if (p) {
-              onChange('protocol', p.name);
-              onChange('workDur', p.workDur);
-              onChange('recDur', p.recDur);
-              onChange('workInt', p.workInt);
-              onChange('recInt', p.recInt);
-              onChange('series', p.series);
-              onChange('reps', p.reps);
-            }
-          }}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-[10px] font-bold text-white focus:outline-none"
-        >
-          <option value="">Formatos...</option>
-          {protocols.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
+        <button onClick={addSession} className="p-2 bg-blue-600 hover:bg-blue-500 rounded-xl transition-all shadow-lg shadow-blue-600/20">
+          <Plus className="w-4 h-4 text-white" />
+        </button>
       </div>
 
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
-           <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Velocidade (km/h)</label>
-              <input type="number" step="0.1" value={values.workInt} onChange={e => onChange('workInt', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 11.5" />
-           </div>
-           <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">EstÃ­mulo (seg)</label>
-              <input type="number" value={values.workDur} onChange={e => onChange('workDur', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 120" />
-           </div>
-        </div>
+      <div className="space-y-4">
+        {values.map((s, idx) => (
+          <div key={idx} className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-4 relative group">
+            <button onClick={() => removeSession(idx)} className="absolute -top-2 -right-2 p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100">
+              <X className="w-3 h-3" />
+            </button>
 
-        <div className="grid grid-cols-2 gap-4">
-           <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Recuperação (seg)</label>
-              <input type="number" value={values.recDur} onChange={e => onChange('recDur', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 120" />
-           </div>
-           <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Desc. Séries (seg)</label>
-              <input type="number" value={values.bSeriesDur} onChange={e => onChange('bSeriesDur', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 120" />
-           </div>
-        </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Tipo</label>
+                <select 
+                  value={s.type}
+                  onChange={(e) => updateSession(idx, 'type', e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                >
+                  <option value="HIIT">HIIT</option>
+                  <option value="Contínuo">Contínuo</option>
+                </select>
+              </div>
 
-        <div className="grid grid-cols-3 gap-4">
-           <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
-              <input type="number" value={values.series} onChange={e => onChange('series', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 1" />
-           </div>
-           <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Reps</label>
-              <input type="number" value={values.reps} onChange={e => onChange('reps', e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" placeholder="Ex: 4" />
-           </div>
-           <div className="flex flex-col justify-end pb-1 text-center">
-              <p className="text-[8px] font-black text-slate-500 uppercase">Total KM</p>
-              <p className="text-sm font-black text-emerald-500 italic">{values.totalKm} KM</p>
-           </div>
-        </div>
+              {s.type === 'HIIT' ? (
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Protocolo</label>
+                  <select 
+                    onChange={(e) => {
+                      const p = protocols.find(x => x.id === e.target.value);
+                      if (p) {
+                        const newList = [...values];
+                        newList[idx] = { 
+                          ...newList[idx], 
+                          protocol: p.name, 
+                          workDur: p.workDur, 
+                          recDur: p.recDur, 
+                          workInt: p.workInt, 
+                          series: p.series, 
+                          reps: p.reps,
+                          totalKm: calculateHIITVolume(p.workDur, p.workInt, p.series, p.reps),
+                          totalTime: calculateHIITTime(p.workDur, p.recDur, p.series, p.reps)
+                        };
+                        onChange(newList);
+                      }
+                    }}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                  >
+                    <option value="">Personalizado / Formatos...</option>
+                    {protocols.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+              ) : (
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Modalidade</label>
+                  <input 
+                    value={s.modality}
+                    onChange={(e) => updateSession(idx, 'modality', e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                    placeholder="Ex: Corrida, Bike..."
+                  />
+                </div>
+              )}
 
-        <div className="bg-slate-950 rounded-2xl p-4 border border-slate-800 flex justify-between items-center">
-           <div>
-              <p className="text-[8px] font-black text-slate-600 uppercase">Tempo Total Previsto</p>
-              <p className="text-lg font-black text-white italic">{values.totalTime} <span className="text-[10px] text-slate-500 not-italic">MINUTOS</span></p>
-           </div>
-           <div className="text-right">
-              <p className="text-[8px] font-black text-slate-600 uppercase">Modalidade</p>
-              <input value={values.modality} onChange={e => onChange('modality', e.target.value)} className="bg-transparent border-none text-right text-xs font-black text-white outline-none focus:text-emerald-400" placeholder="Ex: Rua" />
-           </div>
-        </div>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Total KM</label>
+                <div className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-black text-emerald-500 italic">
+                  {s.totalKm} KM
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black text-slate-500 uppercase ml-1">
+                  {s.type === 'HIIT' ? 'Velocidade (km/h)' : 'Velocidade (km/h)'}
+                </label>
+                <input 
+                  type="number" step="0.1"
+                  value={s.workInt}
+                  onChange={(e) => updateSession(idx, 'workInt', e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+              </div>
+
+              {s.type === 'HIIT' ? (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Estímulo (seg)</label>
+                    <input 
+                      type="number"
+                      value={s.workDur}
+                      onChange={(e) => updateSession(idx, 'workDur', e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Recuperação (seg)</label>
+                    <input 
+                      type="number"
+                      value={s.recDur}
+                      onChange={(e) => updateSession(idx, 'recDur', e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
+                    <input 
+                      type="number"
+                      value={s.series}
+                      onChange={(e) => updateSession(idx, 'series', e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Reps</label>
+                    <input 
+                      type="number"
+                      value={s.reps}
+                      onChange={(e) => updateSession(idx, 'reps', e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Duração (min)</label>
+                    <input 
+                      type="number"
+                      value={s.duration}
+                      onChange={(e) => updateSession(idx, 'duration', e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5 md:col-span-3">
+                    <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Observações</label>
+                    <input 
+                      value={s.notes}
+                      onChange={(e) => updateSession(idx, 'notes', e.target.value)}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white outline-none"
+                      placeholder="Pace, FC, etc..."
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+            
+            {s.type === 'HIIT' && (
+              <div className="bg-slate-900/50 rounded-xl p-3 border border-slate-800/50 flex justify-between items-center">
+                 <p className="text-[8px] font-black text-slate-500 uppercase">Tempo Total Previsto: <span className="text-white ml-2 text-[10px]">{s.totalTime} MIN</span></p>
+                 <p className="text-[8px] font-black text-slate-500 uppercase">Modalidade: <input value={s.modality} onChange={e => updateSession(idx, 'modality', e.target.value)} className="bg-transparent border-none text-right text-[10px] font-black text-white outline-none w-20" placeholder="Ex: Rua" /></p>
+              </div>
+            )}
+          </div>
+        ))}
+        {values.length === 0 && (
+          <div className="text-center py-10 border-2 border-dashed border-slate-800 rounded-3xl">
+            <p className="text-[10px] font-black text-slate-600 uppercase">Nenhuma sessão cardiovascular adicionada</p>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function ContinuousCard({ values, onChange }: { values: any, onChange: (field: string, val: string) => void }) {
+function AthletesModule({ coachId, onPeriodize }: { coachId?: string, onPeriodize?: (athlete: any) => void }) {
+  const [athletes, setAthletes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
+
   useEffect(() => {
-    const time = parseFloat(values.duration) || 0;
-    const speed = parseFloat(values.intensity) || 0;
-    
-    if (time > 0 && speed > 0) {
-      const dist = (speed * time) / 60;
-      if (dist.toFixed(2) !== values.totalKm || time.toString() !== values.totalTime) {
-        onChange('totalKm', dist.toFixed(2));
-        onChange('totalTime', time.toString());
-      }
+    async function load() {
+      const data = await getAthletes();
+      setAthletes(data);
+      setLoading(false);
     }
-  }, [values.duration, values.intensity]);
+    load();
+  }, []);
 
-  return (
-    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
-          <Activity className="w-5 h-5 text-blue-400" />
-        </div>
-        <h4 className="text-sm font-black text-white uppercase italic">Treinamento ContÃ­nuo</h4>
-      </div>
+  const filteredAthletes = useMemo(() => {
+    return athletes.filter(a => 
+      a.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      a.sport?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [athletes, searchTerm]);
 
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Modalidade</label>
-            <input 
-              value={values.modality}
-              onChange={(e) => onChange('modality', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none" 
-              placeholder="Ex: Corrida"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Velocidade (km/h)</label>
-            <input 
-              value={values.intensity}
-              onChange={(e) => onChange('intensity', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none"
-              placeholder="Ex: 12"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Duração (minutos)</label>
-            <input 
-              value={values.duration}
-              onChange={(e) => onChange('duration', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-emerald-500 outline-none"
-              placeholder="Ex: 45"
-            />
-          </div>
-          <div className="flex flex-col justify-end pb-1 text-center">
-              <p className="text-[8px] font-black text-slate-500 uppercase">Total KM</p>
-              <p className="text-sm font-black text-blue-400 italic">{values.totalKm} KM</p>
-           </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">ObservaÃ§Ãµes</label>
-          <textarea 
-            value={values.notes}
-            onChange={(e) => onChange('notes', e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-[10px] font-medium text-slate-400 focus:ring-1 focus:ring-blue-500 outline-none h-16 resize-none"
-            placeholder="Pace alvo, controle de FC..."
-          />
-        </div>
-      </div>
+  if (loading) return (
+    <div className="py-20 flex flex-col items-center justify-center">
+      <div className="w-10 h-10 border-4 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
+      <p className="mt-4 text-[10px] font-black text-slate-500 uppercase italic">Carregando Elenco...</p>
     </div>
   );
-}
-
-function AgilityCard({ values, onChange }: { values: any, onChange: (field: string, val: string) => void }) {
-  const drills = [
-    { id: 't_drill', name: 'T-Drill', desc: 'Mudança de direÃ§Ã£o em T' },
-    { id: 'shuttle_20', name: '20-yd Shuttle', desc: 'Pro Agility Drill' },
-    { id: 'shuttle_60', name: '60-yd Shuttle Run', desc: 'Resistência de Agilidade' },
-    { id: 'sprint_40', name: '40-yd Sprint Variations', desc: 'Aceleração e Troca' },
-    { id: 'figure_8', name: 'Figure 8 Drill', desc: 'Controle de Curva' },
-    { id: 'square', name: 'Square Drills', desc: 'Deslocamento Lateral' },
-    { id: 'x_pattern', name: 'X-Pattern Drills', desc: 'Crossover' },
-    { id: 'triangle', name: 'Right Triangle Drills', desc: 'Ã‚ngulos Agudos' },
-    { id: 'ekg', name: 'EKG Drill', desc: 'Zigue-zague complexo' }
-  ];
 
   return (
-    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
-            <Footprints className="w-5 h-5 text-cyan-500" />
-          </div>
-          <h4 className="text-sm font-black text-white uppercase italic">Agilidade / COD</h4>
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-900/50 p-8 rounded-[2rem] border border-slate-800">
+        <div>
+          <h2 className="text-3xl font-black text-white uppercase italic">Gestão de Alunos</h2>
+          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Total de {athletes.length} atletas ativos no sistema</p>
         </div>
-        <select 
-          onChange={(e) => {
-            const d = drills.find(x => x.id === e.target.value);
-            if (d) {
-              onChange('drill', d.name);
-              onChange('notes', d.desc);
-            }
-          }}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-[10px] font-bold text-white focus:outline-none"
-        >
-          <option value="">Drills ACSM...</option>
-          {drills.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-      </div>
-
-      <div className="space-y-4">
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">ExercÃ­cio / Drill</label>
+        <div className="relative w-full md:w-96 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
           <input 
-            value={values.drill}
-            onChange={(e) => onChange('drill', e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-cyan-500 outline-none"
-            placeholder="Ex: T-Drill"
-          />
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
-            <input 
-              value={values.series}
-              onChange={(e) => onChange('series', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-cyan-500 outline-none"
-              placeholder="Ex: 4"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Reps / Ciclo</label>
-            <input 
-              value={values.reps}
-              onChange={(e) => onChange('reps', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-cyan-500 outline-none"
-              placeholder="Ex: 3"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Descanso</label>
-            <input 
-              value={values.rest}
-              onChange={(e) => onChange('rest', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs font-bold text-white focus:ring-1 focus:ring-cyan-500 outline-none"
-              placeholder="Ex: 2 min"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">ObservaÃ§Ãµes Técnicas</label>
-          <textarea 
-            value={values.notes}
-            onChange={(e) => onChange('notes', e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-[10px] font-medium text-slate-400 focus:ring-1 focus:ring-cyan-500 outline-none h-16 resize-none"
-            placeholder="Foco na frenagem e centro de gravidade..."
+            type="text" 
+            placeholder="Buscar por nome, esporte ou email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold text-white outline-none focus:border-cyan-500/50 transition-all"
           />
         </div>
       </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredAthletes.map(athlete => (
+          <motion.div 
+            key={athlete.id}
+            whileHover={{ y: -5 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setSelectedAthlete(athlete)}
+            className="group bg-slate-900 border border-slate-800 rounded-[2rem] p-6 hover:border-cyan-500/50 transition-all text-left relative overflow-hidden cursor-pointer"
+          >
+            <div className="absolute -right-4 -bottom-4 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
+              <User className="w-32 h-32 text-white" />
+            </div>
+            
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-16 h-16 rounded-2xl overflow-hidden bg-slate-800 border border-slate-700 flex items-center justify-center relative">
+                {athlete.photo_url ? (
+                  <img src={athlete.photo_url} alt={athlete.full_name} className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-8 h-8 text-slate-600" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-black text-white uppercase italic truncate">{athlete.full_name}</h3>
+                <div className="flex flex-col">
+                  <p className="text-[9px] text-cyan-500 font-black uppercase tracking-widest">{athlete.sport || 'Esporte N/A'}</p>
+                  {athlete.team_name && (
+                    <p className="text-[8px] text-emerald-500 font-bold uppercase italic tracking-tighter">Equipe: {athlete.team_name}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-slate-500">
+                <Mail className="w-3 h-3" />
+                <span className="text-[10px] font-bold truncate">{athlete.email}</span>
+              </div>
+              <div className="flex items-center gap-2 text-slate-500">
+                <Phone className="w-3 h-3" />
+                <span className="text-[10px] font-bold">{athlete.phone || '--'}</span>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-slate-800/50 flex flex-col gap-3">
+               <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onPeriodize) onPeriodize(athlete);
+                }}
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 rounded-xl text-[9px] font-black text-white uppercase tracking-widest italic shadow-lg shadow-amber-500/10 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 group/btn"
+               >
+                 <Target className="w-3 h-3 group-hover/btn:rotate-45 transition-transform" />
+                 Periodizar Elite
+               </button>
+               
+               <div className="flex justify-between items-center px-1">
+                 <span className="text-[8px] font-black text-slate-600 uppercase tracking-tighter">Acessar Prontuário</span>
+                 <ChevronRight className="w-4 h-4 text-slate-700 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+               </div>
+            </div>
+          </motion.div>
+        ))}
+
+        {filteredAthletes.length === 0 && (
+          <div className="col-span-full py-20 text-center bento-card bg-slate-900/20 border-dashed border-slate-800">
+            <User className="w-12 h-12 text-slate-800 mx-auto mb-4" />
+            <p className="text-[10px] font-black text-slate-600 uppercase italic">Nenhum atleta encontrado para "{searchTerm}"</p>
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {selectedAthlete && (
+          <AthleteProfileModal 
+            athlete={selectedAthlete} 
+            onClose={() => setSelectedAthlete(null)} 
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
-function PlyometricsCard({ values, onChange }: { values: any, onChange: (field: string, val: string) => void }) {
-  const intensityContinuum = {
-    low: ['Pogos', 'Side-to-side ankle hop', 'Jump and reach', 'Squat jump', 'Standing long jump', 'Cone hops', 'Skipping', 'MB Chest pass'],
-    mod: ['Barrier jumps', 'Tuck jumps', 'Split squat jump', 'Double leg hops', 'Box jumps', 'Plyo push-up', 'Triple jump'],
-    high: ['Pike jump', 'Single-leg vertical jump', 'Single-leg hops', 'Depth plyo push-up', 'Single-leg bounding', 'Depth jump']
-  };
 
-  const volumeTargets = {
-    Beginner: '80-100',
-    Intermediate: '100-120',
-    Advanced: '120-140'
-  };
+function AthleteProfileModal({ athlete, onClose }: { athlete: any, onClose: () => void }) {
+  const [selectedMetric, setSelectedMetric] = useState<'series' | 'reps' | 'kilagem' | 'kilometragem'>('kilagem');
+  const [selectedPeriod, setSelectedPeriod] = useState<'diário' | 'semanal' | 'quinzenal' | 'mensal' | 'anual'>('semanal');
+  const [sessions, setSessions] = useState<any[]>([]);
+  
+  const [teamName, setTeamName] = useState(athlete.team_name || '');
+  const [isUpdatingTeam, setIsUpdatingTeam] = useState(false);
+  const [isInjured, setIsInjured] = useState(athlete.is_injured || false);
+  const [injuryDesc, setInjuryDesc] = useState(athlete.injury_description || '');
+  const [isUpdatingDM, setIsUpdatingDM] = useState(false);
+  const [wellnessData, setWellnessData] = useState<any[]>([]);
 
   useEffect(() => {
-    const s = parseInt(values.series) || 0;
-    const r = parseInt(values.reps) || 0;
-    const multiplier = values.jumpType === 'Bilateral' ? 2 : 1;
-    const total = s * r * multiplier;
-    if (total !== values.totalContacts) {
-      onChange('totalContacts', total.toString());
-    }
-  }, [values.series, values.reps, values.jumpType]);
+    async function loadSessions() {
+      const allSessions = await getSessions();
+      const athleteSessions = allSessions.filter((s: any) => s.athlete_id === athlete.id);
+      setSessions(athleteSessions);
 
-  const getIntensity = (drill: string) => {
-    if (intensityContinuum.high.some(d => drill.includes(d))) return { label: 'ALTA', color: 'text-red-500' };
-    if (intensityContinuum.mod.some(d => drill.includes(d))) return { label: 'MÃ‰DIA', color: 'text-orange-500' };
-    return { label: 'BAIXA', color: 'text-emerald-500' };
+      const allWellness = await getWellness();
+      const athleteWellness = allWellness.filter((w: any) => w.athlete_id === athlete.id);
+      setWellnessData(athleteWellness);
+    }
+    loadSessions();
+  }, [athlete.id]);
+
+  const riskReport = useMemo(() => {
+    const acwrData = calculateACWR(sessions);
+    const acwr = acwrData.ratio;
+    const monotony = calculateMonotony(sessions);
+    
+    const sortedSessions = [...sessions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const last7Sessions = sortedSessions.slice(0,7);
+    const weeklyLoad = last7Sessions.reduce((acc, s) => acc + (s.load || (s.rpe * s.duration) || 0), 0);
+    const strain = weeklyLoad * monotony;
+
+    const avgRpe = last7Sessions.length > 0 ? last7Sessions.reduce((acc, s) => acc + (s.rpe || 6), 0) / last7Sessions.length : 6;
+    
+    const sortedWellness = [...wellnessData].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const last7Wellness = sortedWellness.slice(0,7);
+    const avgWellnessValue = last7Wellness.length > 0 
+      ? last7Wellness.reduce((acc, w) => acc + ((w.sleep + w.stress + w.fatigue + w.soreness) / 4), 0) / last7Wellness.length 
+      : 5;
+
+    // Simplificação temporária de performance drop
+    const performanceDrop = false;
+
+    return calculateRiskScore(acwr, monotony, strain, avgRpe, avgWellnessValue, performanceDrop);
+  }, [sessions, wellnessData]);
+
+  const handleSaveDM = async () => {
+    if (!supabase) return;
+    setIsUpdatingDM(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_injured: isInjured, injury_description: injuryDesc })
+      .eq('id', athlete.id);
+    
+    if (!error) {
+      athlete.is_injured = isInjured;
+      athlete.injury_description = injuryDesc;
+      alert('Status médico atualizado com sucesso!');
+    } else {
+      alert('Erro ao atualizar status médico: ' + error.message);
+    }
+    setIsUpdatingDM(false);
   };
 
-  const intensity = getIntensity(values.drill);
+  const handleSaveTeam = async () => {
+    if (!supabase) return;
+    setIsUpdatingTeam(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ team_name: teamName })
+      .eq('id', athlete.id);
+    
+    if (!error) {
+      athlete.team_name = teamName;
+      alert('Equipe atualizada com sucesso!');
+    } else {
+      alert('Erro ao atualizar equipe: ' + error.message);
+    }
+    setIsUpdatingTeam(false);
+  };
+
+  const metricValue = useMemo(() => {
+    const now = startOfDay(new Date());
+    let startDate: Date;
+
+    switch (selectedPeriod) {
+      case 'diário': startDate = now; break;
+      case 'semanal': startDate = startOfWeek(now, { weekStartsOn: 1 }); break;
+      case 'quinzenal': startDate = subDays(now, 14); break;
+      case 'mensal': startDate = startOfMonth(now); break;
+      case 'anual': startDate = startOfYear(now); break;
+      default: startDate = now;
+    }
+
+    return sessions
+      .filter(s => isAfter(startOfDay(parseISO(s.date)), startDate) || isSameDay(parseISO(s.date), startDate))
+      .reduce((acc, s) => {
+        if (selectedMetric === 'kilagem') return acc + (s.volume || 0);
+        if (selectedMetric === 'kilometragem') return acc + (s.distance || 0);
+        if (selectedMetric === 'series') return acc + (s.series || 0);
+        if (selectedMetric === 'reps') return acc + (s.reps || 0);
+        return acc;
+      }, 0);
+  }, [sessions, selectedMetric, selectedPeriod]);
+
+  const age = athlete.birth_date ? Math.floor((new Date().getTime() - new Date(athlete.birth_date).getTime()) / (1000 * 60 * 60 * 24 * 365.25)) : '--';
 
   return (
-    <div className="bento-card bg-slate-900 border-slate-800 p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-slate-800 rounded-xl border border-slate-700">
-            <Zap className="w-5 h-5 text-orange-500" />
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm"
+    >
+      <motion.div 
+        initial={{ scale: 0.9, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 20 }}
+        className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-[2.5rem] overflow-hidden shadow-2xl relative"
+      >
+        <button 
+          onClick={onClose}
+          className="absolute top-6 right-6 p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-400 hover:text-white transition-all z-10"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 h-full max-h-[90vh] overflow-y-auto">
+          {/* Sidebar - Photo & Basic Info */}
+          <div className="lg:col-span-4 bg-slate-950/50 p-10 flex flex-col items-center text-center border-r border-slate-800">
+            <div className="w-48 h-48 rounded-[2rem] overflow-hidden bg-slate-900 border-2 border-cyan-500/20 mb-8 relative group shadow-2xl">
+              {athlete.photo_url ? (
+                <img src={athlete.photo_url} alt={athlete.full_name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-2">
+                  <User className="w-16 h-16 text-slate-800" />
+                  <span className="text-[8px] font-black text-slate-700 uppercase italic">Foto não disponível</span>
+                </div>
+              )}
+            </div>
+            
+            <h3 className="text-2xl font-black text-white uppercase italic mb-2">{athlete.full_name}</h3>
+            
+            <div className="w-full space-y-4 mb-6">
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Equipe Atual</span>
+                {athlete.team_name ? (
+                  <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase italic">
+                    {athlete.team_name}
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-bold text-slate-500 uppercase italic">Sem equipe definida</span>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-slate-800/50 w-full">
+                <p className="text-[8px] font-black text-slate-500 uppercase mb-2">Vincular a Equipe</p>
+                <div className="flex gap-2">
+                  <input 
+                    type="text" 
+                    value={teamName}
+                    onChange={(e) => setTeamName(e.target.value)}
+                    placeholder="Nome da equipe..."
+                    className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-[10px] text-white outline-none focus:border-cyan-500"
+                  />
+                  <button 
+                    onClick={handleSaveTeam}
+                    disabled={isUpdatingTeam}
+                    className="bg-cyan-600 hover:bg-cyan-500 p-2 rounded-lg text-white transition-colors disabled:opacity-50"
+                  >
+                    <Check className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <span className="px-4 py-1.5 bg-cyan-600/10 border border-cyan-500/20 rounded-full text-cyan-400 text-[10px] font-black uppercase italic tracking-widest">
+              {athlete.sport || 'Esporte não definido'}
+            </span>
+
+            <div className="w-full mt-10 space-y-4 pt-8 border-t border-slate-800/50">
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] font-black text-slate-600 uppercase">Status Clínico</span>
+                  <button 
+                    onClick={() => setIsInjured(!isInjured)}
+                    className={`text-[9px] font-black uppercase italic px-3 py-1 rounded transition-colors ${isInjured ? 'bg-red-500/10 border border-red-500/20 text-red-500' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-500'}`}
+                  >
+                    {isInjured ? 'Em Reabilitação (DM)' : 'Ativo'}
+                  </button>
+                </div>
+                {isInjured && (
+                  <div className="flex flex-col gap-2 mt-2 animate-in fade-in zoom-in-95">
+                    <input 
+                      type="text" 
+                      value={injuryDesc}
+                      onChange={(e) => setInjuryDesc(e.target.value)}
+                      placeholder="Diagnóstico / Fase RTP..."
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-[10px] font-bold text-red-400 outline-none focus:border-red-500/50"
+                    />
+                    <button 
+                      onClick={handleSaveDM}
+                      disabled={isUpdatingDM}
+                      className="w-full py-2 bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+                    >
+                      Salvar Prontuário Médico
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-black text-slate-600 uppercase">Idade</span>
+                <span className="text-[9px] font-black text-white italic">{age} Anos</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-[9px] font-black text-slate-600 uppercase">Sexo</span>
+                <span className="text-[9px] font-black text-white italic uppercase">{athlete.gender === 'male' ? 'Masculino' : athlete.gender === 'female' ? 'Feminino' : '--'}</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <h4 className="text-sm font-black text-white uppercase italic">Pliometria AvanÃ§ada</h4>
-            <div className="flex items-center gap-2">
-              <span className={`text-[8px] font-black uppercase ${intensity.color}`}>Intensidade: {intensity.label}</span>
+
+          {/* Main Content - Prontuário */}
+          <div className="lg:col-span-8 p-10 space-y-10">
+            {/* Risk Score Widget */}
+            <div className={`p-8 rounded-[2rem] border relative overflow-hidden transition-all duration-500 ${
+              riskReport.classification === 'Crítico' ? 'bg-red-950/40 border-red-500/50 shadow-[0_0_50px_-12px_rgba(239,68,68,0.4)]' :
+              riskReport.classification === 'Alto' ? 'bg-orange-950/40 border-orange-500/50' :
+              riskReport.classification === 'Moderado' ? 'bg-yellow-950/40 border-yellow-500/50' :
+              'bg-emerald-950/40 border-emerald-500/50'
+            }`}>
+              <div className="absolute top-0 right-0 p-6 opacity-10">
+                <AlertTriangle className={`w-32 h-32 ${
+                  riskReport.classification === 'Crítico' ? 'text-red-500' :
+                  riskReport.classification === 'Alto' ? 'text-orange-500' :
+                  riskReport.classification === 'Moderado' ? 'text-yellow-500' :
+                  'text-emerald-500'
+                }`} />
+              </div>
+              
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <Activity className={`w-6 h-6 ${
+                      riskReport.classification === 'Crítico' ? 'text-red-400' :
+                      riskReport.classification === 'Alto' ? 'text-orange-400' :
+                      riskReport.classification === 'Moderado' ? 'text-yellow-400' :
+                      'text-emerald-400'
+                    }`} />
+                    <h4 className="text-xl font-black text-white uppercase italic tracking-widest">Injury Risk Score</h4>
+                  </div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest max-w-sm">
+                    Motor de Inteligência Artificial para prevenção preditiva de lesões baseado em carga e prontidão.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-6">
+                  <div className="text-right">
+                    <p className={`text-5xl font-black italic tracking-tighter ${
+                      riskReport.classification === 'Crítico' ? 'text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]' :
+                      riskReport.classification === 'Alto' ? 'text-orange-500 drop-shadow-[0_0_15px_rgba(249,115,22,0.5)]' :
+                      riskReport.classification === 'Moderado' ? 'text-yellow-500 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]' :
+                      'text-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]'
+                    }`}>
+                      {riskReport.score}
+                      <span className="text-2xl text-white/50">/100</span>
+                    </p>
+                    <span className={`px-4 py-1 mt-2 inline-block rounded-full text-[11px] font-black uppercase tracking-widest text-white border ${
+                      riskReport.classification === 'Crítico' ? 'bg-red-600 border-red-500 animate-pulse' :
+                      riskReport.classification === 'Alto' ? 'bg-orange-600 border-orange-500' :
+                      riskReport.classification === 'Moderado' ? 'bg-yellow-600 border-yellow-500' :
+                      'bg-emerald-600 border-emerald-500'
+                    }`}>
+                      {riskReport.classification}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Alerts & Suggestions AI Output */}
+              {(riskReport.alerts.length > 0 || riskReport.suggestions.length > 0) && (
+                <div className="mt-8 pt-6 border-t border-white/10 grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                  {riskReport.alerts.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Alertas do Sistema</p>
+                      {riskReport.alerts.map((alert, idx) => (
+                        <div key={idx} className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 p-3 rounded-xl">
+                          <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs font-bold text-red-200">{alert}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {riskReport.suggestions.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Conduta Sugerida (AI)</p>
+                      {riskReport.suggestions.map((sug, idx) => (
+                        <div key={idx} className="flex items-start gap-2 bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl">
+                          <CheckCircle2 className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs font-bold text-blue-200">{sug}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Análise de Desempenho */}
+            <div className="bg-slate-950/40 border border-slate-800/50 rounded-[2rem] p-8 space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500/10 rounded-xl">
+                    <TrendingUp className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <h4 className="text-sm font-black text-white uppercase italic tracking-widest">Análise de Desempenho</h4>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Métrica</label>
+                  <select 
+                    value={selectedMetric}
+                    onChange={(e) => setSelectedMetric(e.target.value as any)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-500/50 transition-all cursor-pointer"
+                  >
+                    <option value="series">Séries</option>
+                    <option value="reps">Repetições</option>
+                    <option value="kilagem">Tonelagem (Volume)</option>
+                    <option value="kilometragem">Kilometragem</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Período</label>
+                  <select 
+                    value={selectedPeriod}
+                    onChange={(e) => setSelectedPeriod(e.target.value as any)}
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-xs font-bold text-white outline-none focus:border-blue-500/50 transition-all cursor-pointer"
+                  >
+                    <option value="diário">Diário</option>
+                    <option value="semanal">Semanal</option>
+                    <option value="quinzenal">Quinzenal</option>
+                    <option value="mensal">Mensal</option>
+                    <option value="anual">Anual</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/50 rounded-2xl p-6 flex items-center justify-between border border-white/5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-5">
+                   <Activity className="w-20 h-20 text-white" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-1">Total Acumulado</p>
+                  <div className="flex items-baseline gap-2">
+                    <h3 className="text-4xl font-black text-blue-400 italic">
+                      {metricValue.toLocaleString('pt-BR')}
+                    </h3>
+                    <span className="text-xs font-black text-slate-600 uppercase italic">
+                      {selectedMetric === 'kilagem' ? 'kg' : selectedMetric === 'kilometragem' ? 'km' : selectedMetric === 'series' ? 'séries' : 'reps'}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                   <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest italic">Dados do Sistema WMPS</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <Activity className="w-5 h-5 text-cyan-400" />
+                <h4 className="text-sm font-black text-white uppercase italic tracking-widest">Prontuário de Identificação</h4>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <InfoItem label="Email de Acesso" value={athlete.email} icon={<Mail className="w-3.5 h-3.5" />} />
+                <InfoItem label="Telefone de Contato" value={athlete.phone || '--'} icon={<Phone className="w-3.5 h-3.5" />} />
+                <InfoItem label="Data de Nascimento" value={athlete.birth_date ? format(parseISO(athlete.birth_date), 'dd/MM/yyyy') : '--'} icon={<CalendarIcon className="w-3.5 h-3.5" />} />
+                <InfoItem label="Objetivo Principal" value={athlete.goal || '--'} icon={<Target className="w-3.5 h-3.5" />} />
+              </div>
+            </div>
+
+            {athlete.is_minor && (
+              <div className="p-8 bg-amber-500/5 border border-amber-500/20 rounded-3xl animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-1.5 bg-amber-500/20 rounded-lg">
+                    <Users className="w-4 h-4 text-amber-500" />
+                  </div>
+                  <h4 className="text-[11px] font-black text-amber-500 uppercase italic tracking-widest">Responsável Legal (Atleta Menor)</h4>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <InfoItem label="Nome do Responsável" value={athlete.guardian_name || '--'} light />
+                  <InfoItem label="Grau de Parentesco" value={athlete.guardian_relationship || '--'} light />
+                  <InfoItem label="Telefone do Responsável" value={athlete.guardian_phone || '--'} icon={<Phone className="w-3.5 h-3.5" />} light />
+                  <InfoItem label="CPF" value={athlete.guardian_cpf || '--'} light />
+                </div>
+              </div>
+            )}
+
+            <div className="pt-8 border-t border-slate-800">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <MiniStat label="Altura" value={athlete.height ? `${athlete.height}cm` : '--'} />
+                <MiniStat label="Peso" value={athlete.weight ? `${athlete.weight}kg` : '--'} />
+                <MiniStat label="Nível" value={athlete.experience_level || '--'} />
+                <MiniStat label="Cadastro" value={athlete.created_at ? format(parseISO(athlete.created_at), 'dd/MM/yy') : '--'} />
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-6">
+               <button 
+                onClick={onClose}
+                className="px-8 py-3 bg-slate-800 border border-slate-700 rounded-xl text-[10px] font-black text-white uppercase tracking-widest hover:bg-slate-700 transition-all"
+               >
+                 Fechar Prontuário
+               </button>
             </div>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <select 
-            value={values.experience}
-            onChange={(e) => onChange('experience', e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-[9px] font-bold text-white focus:outline-none"
-          >
-            <option value="Beginner">Iniciante</option>
-            <option value="Intermediate">IntermediÃ¡rio</option>
-            <option value="Advanced">Avançado</option>
-          </select>
-          <p className="text-[8px] font-black text-slate-500 uppercase italic">Meta: {volumeTargets[values.experience as keyof typeof volumeTargets]} contatos</p>
-        </div>
-      </div>
+      </motion.div>
+    </motion.div>
+  );
+}
 
-      <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">ExercÃ­cio (Continuum)</label>
-            <input 
-              value={values.drill}
-              onChange={(e) => onChange('drill', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-orange-500 outline-none" 
-              placeholder="Ex: Depth Jump"
-              list="plyo-drills"
-            />
-            <datalist id="plyo-drills">
-              {[...intensityContinuum.low, ...intensityContinuum.mod, ...intensityContinuum.high].map(d => <option key={d} value={d} />)}
-            </datalist>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Tipo de Salto</label>
-            <select 
-              value={values.jumpType}
-              onChange={(e) => onChange('jumpType', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-orange-500 outline-none"
-            >
-              <option value="Bilateral">Bipodal (2 contatos)</option>
-              <option value="Unilateral">Unipodal (1 contato)</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Altura (cm)</label>
-            <input 
-              value={values.height}
-              onChange={(e) => onChange('height', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-orange-500 outline-none"
-              placeholder="Ex: 50"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Carga Extra (kg)</label>
-            <input 
-              value={values.load}
-              onChange={(e) => onChange('load', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-orange-500 outline-none"
-              placeholder="Ex: 0"
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Séries</label>
-            <input 
-              value={values.series}
-              onChange={(e) => onChange('series', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-orange-500 outline-none"
-              placeholder="Ex: 3"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Reps / Ciclo</label>
-            <input 
-              value={values.reps}
-              onChange={(e) => onChange('reps', e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-white focus:ring-1 focus:ring-orange-500 outline-none"
-              placeholder="Ex: 8"
-            />
-          </div>
-          <div className="flex flex-col justify-end pb-1 text-center">
-              <p className="text-[8px] font-black text-slate-500 uppercase italic">Vol. Calculado</p>
-              <div className="flex items-center justify-center gap-1">
-                <p className={`text-sm font-black italic ${Number(values.totalContacts) > parseInt(volumeTargets[values.experience as keyof typeof volumeTargets].split('-')[1]) ? 'text-red-500' : 'text-orange-500'}`}>
-                  {values.totalContacts}
-                </p>
-                <span className="text-[8px] text-slate-600 font-bold uppercase">Contatos</span>
-              </div>
-           </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Notas Técnicas (Fase Amortização)</label>
-          <textarea 
-            value={values.notes}
-            onChange={(e) => onChange('notes', e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-[10px] font-medium text-slate-400 focus:ring-1 focus:ring-orange-500 outline-none h-12 resize-none"
-            placeholder="Minimizar tempo de contato..."
-          />
-        </div>
+function InfoItem({ label, value, icon, light = false }: { label: string, value: string, icon?: React.ReactNode, light?: boolean }) {
+  return (
+    <div className="space-y-2">
+      <p className={`text-[9px] font-black uppercase tracking-[0.1em] ${light ? 'text-amber-500/60' : 'text-slate-500'}`}>{label}</p>
+      <div className="flex items-center gap-2.5">
+        {icon && <div className="text-cyan-500/50">{icon}</div>}
+        <span className="text-sm font-bold text-white tracking-tight">{value}</span>
       </div>
     </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string, value: string }) {
+  return (
+    <div className="bg-slate-950/40 border border-slate-800/50 p-4 rounded-2xl">
+      <p className="text-[8px] font-black text-slate-600 uppercase mb-1">{label}</p>
+      <p className="text-xs font-black text-white italic">{value}</p>
+    </div>
+  );
+}
+
+function TeamsModule() {
+  const [athletes, setAthletes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const data = await getAthletes();
+      setAthletes(data);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const teams = useMemo(() => {
+    const groups: Record<string, any[]> = {};
+    athletes.forEach(a => {
+      if (!a.team_name) return; // Ignorar atletas sem equipe
+      const team = a.team_name;
+      if (!groups[team]) groups[team] = [];
+      groups[team].push(a);
+    });
+    return groups;
+  }, [athletes]);
+
+  if (loading) return (
+    <div className="py-20 flex flex-col items-center justify-center text-center">
+      <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-4" />
+      <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest italic">Organizando Elencos...</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-900/50 p-8 rounded-[2rem] border border-slate-800">
+        <div>
+          <h2 className="text-3xl font-black text-white uppercase italic">Gestão de Equipes</h2>
+          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Total de {Object.keys(teams).length} grupos identificados</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {Object.entries(teams).map(([teamName, teamAthletes]) => (
+          <div 
+            key={teamName}
+            className="group bento-card bg-slate-900 border-slate-800 hover:border-emerald-500/30 transition-all p-8 flex flex-col h-full"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <Users className="w-5 h-5 text-emerald-400" />
+                </div>
+                <h3 className="text-lg font-black text-white uppercase italic tracking-tight truncate max-w-[180px]">
+                  {teamName}
+                </h3>
+              </div>
+              <span className="bg-slate-800 px-3 py-1 rounded-full text-[10px] font-black text-slate-400 uppercase italic">
+                {teamAthletes.length} Atletas
+              </span>
+            </div>
+
+            <div className="flex-1 space-y-3 mb-8 overflow-y-auto max-h-[250px] pr-2 custom-scrollbar">
+              {teamAthletes.map(athlete => (
+                <button
+                  key={athlete.id}
+                  onClick={() => setSelectedAthlete(athlete)}
+                  className="w-full flex items-center justify-between p-3 bg-slate-950/50 border border-slate-800 hover:border-emerald-500/40 rounded-xl group/item transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-900 border border-slate-800">
+                      {athlete.photo_url ? (
+                        <img src={athlete.photo_url} alt={athlete.full_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center"><User className="w-4 h-4 text-slate-700" /></div>
+                      )}
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[10px] font-black text-white uppercase italic group-hover/item:text-emerald-400 transition-colors">{athlete.full_name}</p>
+                      <p className="text-[8px] font-bold text-slate-600 uppercase">{athlete.sport || 'Esporte N/A'}</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-800 group-hover/item:text-emerald-500 group-hover/item:translate-x-1 transition-all" />
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-auto pt-6 border-t border-slate-800/50 flex flex-col gap-4">
+               <div className="flex gap-2">
+                 {teamAthletes.slice(0, 5).map((a, i) => (
+                   <div key={i} className="w-6 h-6 rounded-full border border-slate-900 bg-slate-800 overflow-hidden -ml-2 first:ml-0">
+                      {a.photo_url ? <img src={a.photo_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-slate-900"><User className="w-3 h-3 text-slate-700" /></div>}
+                   </div>
+                 ))}
+                 {teamAthletes.length > 5 && (
+                   <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-900 flex items-center justify-center text-[8px] font-black text-slate-500 -ml-2">
+                     +{teamAthletes.length - 5}
+                   </div>
+                 )}
+               </div>
+
+               <button 
+                onClick={() => setSelectedTeam(teamName)}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-[9px] font-black text-white uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20"
+               >
+                 Gerenciar Equipe
+               </button>
+            </div>
+          </div>
+        ))}
+
+        {Object.keys(teams).length === 0 && (
+          <div className="col-span-full py-32 text-center bento-card bg-slate-900/20 border-dashed border-slate-800">
+            <Users className="w-16 h-16 text-slate-800 mx-auto mb-6" />
+            <p className="text-xs font-black text-slate-600 uppercase italic tracking-widest">Nenhuma equipe ou atleta encontrado no sistema.</p>
+          </div>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {selectedAthlete && (
+          <AthleteProfileModal 
+            athlete={selectedAthlete} 
+            onClose={() => setSelectedAthlete(null)} 
+          />
+        )}
+        {selectedTeam && (
+          <TeamDetailsModal 
+            teamName={selectedTeam} 
+            teamAthletes={teams[selectedTeam]} 
+            allAthletes={athletes}
+            onClose={() => setSelectedTeam(null)}
+            onUpdate={() => {
+              // Refresh athletes
+              getAthletes().then(setAthletes);
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function TeamDetailsModal({ teamName, teamAthletes, allAthletes, onClose, onUpdate }: { 
+  teamName: string, 
+  teamAthletes: any[], 
+  allAthletes: any[],
+  onClose: () => void,
+  onUpdate: () => void
+}) {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const athletesWithoutTeam = allAthletes.filter(a => !a.team_name);
+
+  const handleRemove = async (athleteId: string) => {
+    if (!supabase) return;
+    setIsUpdating(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ team_name: null })
+      .eq('id', athleteId);
+    
+    if (!error) {
+      onUpdate();
+    } else {
+      alert('Erro ao remover: ' + error.message);
+    }
+    setIsUpdating(false);
+  };
+
+  const handleAdd = async (athleteId: string) => {
+    if (!supabase) return;
+    setIsUpdating(true);
+    const { error } = await supabase
+      .from('profiles')
+      .update({ team_name: teamName })
+      .eq('id', athleteId);
+    
+    if (!error) {
+      onUpdate();
+    } else {
+      alert('Erro ao adicionar: ' + error.message);
+    }
+    setIsUpdating(false);
+  };
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md"
+    >
+      <motion.div 
+        initial={{ scale: 0.9, y: 30 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.9, y: 30 }}
+        className="bg-slate-900 border border-slate-800 w-full max-w-5xl rounded-[3rem] overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
+      >
+        <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+              <Users className="w-6 h-6 text-emerald-400" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-white uppercase italic">{teamName}</h3>
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Gestão de Elenco e Atletas</p>
+            </div>
+          </div>
+          <button 
+            onClick={onClose}
+            className="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl text-slate-400 hover:text-white transition-all"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 flex-1 overflow-hidden">
+          {/* List of current team athletes */}
+          <div className="p-8 border-r border-slate-800 flex flex-col h-full overflow-hidden">
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="text-xs font-black text-emerald-400 uppercase italic tracking-widest">Atletas na Equipe ({teamAthletes.length})</h4>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+              {teamAthletes.map(a => (
+                <div key={a.id} className="flex items-center justify-between p-4 bg-slate-950 border border-slate-800 rounded-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-800">
+                      {a.photo_url ? <img src={a.photo_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-slate-900"><User className="w-5 h-5 text-slate-800" /></div>}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black text-white uppercase italic">{a.full_name}</p>
+                      <p className="text-[9px] font-bold text-slate-600 uppercase">{a.sport || 'Esporte N/A'}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleRemove(a.id)}
+                    disabled={isUpdating}
+                    className="p-2 bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white rounded-lg transition-all disabled:opacity-50"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              {teamAthletes.length === 0 && (
+                <p className="text-center py-10 text-[10px] font-black text-slate-700 uppercase italic">Nenhum atleta nesta equipe</p>
+              )}
+            </div>
+          </div>
+
+          {/* List of athletes without a team */}
+          <div className="p-8 bg-slate-950/20 flex flex-col h-full overflow-hidden">
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="text-xs font-black text-blue-400 uppercase italic tracking-widest">Adicionar Atletas ({athletesWithoutTeam.length})</h4>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+              {athletesWithoutTeam.map(a => (
+                <div key={a.id} className="flex items-center justify-between p-4 bg-slate-950 border border-slate-800/50 rounded-2xl group hover:border-blue-500/30 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-800">
+                      {a.photo_url ? <img src={a.photo_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-slate-900"><User className="w-5 h-5 text-slate-800" /></div>}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black text-white uppercase italic">{a.full_name}</p>
+                      <p className="text-[9px] font-bold text-slate-600 uppercase">{a.sport || 'Esporte N/A'}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => handleAdd(a.id)}
+                    disabled={isUpdating}
+                    className="p-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-lg transition-all disabled:opacity-50"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              {athletesWithoutTeam.length === 0 && (
+                <p className="text-center py-10 text-[10px] font-black text-slate-700 uppercase italic">Todos os atletas já possuem equipe</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-8 border-t border-slate-800 bg-slate-950/50 flex justify-end">
+          <button 
+            onClick={onClose}
+            className="px-10 py-4 bg-slate-800 hover:bg-slate-700 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest transition-all"
+          >
+            Fechar Gestão
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

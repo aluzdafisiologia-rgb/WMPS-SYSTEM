@@ -10,6 +10,8 @@ export interface Session {
   load: number; // rpe * duration
   distance?: number; // km
   volume?: number; // total tons/kg (external load)
+  series?: number;
+  reps?: number;
 }
 
 export interface WellnessEntry {
@@ -31,6 +33,7 @@ export interface Profile {
   athlete_id: string;
   full_name: string;
   email: string;
+  phone?: string;
   birth_date: string;
   gender: string;
   height: number;
@@ -38,7 +41,16 @@ export interface Profile {
   sport: string;
   goal: string;
   experience_level: string;
+  is_minor?: boolean;
+  guardian_name?: string;
+  guardian_phone?: string;
+  guardian_relationship?: string;
+  photo_url?: string;
+  team_name?: string;
   created_at?: string;
+  role?: 'athlete' | 'coach' | 'admin';
+  is_injured?: boolean;
+  injury_description?: string;
 }
 
 export interface TrainingPrescription {

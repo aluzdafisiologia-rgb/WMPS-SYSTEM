@@ -31,7 +31,9 @@ export default function Home() {
     cpf: '',
     phone: '',
     guardianName: '',
-    guardianCpf: ''
+    guardianCpf: '',
+    guardianPhone: '',
+    guardianRelationship: ''
   });
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -107,7 +109,7 @@ export default function Home() {
       if (result.success) {
         setView('login');
         alert('Solicitação enviada com sucesso! Aguarde o contato por e-mail.');
-        setRegData({ fullName: '', email: '', birthDate: '', cpf: '', phone: '', guardianName: '', guardianCpf: '' });
+        setRegData({ fullName: '', email: '', birthDate: '', cpf: '', phone: '', guardianName: '', guardianCpf: '', guardianPhone: '', guardianRelationship: '' });
         setRegStep(1);
       } else {
         alert('ERRO NO SUPABASE: ' + result.error);
@@ -141,11 +143,14 @@ export default function Home() {
             exit={{ opacity: 0, x: -20 }}
             className="max-w-md w-full z-10"
           >
-            <div className="text-center mb-8 flex flex-col items-center">
-              <div className="bg-black text-emerald-500 border-2 border-emerald-500 font-black px-4 py-1.5 rounded-xl text-3xl italic skew-x-[-10deg] shadow-[0_0_20px_rgba(16,185,129,0.3)] mb-4">
+            <div className="flex flex-col items-center gap-1 mb-10">
+              <div className="bg-black text-emerald-500 border-2 border-emerald-500 font-black px-8 py-2 rounded-xl text-4xl italic skew-x-[-15deg] shadow-[0_0_30px_rgba(16,185,129,0.3)] mb-4 border-l-[12px]">
                 WMPS
               </div>
-              <h1 className="text-xl font-black text-white uppercase italic tracking-widest">Acesso ao Sistema</h1>
+              <div className="text-center">
+                <h1 className="text-2xl font-black leading-tight text-white uppercase italic tracking-[0.05em] drop-shadow-sm">William Moreira</h1>
+                <p className="text-xs text-emerald-500 uppercase tracking-[0.4em] font-black -mt-1 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]">Performance System</p>
+              </div>
             </div>
 
             <div className="bento-card bg-slate-900/40 border-slate-800 backdrop-blur-xl p-8 shadow-2xl">
@@ -263,6 +268,16 @@ export default function Home() {
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Nome do Responsável</label>
                             <input type="text" value={regData.guardianName} onChange={(e) => updateReg('guardianName', e.target.value)} className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-emerald-500/50 transition-all" required />
                           </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Grau de Parentesco</label>
+                              <input type="text" value={regData.guardianRelationship} onChange={(e) => updateReg('guardianRelationship', e.target.value)} placeholder="Ex: Pai, Mãe..." className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-emerald-500/50 transition-all" required />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Tel. Responsável</label>
+                              <input type="text" value={regData.guardianPhone} onChange={(e) => updateReg('guardianPhone', e.target.value)} placeholder="(00) 00000-0000" className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-emerald-500/50 transition-all" required />
+                            </div>
+                          </div>
                           <div className="space-y-1">
                             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">CPF do Responsável</label>
                             <input type="text" value={regData.guardianCpf} onChange={(e) => updateReg('guardianCpf', e.target.value)} className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-emerald-500/50 transition-all" required />
@@ -296,13 +311,15 @@ export default function Home() {
             {/* Header Block */}
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
               <div className="flex flex-col items-center gap-1">
-                <div className="bg-black text-emerald-500 border-2 border-emerald-500 font-black px-4 py-1.5 rounded-xl text-3xl italic skew-x-[-10deg] shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+              <div className="flex flex-col items-center gap-1">
+                <div className="bg-black text-emerald-500 border-2 border-emerald-500 font-black px-5 py-1 rounded-lg text-2xl italic skew-x-[-15deg] shadow-[0_0_20px_rgba(16,185,129,0.3)] border-l-8">
                   WMPS
                 </div>
                 <div className="text-center">
-                  <h1 className="text-sm font-black leading-tight text-white uppercase italic tracking-[0.1em]">William Moreira</h1>
-                  <p className="text-[9px] text-slate-400 uppercase tracking-[0.3em] font-black -mt-0.5">Performance System</p>
+                  <h1 className="text-[10px] font-black leading-tight text-white uppercase italic tracking-[0.1em]">William Moreira</h1>
+                  <p className="text-[8px] text-emerald-500 uppercase tracking-[0.3em] font-black -mt-0.5">Performance System</p>
                 </div>
+              </div>
               </div>
               <button 
                 onClick={async () => { 

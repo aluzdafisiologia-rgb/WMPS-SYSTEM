@@ -69,9 +69,11 @@ export async function submitRegistrationRequest(request: any) {
       birth_date: request.birthDate,
       cpf: request.cpf,
       phone: request.phone,
-      is_minor: request.isMinor,
+      is_minor: request.is_minor || request.isMinor,
       guardian_name: request.guardianName,
       guardian_cpf: request.guardianCpf,
+      guardian_phone: request.guardianPhone,
+      guardian_relationship: request.guardianRelationship,
       status: 'pendente'
     }]).select().single();
 
@@ -110,7 +112,9 @@ export async function logWorkout(userId: string, formData: any) {
       duration: formData.duration,
       load: formData.rpe * formData.duration,
       distance: formData.distance || 0,
-      volume: formData.volume || 0
+      volume: formData.volume || 0,
+      series: formData.series || 0,
+      reps: formData.reps || 0
     }]);
 
     revalidatePath('/coach');
@@ -184,6 +188,24 @@ export async function registerProfile(profile: any) {
   } catch (error) {
     console.error('Action error (registerProfile):', error);
     throw error;
+  }
+}
+
+export async function updateProfilePhoto(userId: string, photoUrl: string) {
+  if (!supabase) return { success: false, error: 'Database not available' };
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ photo_url: photoUrl })
+      .eq('id', userId);
+    
+    if (error) throw error;
+    revalidatePath('/athlete');
+    revalidatePath('/coach');
+    return { success: true };
+  } catch (err: any) {
+    console.error('Error updating photo:', err);
+    return { success: false, error: err.message };
   }
 }
 
@@ -411,7 +433,12 @@ export async function approveRegistration(requestId: string) {
         id: authData.user.id,
         full_name: request.full_name,
         email: request.email,
+        phone: request.phone,
         birth_date: request.birth_date,
+        is_minor: request.is_minor,
+        guardian_name: request.guardian_name,
+        guardian_phone: request.guardian_phone,
+        guardian_relationship: request.guardian_relationship,
         role: 'athlete',
         must_change_password: true
       }]);
@@ -435,4 +462,17 @@ export async function approveRegistration(requestId: string) {
     console.error('Error approving registration:', error);
     return { success: false, error: error.message };
   }
+}
+
+export async function deleteRegistrationRequest(requestId: string) {
+  if (!supabase) return { success: false, error: 'Supabase não inicializado' };
+  
+  const { error } = await supabase
+    .from('registration_requests')
+    .delete()
+    .eq('id', requestId);
+
+  if (error) return { success: false, error: error.message };
+  revalidatePath('/coach');
+  return { success: true };
 }

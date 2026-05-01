@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Clock, Zap, CheckCircle2, Save, FileText, User, Dumbbell, Activity, Timer, MoveHorizontal, Footprints } from 'lucide-react';
+import { ArrowLeft, Clock, Zap, CheckCircle2, Save, FileText, User, Dumbbell, Activity, Timer, MoveHorizontal, Footprints, Camera, Edit2, Check } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { logWorkout, logWellness, logAnamnesis, getUserRole, getActivePrescription, completeTraining } from '../actions';
+import { logWorkout, logWellness, logAnamnesis, getUserRole, getActivePrescription, completeTraining, updateProfilePhoto } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
 
 const WELLNESS_LABELS = {
@@ -58,6 +58,10 @@ export default function AthletePage() {
     duration: '',
     rpe: 6,
     date: new Date().toISOString().split('T')[0],
+    series: '',
+    reps: '',
+    weight: '',
+    distance: '',
   });
   const [wellnessData, setWellnessData] = useState({
     recovery: 14,
@@ -86,6 +90,9 @@ export default function AthletePage() {
   const [user, setUser] = useState<any>(null);
   const [activePrescription, setActivePrescription] = useState<any>(null);
   const [completedExercises, setCompletedExercises] = useState<Record<string, boolean>>({});
+  const [profile, setProfile] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     async function checkAuth() {
@@ -100,14 +107,15 @@ export default function AthletePage() {
       const role = await getUserRole(session.user.id);
       setRole(role);
       
-      const { data: profile } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('*')
         .eq('id', session.user.id)
         .single();
       
-      if (profile) {
-        setFormData(prev => ({ ...prev, athleteName: profile.full_name }));
+      if (profileData) {
+        setProfile(profileData);
+        setFormData(prev => ({ ...prev, athleteName: profileData.full_name }));
       }
 
       const prescription = await getActivePrescription(session.user.id);
@@ -115,6 +123,46 @@ export default function AthletePage() {
     }
     checkAuth();
   }, []);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !supabase) return;
+
+    try {
+      setIsUploading(true);
+      
+      // 1. Upload para o Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('profiles')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 2. Pegar URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('profiles')
+        .getPublicUrl(filePath);
+
+      // 3. Atualizar Perfil no Banco
+      const res = await updateProfilePhoto(user.id, publicUrl);
+      
+      if (res.success) {
+        setProfile({ ...profile, photo_url: publicUrl });
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      } else {
+        throw new Error(res.error);
+      }
+    } catch (error: any) {
+      alert('Erro ao fazer upload: ' + (error.message || 'Verifique se o bucket "profiles" existe no Supabase.'));
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmitWorkout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,9 +174,13 @@ export default function AthletePage() {
         rpe: formData.rpe,
         duration: Number(formData.duration),
         date: formData.date,
+        series: Number(formData.series) || 0,
+        reps: Number(formData.reps) || 0,
+        volume: (Number(formData.series) || 0) * (Number(formData.reps) || 0) * (Number(formData.weight) || 0),
+        distance: Number(formData.distance) || 0,
       });
       setShowSuccess(true);
-      setFormData(prev => ({ ...prev, duration: '', rpe: 6 }));
+      setFormData(prev => ({ ...prev, duration: '', rpe: 6, series: '', reps: '', weight: '', distance: '' }));
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       alert('Erro ao salvar treino.');
@@ -222,15 +274,75 @@ export default function AthletePage() {
           <button onClick={() => activeTab ? setActiveTab(null) : window.location.href = role === 'admin' ? '/admin' : '/'} className="p-2 -ml-2 text-slate-400 hover:text-emerald-500 transition-all hover:scale-110">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <div className="flex flex-col items-center">
-            <Link href="/" className="bg-gradient-to-br from-emerald-400 to-cyan-500 text-black font-black px-4 py-1 rounded-lg text-xl italic skew-x-[-10deg] shadow-[0_0_20px_rgba(52,211,153,0.3)] transition-transform hover:scale-105 active:scale-95">WMPS</Link>
-            <span className="text-[10px] font-black text-emerald-500/80 uppercase tracking-[0.2em] mt-2 italic">William Moreira Performance System</span>
+          <div className="flex flex-col items-center gap-1">
+            <div className="bg-black text-emerald-500 border-2 border-emerald-500 font-black px-4 py-1 rounded-lg text-lg italic skew-x-[-15deg] shadow-[0_0_20px_rgba(16,185,129,0.3)] border-l-4">
+              WMPS
+            </div>
+            <div className="text-center">
+              <h1 className="text-[8px] font-black leading-tight text-white uppercase italic tracking-[0.1em]">William Moreira</h1>
+              <p className="text-[6px] text-emerald-500 uppercase tracking-[0.3em] font-black -mt-0.5">Performance System</p>
+            </div>
           </div>
           <div className="w-10"></div>
         </div>
       </header>
 
       <main className="max-w-xl mx-auto px-6 mt-8 space-y-8 relative">
+        {/* Profile Identity Section */}
+        <div className="relative">
+          <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 blur-3xl rounded-[3rem] -z-10"></div>
+          
+          <div className="flex flex-col items-center text-center space-y-4 py-6">
+            <div className="relative group">
+              <div className="w-32 h-32 rounded-[2.5rem] overflow-hidden bg-slate-800 border-2 border-emerald-500/20 shadow-2xl relative">
+                {profile?.photo_url ? (
+                  <img src={profile.photo_url} alt={profile.full_name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-slate-900">
+                    <User className="w-12 h-12 text-slate-700" />
+                  </div>
+                )}
+                
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity duration-300 disabled:opacity-100"
+                >
+                  {isUploading ? (
+                    <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-2">
+                      <Camera className="w-8 h-8 text-white" />
+                      <span className="text-[8px] font-black text-white uppercase tracking-widest">Mudar Foto</span>
+                    </div>
+                  )}
+                </button>
+              </div>
+              
+              <input 
+                type="file" 
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <h2 className="text-3xl font-black text-white uppercase italic tracking-tight">{profile?.full_name || 'Carregando...'}</h2>
+              {profile?.team_name ? (
+                <div className="flex items-center justify-center gap-2">
+                  <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-black text-emerald-400 uppercase italic tracking-widest">
+                    Atleta da equipe {profile.team_name}
+                  </span>
+                </div>
+              ) : (
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Atleta Individual</p>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Decorative background glow */}
         <div className="fixed top-1/4 -left-20 w-64 h-64 bg-emerald-500/10 blur-[100px] pointer-events-none rounded-full"></div>
         <div className="fixed bottom-1/4 -right-20 w-64 h-64 bg-blue-500/10 blur-[100px] pointer-events-none rounded-full"></div>
@@ -252,7 +364,7 @@ export default function AthletePage() {
             <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
               <MenuCard 
-                title="Wellness" 
+                title="PRÉ-TREINO" 
                 sub="Diário de Prontidão" 
                 icon={<Zap className="w-10 h-10 text-emerald-400" />} 
                 onClick={() => setActiveTab('wellness')} 
@@ -264,7 +376,7 @@ export default function AthletePage() {
             <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
               <MenuCard 
-                title="Carga Treino" 
+                title="PÓS-TREINO" 
                 sub="Monitoramento PSE" 
                 icon={<Clock className="w-10 h-10 text-blue-400" />} 
                 onClick={() => setActiveTab('workout')} 
@@ -291,15 +403,15 @@ export default function AthletePage() {
           <div className="space-y-6">
             <div className="bento-card bg-slate-800 border-slate-700 shadow-xl overflow-hidden p-0">
               <div className={`px-8 py-4 ${activeTab === 'workout' ? 'bg-blue-600' : activeTab === 'wellness' ? 'bg-emerald-600' : activeTab === 'training' ? 'bg-yellow-600' : 'bg-purple-600'}`}>
-                <h2 className="text-sm font-black text-white uppercase italic">{activeTab === 'workout' ? 'Treino' : activeTab === 'wellness' ? 'Wellness' : activeTab === 'training' ? 'Prescrição do Treinador' : 'Anamnese'}</h2>
+                <h2 className="text-sm font-black text-white uppercase italic">{activeTab === 'workout' ? 'Pós-Treino' : activeTab === 'wellness' ? 'Pré-Treino' : activeTab === 'training' ? 'Prescrição do Treinador' : 'Anamnese'}</h2>
               </div>
               
               <div className="p-8 space-y-8">
                 {activeTab === 'workout' && (
                   <form onSubmit={handleSubmitWorkout} className="space-y-6">
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input label="Data" type="date" value={formData.date} onChange={(v: string) => setFormData({...formData, date: v})} />
-                      <Input label="Minutos" type="number" value={formData.duration} onChange={(v: string) => setFormData({...formData, duration: v})} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Input label="Data do Treino" type="date" value={formData.date} onChange={(v: string) => setFormData({...formData, date: v})} />
+                      <Input label="Duração Total (minutos)" type="number" value={formData.duration} onChange={(v: string) => setFormData({...formData, duration: v})} />
                     </div>
                     <RPESelector value={formData.rpe} onChange={(v: number) => setFormData({...formData, rpe: v})} />
                     <SubmitButton loading={isSubmitting} />
@@ -321,58 +433,74 @@ export default function AthletePage() {
 
                 {activeTab === 'anamnesis' && (
                   <form onSubmit={handleSubmitAnamnesis} className="space-y-8">
-                    <div className="space-y-4">
-                      <p className="text-[10px] font-black text-purple-400 uppercase italic">PAR-Q+ 2014</p>
-                      {[
-                        { id: 'q1', text: 'Problema de coração ou pressão alta?' },
-                        { id: 'q2', text: 'Dor no peito em repouso ou esforço?' },
-                        { id: 'q3', text: 'Tontura ou perda de consciência?' },
-                        { id: 'q4', text: 'Outra condição crônica diagnosticada?' },
-                        { id: 'q5', text: 'Toma remédio para condição crônica?' },
-                        { id: 'q6', text: 'Problema ósseo/articular que piora com exercício?' },
-                        { id: 'q7', text: 'Remédio para coração ou pressão?' },
-                      ].map(q => (
-                        <div key={q.id} className="flex items-center justify-between p-3 sm:p-4 bg-slate-900/50 border border-slate-700 rounded-xl gap-4">
-                          <span className="text-[10px] font-bold text-slate-300 uppercase leading-tight">{q.text}</span>
-                          <div className="flex-shrink-0">
-                            <BinaryToggle active={anamnesisData[q.id as keyof typeof anamnesisData] as boolean} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, [q.id]: v})} />
-                          </div>
+                    {/* Bloco PAR-Q+ */}
+                    <div className="bg-slate-900/60 p-6 rounded-[2rem] border border-slate-800 shadow-xl space-y-6">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/30">
+                          <FileText className="w-5 h-5 text-purple-400" />
                         </div>
-                      ))}
+                        <h3 className="text-sm font-black text-white uppercase italic tracking-widest">PAR-Q+ 2014</h3>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {[
+                          { id: 'q1', text: 'Problema de coração ou pressão alta?' },
+                          { id: 'q2', text: 'Dor no peito em repouso ou esforço?' },
+                          { id: 'q3', text: 'Tontura ou perda de consciência?' },
+                          { id: 'q4', text: 'Outra condição crônica diagnosticada?' },
+                          { id: 'q5', text: 'Toma remédio para condição crônica?' },
+                          { id: 'q6', text: 'Problema ósseo/articular que piora com exercício?' },
+                          { id: 'q7', text: 'Remédio para coração ou pressão?' },
+                        ].map(q => (
+                          <div key={q.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-950/50 border border-slate-800/80 rounded-2xl gap-4 hover:border-purple-500/30 transition-colors">
+                            <span className="text-[11px] font-bold text-slate-300 uppercase leading-relaxed">{q.text}</span>
+                            <div className="flex-shrink-0 self-start sm:self-auto">
+                              <BinaryToggle active={anamnesisData[q.id as keyof typeof anamnesisData] as boolean} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, [q.id]: v})} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
-                    <div className="space-y-4 border-t border-slate-700 pt-6">
-                      <p className="text-[10px] font-black text-blue-400 uppercase italic">Fatores de Risco (ACSM/NSCA)</p>
-                      <ToggleItem label="Ativo regular? (3x/sem, 30min, 3m)" active={anamnesisData.isPhysicallyActive} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, isPhysicallyActive: v})} />
-                      <ToggleItem label="Doença CV, Metabólica ou Renal?" active={anamnesisData.hasKnownDisease} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hasKnownDisease: v})} />
-                      <ToggleItem label="Sintomas (Dor, Falta de ar, Tontura)?" active={anamnesisData.hasSymptoms} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hasSymptoms: v})} />
-                      
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Bloco Fatores de Risco */}
+                    <div className="bg-slate-900/60 p-6 rounded-[2rem] border border-slate-800 shadow-xl space-y-6">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/30">
+                          <Activity className="w-5 h-5 text-blue-400" />
+                        </div>
+                        <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Fatores de Risco</h3>
+                      </div>
+
+                      <div className="space-y-3">
+                        <ToggleItem label="Ativo regular? (3x/sem, 30min, 3m)" active={anamnesisData.isPhysicallyActive} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, isPhysicallyActive: v})} />
+                        <ToggleItem label="Doença CV, Metabólica ou Renal?" active={anamnesisData.hasKnownDisease} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hasKnownDisease: v})} />
+                        <ToggleItem label="Sintomas (Dor, Falta de ar, Tontura)?" active={anamnesisData.hasSymptoms} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hasSymptoms: v})} />
                         <ToggleItem label="Histórico Familiar (Infarto/Morte Súbita)?" active={anamnesisData.familyHistory} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, familyHistory: v})} />
                         <ToggleItem label="Fumante (ou parou há < 6 meses)?" active={anamnesisData.smoking} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, smoking: v})} />
                         <ToggleItem label="Hipertensão (>= 140/90 ou remédio)?" active={anamnesisData.hypertension} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hypertension: v})} />
                         <ToggleItem label="Diabetes ou Glicose Elevada?" active={anamnesisData.diabetes} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, diabetes: v})} />
                         <ToggleItem label="Obesidade (IMC > 30 ou Cintura Larga)?" active={anamnesisData.obesity} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, obesity: v})} />
                       </div>
-
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-500 uppercase italic">Histórico de Lesões (Ossos, Músculos, Articulações)</label>
+                      
+                      <div className="pt-4 space-y-2">
+                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Histórico de Lesões</label>
                         <textarea 
                           value={anamnesisData.previousInjuries}
                           onChange={(e) => setAnamnesisData({...anamnesisData, previousInjuries: e.target.value})}
-                          placeholder="Descreva lesões anteriores ou cirurgias..."
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs font-bold text-white focus:ring-1 focus:ring-blue-500 outline-none h-24"
+                          placeholder="Ossos, músculos, articulações ou cirurgias..."
+                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-xs font-bold text-white focus:border-blue-500 outline-none h-32 transition-colors resize-none"
                         />
                       </div>
 
-                      <div className="space-y-4 pt-4">
-                        <p className="text-[10px] font-black text-slate-500 uppercase italic">Intensidade Desejada</p>
-                        <div className="grid grid-cols-2 gap-4">
-                          <button type="button" onClick={() => setAnamnesisData({...anamnesisData, desiredIntensity: 'moderate'})} className={`py-3 rounded-xl text-[10px] font-black uppercase italic border ${anamnesisData.desiredIntensity === 'moderate' ? 'bg-blue-600 border-blue-500' : 'bg-slate-900'}`}>Moderada</button>
-                          <button type="button" onClick={() => setAnamnesisData({...anamnesisData, desiredIntensity: 'vigorous'})} className={`py-3 rounded-xl text-[10px] font-black uppercase italic border ${anamnesisData.desiredIntensity === 'vigorous' ? 'bg-purple-600 border-purple-500' : 'bg-slate-900'}`}>Vigorosa</button>
+                      <div className="pt-4 space-y-3">
+                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Intensidade Desejada</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button type="button" onClick={() => setAnamnesisData({...anamnesisData, desiredIntensity: 'moderate'})} className={`py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all border-2 ${anamnesisData.desiredIntensity === 'moderate' ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/20 scale-[1.02]' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'}`}>Moderada</button>
+                          <button type="button" onClick={() => setAnamnesisData({...anamnesisData, desiredIntensity: 'vigorous'})} className={`py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all border-2 ${anamnesisData.desiredIntensity === 'vigorous' ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-500/20 scale-[1.02]' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'}`}>Vigorosa</button>
                         </div>
                       </div>
                     </div>
+
                     <SubmitButton loading={isSubmitting} color="bg-purple-600 hover:bg-purple-500" />
                   </form>
                 )}
@@ -388,6 +516,7 @@ export default function AthletePage() {
                     hiit:          { label: 'HIIT',         icon: <Zap className="w-5 h-5" />,            color: 'text-emerald-400', accent: 'border-emerald-500/40 bg-emerald-500/5' },
                     continuous:    { label: 'Contínuo',     icon: <Activity className="w-5 h-5" />,       color: 'text-cyan-400',    accent: 'border-cyan-500/40 bg-cyan-500/5' },
                     powerTraining: { label: 'Potência',     icon: <Zap className="w-5 h-5" />,            color: 'text-yellow-400',  accent: 'border-yellow-500/40 bg-yellow-500/5' },
+                    cardio:        { label: 'Cardio',       icon: <Timer className="w-5 h-5" />,          color: 'text-emerald-400', accent: 'border-emerald-500/40 bg-emerald-500/5' },
                     agility:       { label: 'Agilidade',    icon: <Footprints className="w-5 h-5" />,     color: 'text-cyan-400',    accent: 'border-cyan-500/40 bg-cyan-500/5' },
                     flexibility:   { label: 'Flexibilidade',icon: <MoveHorizontal className="w-5 h-5" />, color: 'text-purple-400',  accent: 'border-purple-500/40 bg-purple-500/5' },
                   };
@@ -525,10 +654,43 @@ export default function AthletePage() {
                                                   <p className="text-[10px] font-bold text-cyan-400">{ex.duration}s</p>
                                                 </div>
                                               )}
-                                              <div>
-                                                <p className="text-[7px] font-black text-slate-600 uppercase">Descanso</p>
-                                                <p className="text-[10px] font-bold text-slate-400">{ex.rest}</p>
-                                              </div>
+                                              {ex.rest && (
+                                                <div>
+                                                  <p className="text-[7px] font-black text-slate-600 uppercase">Descanso</p>
+                                                  <p className="text-[10px] font-bold text-slate-400">{ex.rest}</p>
+                                                </div>
+                                              )}
+                                              {/* Cardio specific fields */}
+                                              {ex.workDur && (
+                                                <div>
+                                                  <p className="text-[7px] font-black text-slate-600 uppercase">Estímulo</p>
+                                                  <p className="text-[10px] font-bold text-white">{ex.workDur}s</p>
+                                                </div>
+                                              )}
+                                              {ex.recDur && (
+                                                <div>
+                                                  <p className="text-[7px] font-black text-slate-600 uppercase">Recup.</p>
+                                                  <p className="text-[10px] font-bold text-slate-400">{ex.recDur}s</p>
+                                                </div>
+                                              )}
+                                              {ex.duration && !ex.workDur && (
+                                                <div>
+                                                  <p className="text-[7px] font-black text-slate-600 uppercase">Duração</p>
+                                                  <p className="text-[10px] font-bold text-white">{ex.duration} min</p>
+                                                </div>
+                                              )}
+                                              {ex.totalKm && Number(ex.totalKm) > 0 && (
+                                                <div className="col-span-full mt-1 p-2 bg-slate-950 rounded-lg flex gap-4 border border-slate-800/50">
+                                                  <div><p className="text-[7px] font-black text-slate-600 uppercase italic">Vol. Previsto</p><p className="text-[10px] font-bold text-emerald-400">{ex.totalKm} km</p></div>
+                                                  {ex.totalTime && <div><p className="text-[7px] font-black text-slate-600 uppercase italic">Tempo</p><p className="text-[10px] font-bold text-cyan-400">{ex.totalTime} min</p></div>}
+                                                </div>
+                                              )}
+                                              {ex.notes && (
+                                                <div className="col-span-full">
+                                                  <p className="text-[7px] font-black text-slate-600 uppercase">Obs</p>
+                                                  <p className="text-[10px] text-slate-400 italic leading-tight">{ex.notes}</p>
+                                                </div>
+                                              )}
                                             </div>
                                           </div>
                                         ))}
@@ -654,38 +816,86 @@ function Input({ label, type, value, onChange }: { label: string, type: string, 
 
 function RPESelector({ value, onChange, label = 'Nível de Esforço (6-20)', labels = BORG_RPE_LABELS }: { value: number, onChange: (val: number) => void, label?: string, labels?: Record<number, string> }) {
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between"><label className="text-[10px] font-black text-slate-500 uppercase italic">{label}</label><span className="text-[10px] font-black text-blue-400">{value}/20</span></div>
-      <input type="range" min="6" max="20" value={value} onChange={e => onChange(parseInt(e.target.value))} className="w-full h-2 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-blue-500" />
-      <div className="p-4 bg-slate-900 rounded-xl text-center text-[11px] font-black text-white uppercase italic">{labels[value]}</div>
+    <div className="space-y-4 p-6 bg-slate-900/60 rounded-[2rem] border border-slate-800 shadow-xl relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-slate-500 opacity-5 rounded-bl-full blur-2xl"></div>
+      
+      <div className="flex justify-between items-center mb-2 relative z-10">
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight w-1/2">{label}</label>
+        <motion.div 
+          key={value}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="w-14 h-14 rounded-2xl bg-slate-800 flex flex-col items-center justify-center shadow-lg border-2 border-slate-600"
+        >
+          <span className="text-xl font-black text-white">{value}</span>
+        </motion.div>
+      </div>
+      
+      <div className="relative pt-4 pb-2 z-10">
+         <input 
+           type="range" min="6" max="20" value={value} 
+           onChange={e => onChange(parseInt(e.target.value))} 
+           className="w-full h-3 bg-slate-950 rounded-full appearance-none cursor-pointer outline-none relative z-10 accent-slate-400" 
+         />
+      </div>
+      <div className="p-4 bg-slate-950/50 rounded-xl text-center border border-slate-800/50">
+         <span className="text-[13px] font-black text-slate-300 uppercase tracking-wider italic">{labels[value]}</span>
+      </div>
     </div>
   );
 }
 
 function WellnessSlider({ label, value, onChange, labels }: { label: string, value: number, onChange: (val: number) => void, labels: string[] }) {
   return (
-    <div className="space-y-3">
-      <div className="flex justify-between"><label className="text-[10px] font-black text-slate-500 uppercase italic">{label}</label><span className="text-[10px] font-black text-emerald-400">{value}/5</span></div>
-      <input type="range" min="1" max="5" value={value} onChange={e => onChange(parseInt(e.target.value))} className="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
-      <div className="p-2 bg-slate-900/50 rounded-lg text-center text-[9px] font-black text-white uppercase italic">{labels[value-1]}</div>
+    <div className="space-y-4 p-5 bg-slate-900/60 rounded-[1.5rem] border border-slate-800 relative overflow-hidden">
+      <div className="flex justify-between items-center mb-1">
+        <label className="text-[11px] font-black text-white uppercase tracking-widest">{label}</label>
+        <span className="text-[10px] font-black text-slate-300 px-2 py-0.5 bg-slate-800 rounded border border-slate-700">{value} / 5</span>
+      </div>
+      <div className="flex gap-2">
+        {[1, 2, 3, 4, 5].map((v) => {
+          const isActive = value === v;
+          return (
+            <button
+              key={v}
+              type="button"
+              onClick={() => onChange(v)}
+              className={`flex-1 h-12 flex flex-col items-center justify-center rounded-xl transition-all duration-300 border-2 ${
+                isActive 
+                  ? 'bg-slate-600 scale-110 shadow-lg z-10 text-white border-slate-400' 
+                  : 'bg-slate-950 border-transparent text-slate-600 hover:bg-slate-800 hover:text-slate-400'
+              }`}
+            >
+              <span className={`font-black ${isActive ? 'text-sm' : 'text-xs'}`}>{v}</span>
+            </button>
+          )
+        })}
+      </div>
+      <div className="text-center">
+        <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+          {labels[value-1]}
+        </span>
+      </div>
     </div>
   );
 }
 
 function BinaryToggle({ active, onToggle }: { active: boolean, onToggle: (val: boolean) => void }) {
   return (
-    <div className="flex gap-1">
-      <button type="button" onClick={() => onToggle(true)} className={`px-3 py-1 rounded text-[9px] font-black uppercase ${active ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500'}`}>Sim</button>
-      <button type="button" onClick={() => onToggle(false)} className={`px-3 py-1 rounded text-[9px] font-black uppercase ${!active ? 'bg-rose-500 text-white' : 'bg-slate-800 text-slate-500'}`}>Não</button>
+    <div className="flex gap-1 bg-slate-950 p-1.5 rounded-[1rem] border border-slate-800">
+      <button type="button" onClick={() => onToggle(true)} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${active ? 'bg-slate-700 text-white shadow-md scale-105' : 'text-slate-500 hover:bg-slate-900'}`}>Sim</button>
+      <button type="button" onClick={() => onToggle(false)} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 ${!active ? 'bg-slate-700 text-white shadow-md scale-105' : 'text-slate-500 hover:bg-slate-900'}`}>Não</button>
     </div>
   );
 }
 
 function ToggleItem({ label, active, onToggle }: { label: string, active: boolean, onToggle: (val: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between p-4 bg-slate-900/50 border border-slate-700 rounded-xl">
-      <span className="text-[9px] font-bold text-slate-400 uppercase pr-4">{label}</span>
-      <BinaryToggle active={active} onToggle={onToggle} />
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-950/50 border border-slate-800/80 rounded-2xl gap-4 hover:border-blue-500/30 transition-colors">
+      <span className="text-[11px] font-bold text-slate-300 uppercase leading-relaxed">{label}</span>
+      <div className="flex-shrink-0 self-start sm:self-auto">
+        <BinaryToggle active={active} onToggle={onToggle} />
+      </div>
     </div>
   );
 }
