@@ -34,15 +34,19 @@ import {
   Users,
   Phone,
   ChevronRight,
-  Check
+  Check,
+  BrainCircuit
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis, getAthletes, saveTrainingPrescription, approveRegistration, getAthletePrescriptions, getAllPrescriptions, deleteRegistrationRequest, updateProfilePhoto } from '../actions';
+import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis, getAthletes, saveTrainingPrescription, approveRegistration, getAthletePrescriptions, getAllPrescriptions, deleteRegistrationRequest, updateProfilePhoto, saveAssessment } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
 import { Session, WellnessEntry } from '@/lib/db';
 import { calculateACWR, calculateMonotony, calculateRiskScore } from '@/lib/periodization-engine';
 import PeriodizationWizard from '../components/PeriodizationWizard';
+import EvolutionModule from '../components/EvolutionModule';
+import ForecastModule from '../components/ForecastModule';
+import WhatIfSimulator from '../components/WhatIfSimulator';
 import { 
   XAxis, 
   YAxis, 
@@ -84,13 +88,28 @@ export default function CoachPage() {
   const [wellness, setWellness] = useState<WellnessEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'periodization' | 'prescription' | 'requests' | 'athletes' | 'teams' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'assessment_anamnesis'>('menu');
+  const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'evolution' | 'forecast' | 'periodization' | 'prescription' | 'requests' | 'athletes' | 'teams' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'assessment_anamnesis'>('menu');
   const [requests, setRequests] = useState<any[]>([]);
   const [athletes, setAthletes] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
   const [showWizard, setShowWizard] = useState(false);
   const [wizardAthlete, setWizardAthlete] = useState<any>(null);
+  const [showWhatIf, setShowWhatIf] = useState(false);
+  const [whatIfAthlete, setWhatIfAthlete] = useState<any>(null);
+
+  const handleAssessmentSave = async (athleteId: string, name: string, type: string, data: any) => {
+    const res = await saveAssessment({
+      athlete_id: athleteId,
+      athlete_name: name,
+      type,
+      date: new Date().toISOString(),
+      data
+    });
+    if (!res.success) {
+      alert('Erro ao salvar avaliação: ' + res.error);
+    }
+  };
 
   useEffect(() => {
     async function initAuth() {
@@ -185,27 +204,24 @@ export default function CoachPage() {
       const athleteSessions = sessions.filter(s => s.athlete_name === name);
       const athleteWellness = wellness.filter(w => w.athlete_name === name);
       
-      // ACWR Logic
+      // Use the scientific engine for ACWR
+      const acwrResult = calculateACWR(athleteSessions);
+      const acwr = acwrResult.ratio;
+      
+      // Latest Wellness
+      const latestWellnessEntry = athleteWellness[0];
+      const wellnessScore = latestWellnessEntry?.score ?? 75;
+      const avgWellness = athleteWellness.length > 0 
+        ? athleteWellness.slice(0, 7).reduce((acc, w) => acc + w.score, 0) / Math.min(athleteWellness.length, 7)
+        : 75;
+      
+      // Performance (Avg RPE)
       const acuteSessions = athleteSessions.filter(s => differenceInDays(today, parseISO(s.date)) <= 7);
-      const chronicSessions = athleteSessions.filter(s => differenceInDays(today, parseISO(s.date)) <= 28);
-      
-      const acuteLoad = acuteSessions.reduce((acc, curr) => acc + curr.load, 0);
-      const chronicLoad = chronicSessions.reduce((acc, curr) => acc + curr.load, 0);
-      
-      const acuteAvg = acuteLoad / 7; // Average daily load in last 7 days
-      const chronicAvg = chronicLoad / 28; // Average daily load in last 28 days
-      
-      const acwr = chronicAvg > 0 ? (acuteAvg / chronicAvg) : 0;
-      
-      // Performance (Avg RPE or Max Load in acute period)
       const avgRpe = acuteSessions.length > 0 
         ? acuteSessions.reduce((acc, curr) => acc + curr.rpe, 0) / acuteSessions.length 
         : 0;
       
-      // Latest Wellness
-      const latestWellness = athleteWellness[0]?.score ?? 75;
-      
-      // External Load Totals (Acute)
+      const acuteLoad = acuteSessions.reduce((acc, curr) => acc + curr.load, 0);
       const totalDistance = acuteSessions.reduce((acc, curr) => acc + (curr.distance || 0), 0);
       const totalVolume = acuteSessions.reduce((acc, curr) => acc + (curr.volume || 0), 0);
 
@@ -213,10 +229,12 @@ export default function CoachPage() {
         name,
         acwr: Number(acwr.toFixed(2)),
         performance: Number(avgRpe.toFixed(1)),
-        wellness: latestWellness,
+        wellness: wellnessScore,
+        avgWellness,
         distance: totalDistance,
         volume: totalVolume,
-        load: acuteLoad
+        load: acuteLoad,
+        sessions: athleteSessions
       };
     });
   }, [sessions, wellness]);
@@ -224,43 +242,33 @@ export default function CoachPage() {
   // Risk Alerts Analysis (Refined with ACWR)
   const riskAlerts = useMemo(() => {
     return athleteMetrics.map(metric => {
-      let riskLevel: 'high' | 'medium' | 'low' = 'low';
-      let message = 'Estável';
-      let action = 'Manter plano';
+      // Use the advanced risk engine
+      const monotony = calculateMonotony(metric.sessions);
+      const strain = metric.load * monotony; // Simple estimation
+      const report = calculateRiskScore(
+        metric.acwr,
+        monotony,
+        strain,
+        metric.performance * 2, // Map 1-10 PSE to something close to 6-20 if needed, or just use 1-10 as we updated the engine
+        (metric.wellness / 20), // Map 0-100 to 1-5
+        false // performanceDropFlag
+      );
 
-      const athleteSessions = sessions.filter(s => s.athlete_name === metric.name).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      const consecutiveHighRpe = athleteSessions.slice(0, 3).every(s => s.rpe >= 8);
-
-      if (metric.acwr > 1.5) {
-        riskLevel = 'high';
-        message = 'ACWR EXPLOSIVO';
-        action = 'Redução imediata de 40% no volume';
-      } else if (consecutiveHighRpe) {
-        riskLevel = 'high';
-        message = 'FADIGA AGUDA';
-        action = 'Inserir dia de recuperação total';
-      } else if (metric.acwr > 1.3 || metric.wellness < 50) {
-        riskLevel = 'medium';
-        message = 'ATENÇÃO CARGA';
-        action = 'Monitorar próxima sessão';
-      } else if (metric.acwr < 0.8 && metric.load > 0) {
-        riskLevel = 'medium';
-        message = 'SUB-ESTÍMULO';
-        action = 'Aumentar carga progressivamente';
-      }
+      if (report.score < 40) return null;
 
       return { 
         id: metric.name, 
         athlete_name: metric.name, 
-        riskLevel, 
-        message, 
-        action,
+        riskLevel: report.classification === 'Crítico' || report.classification === 'Alto' ? 'high' : 'medium', 
+        message: report.classification.toUpperCase(), 
+        action: report.suggestions[0] || 'Ajustar carga',
         wellnessScore: metric.wellness,
         load: metric.load,
-        acwr: metric.acwr
+        acwr: metric.acwr,
+        alerts: report.alerts
       };
-    }).filter(a => a.riskLevel !== 'low').slice(0, 3);
-  }, [athleteMetrics, sessions]);
+    }).filter(a => a !== null).slice(0, 5);
+  }, [athleteMetrics]);
 
   return (
     <div className="min-h-screen bg-[#0F172A] text-slate-200 font-sans pb-12">
@@ -365,7 +373,18 @@ export default function CoachPage() {
               icon={<Users className="w-8 h-8 text-emerald-400" />} 
               onClick={() => setActiveModule('teams')} 
             />
-
+            <MenuButton 
+              title="Prontuário" 
+              subtitle="Evolução e Comparativos" 
+              icon={<TrendingUp className="w-8 h-8 text-blue-500" />} 
+              onClick={() => setActiveModule('evolution')} 
+            />
+            <MenuButton 
+              title="Previsão (IA)" 
+              subtitle="Forecast e Metas" 
+              icon={<BrainCircuit className="w-8 h-8 text-indigo-400" />} 
+              onClick={() => setActiveModule('forecast')} 
+            />
           </div>
 
         ) : activeModule === 'assessment' ? (
@@ -453,19 +472,34 @@ export default function CoachPage() {
                              {alert.message}
                            </span>
                         </div>
-                        <button 
-                           onClick={() => {
-                             const ath = athletes.find(a => a.full_name === alert.athlete_name);
-                             if (ath) {
-                               setWizardAthlete(ath);
-                               setShowWizard(true);
-                             }
-                           }}
-                           className="p-2 bg-blue-600/10 hover:bg-blue-600 text-blue-500 hover:text-white border border-blue-500/20 rounded-lg transition-all"
-                           title="Ajustar Periodização"
-                        >
-                           <Target className="w-3 h-3" />
-                        </button>
+                        <div className="flex gap-2">
+                           <button 
+                              onClick={() => {
+                                const ath = athletes.find(a => a.full_name === alert.athlete_name);
+                                if (ath) {
+                                  setWhatIfAthlete(ath);
+                                  setShowWhatIf(true);
+                                }
+                              }}
+                              className="p-2 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-400 hover:text-white border border-indigo-500/20 rounded-lg transition-all"
+                              title="Simular Cenário"
+                           >
+                              <BrainCircuit className="w-3 h-3" />
+                           </button>
+                           <button 
+                              onClick={() => {
+                                const ath = athletes.find(a => a.full_name === alert.athlete_name);
+                                if (ath) {
+                                  setWizardAthlete(ath);
+                                  setShowWizard(true);
+                                }
+                              }}
+                              className="p-2 bg-blue-600/10 hover:bg-blue-600 text-blue-500 hover:text-white border border-blue-500/20 rounded-lg transition-all"
+                              title="Ajustar Periodização"
+                           >
+                              <Target className="w-3 h-3" />
+                           </button>
+                        </div>
                      </div>
                      <div className="mb-4">
                         <p className="text-[9px] font-black text-slate-500 uppercase mb-1">Ação Sugerida:</p>
@@ -698,7 +732,7 @@ export default function CoachPage() {
           <div className="col-span-12 grid grid-cols-1 md:grid-cols-2 gap-8">
              <div className="bento-card bg-slate-800/20 border-slate-700">
                 <div className="flex items-center justify-between mb-8">
-                   <p className="label-caps italic">HistÃ Â³rico Recente</p>
+                   <p className="label-caps italic">Histórico Recente</p>
                    <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-500" />
                       <input 
@@ -792,7 +826,10 @@ export default function CoachPage() {
               Voltar para Avaliações
             </button>
             
-            <AnthropometricAssessmentModule />
+            <AnthropometricAssessmentModule 
+              athletes={athletes} 
+              onSave={(id, name, data) => handleAssessmentSave(id, name, 'assessment_anthropometric', data)} 
+            />
           </div>
         ) : activeModule === 'assessment_endurance' ? (
           <div className="space-y-8">
@@ -816,7 +853,10 @@ export default function CoachPage() {
               Voltar para Avaliações
             </button>
             
-            <AgilityAssessmentModule />
+            <AgilityAssessmentModule 
+              athletes={athletes} 
+              onSave={(id, name, data) => handleAssessmentSave(id, name, 'assessment_agility', data)} 
+            />
           </div>
         ) : activeModule === 'assessment_flexibility' ? (
           <div className="space-y-8">
@@ -904,6 +944,10 @@ export default function CoachPage() {
             
             <TeamsModule />
           </div>
+        ) : activeModule === 'evolution' ? (
+          <EvolutionModule athletes={athletes} onBack={() => setActiveModule('menu')} />
+        ) : activeModule === 'forecast' ? (
+          <ForecastModule athletes={athletes} onBack={() => setActiveModule('menu')} />
         ) : (
           <div className="py-20 flex flex-col items-center justify-center text-center space-y-6">
             <div className="w-20 h-20 bg-slate-800 rounded-3xl flex items-center justify-center border border-slate-700">
@@ -955,6 +999,14 @@ export default function CoachPage() {
                   alert('Erro ao salvar: ' + result.error);
                 }
               }}
+            />
+          )}
+          {showWhatIf && whatIfAthlete && (
+            <WhatIfSimulator
+              athlete={whatIfAthlete}
+              currentSessions={sessions.filter(s => s.athlete_id === whatIfAthlete.id)}
+              currentWellness={wellness.filter(w => w.athlete_id === whatIfAthlete.id)}
+              onClose={() => setShowWhatIf(false)}
             />
           )}
         </AnimatePresence>
@@ -1519,11 +1571,13 @@ function PowerClassCard({ label, value, icon }: { label: string, value: string, 
   );
 }
 
-function AnthropometricAssessmentModule() {
+function AnthropometricAssessmentModule({ athletes, onSave }: { athletes?: any[], onSave?: (athleteId: string, name: string, data: any) => void }) {
   const [weight, setWeight] = useState<string>('');
   const [height, setHeight] = useState<string>('');
   const [age, setAge] = useState<string>('');
   const [gender, setGender] = useState<'male' | 'female'>('male');
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
   
   // Perimeters
   const [waist, setWaist] = useState<string>('');
@@ -1821,6 +1875,41 @@ function AnthropometricAssessmentModule() {
                   <RankingRow label="Excesso" range=">25% (M) | >32% (F)" active={results?.bodyFat ? results.bodyFat > 25 : false} />
                </div>
            </div>
+           
+           {athletes && onSave && (
+              <div className="bento-card bg-slate-900 border-slate-800 p-8 space-y-4">
+                <div className="space-y-1">
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Vincular a Atleta</span>
+                  <select
+                    value={selectedAthleteId}
+                    onChange={(e) => setSelectedAthleteId(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm outline-none focus:ring-1 focus:ring-rose-500 transition-all"
+                  >
+                    <option value="">Selecione o Atleta</option>
+                    {athletes.map(a => <option key={a.id} value={a.id}>{a.full_name}</option>)}
+                  </select>
+                </div>
+                <button 
+                  disabled={!selectedAthleteId || !weight || !height || isSaving}
+                  onClick={async () => {
+                    if (!selectedAthleteId || !weight || !height) return;
+                    setIsSaving(true);
+                    const ath = athletes.find(a => a.id === selectedAthleteId);
+                    await onSave(selectedAthleteId, ath?.full_name, { 
+                      weight: parseFloat(weight), 
+                      height: parseFloat(height), 
+                      bodyFat: results?.bodyFat,
+                      imc: results?.imc
+                    });
+                    setIsSaving(false);
+                    alert('Avaliação antropométrica salva com sucesso!');
+                  }}
+                  className="w-full bg-rose-600 hover:bg-rose-500 text-white font-black uppercase text-[10px] py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                  {isSaving ? 'Salvando...' : 'Salvar Avaliação'}
+                </button>
+              </div>
+           )}
         </div>
       </div>
     </div>
@@ -2157,9 +2246,11 @@ function EnduranceZone({ label, pct, speed }: { label: string, pct: string, spee
   );
 }
 
-function AgilityAssessmentModule() {
+function AgilityAssessmentModule({ athletes, onSave }: { athletes?: any[], onSave?: (athleteId: string, name: string, data: any) => void }) {
   const [testType, setTestType] = useState<'t-test' | 'illinois' | 'pro-agility' | 'reactive'>('t-test');
   const [time, setTime] = useState<string>('');
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
   
   // Reactive Timer State
   const [isWaiting, setIsWaiting] = useState(false);
@@ -2262,6 +2353,36 @@ function AgilityAssessmentModule() {
                     </div>
                   </div>
                </div>
+             )}
+             
+             {athletes && onSave && (
+                <div className="pt-6 border-t border-slate-800 space-y-4">
+                  <div className="space-y-1">
+                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Vincular a Atleta</span>
+                    <select
+                      value={selectedAthleteId}
+                      onChange={(e) => setSelectedAthleteId(e.target.value)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm outline-none focus:ring-1 focus:ring-cyan-500 transition-all"
+                    >
+                      <option value="">Selecione o Atleta</option>
+                      {athletes.map(a => <option key={a.id} value={a.id}>{a.full_name}</option>)}
+                    </select>
+                  </div>
+                  <button 
+                    disabled={!selectedAthleteId || !time || isSaving}
+                    onClick={async () => {
+                      if (!selectedAthleteId || !time) return;
+                      setIsSaving(true);
+                      const ath = athletes.find(a => a.id === selectedAthleteId);
+                      await onSave(selectedAthleteId, ath?.full_name, { time: parseFloat(time), protocol: testType });
+                      setIsSaving(false);
+                      alert('Avaliação de agilidade salva com sucesso!');
+                    }}
+                    className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-black uppercase text-[10px] py-3 rounded-xl transition-all flex items-center justify-center gap-2"
+                  >
+                    {isSaving ? 'Salvando...' : 'Salvar Avaliação'}
+                  </button>
+                </div>
              )}
           </div>
         </div>

@@ -60,7 +60,7 @@ export default function Home() {
 
       // Buscar o papel do usuário via Server Action (bypassing RLS client-side)
       const role = await getUserRole(data.user.id);
-      console.log('Role detectado:', role);
+
 
       if (role === 'admin') {
         window.location.href = '/admin';

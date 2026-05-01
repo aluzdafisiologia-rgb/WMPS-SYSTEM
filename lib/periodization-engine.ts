@@ -110,10 +110,11 @@ export function calculateACWR(sessions: Session[]): { ratio: number; status: 'lo
   // Sort sessions by date
   const sortedSessions = [...sessions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   
-  let acuteEWMA = 0;
-  let chronicEWMA = 0;
+  let acuteEWMA = sortedSessions.length > 0 ? (sortedSessions[0].load || (sortedSessions[0].rpe * sortedSessions[0].duration) || 0) : 0;
+  let chronicEWMA = acuteEWMA;
 
-  sortedSessions.forEach(session => {
+  sortedSessions.forEach((session, index) => {
+    if (index === 0) return; // Skip first as it's the baseline
     const load = session.load || (session.rpe * session.duration) || 0;
     acuteEWMA = calculateEWMA(load, acuteEWMA, 7);
     chronicEWMA = calculateEWMA(load, chronicEWMA, 28);
@@ -193,8 +194,8 @@ export function calculateRiskScore(
   let strainDanger = (strain / 8000) * 100; 
   strainDanger = Math.min(100, Math.max(0, strainDanger));
 
-  // 4. Fatigue (15% weight) -> High RPE (17-20) + Bad Wellness (1-2)
-  const rpeFactor = ((Math.max(6, Math.min(20, avgRpe)) - 6) / 14) * 100;
+  // 4. Fatigue (15% weight) -> High RPE (8-10) + Bad Wellness (1-2)
+  const rpeFactor = ((Math.max(1, Math.min(10, avgRpe)) - 1) / 9) * 100;
   const wellnessFactor = ((5 - Math.max(1, Math.min(5, avgWellness))) / 4) * 100;
   let fatigueDanger = (rpeFactor * 0.5) + (wellnessFactor * 0.5);
   fatigueDanger = Math.min(100, Math.max(0, fatigueDanger));
