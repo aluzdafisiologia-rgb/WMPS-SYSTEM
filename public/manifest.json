@@ -1,0 +1,17 @@
+{
+  "name": "WMPS - William Moreira Performance System",
+  "short_name": "WMPS",
+  "description": "Sistema avançado de monitoramento e análise de performance esportiva.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
