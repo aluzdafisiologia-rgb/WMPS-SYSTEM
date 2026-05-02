@@ -68,7 +68,9 @@ export default function AdminDashboard() {
     setActionLoading(`approve_${req.id}`);
     const res = await approveRegistration(req);
     if (res.success) {
-      alert(`Cadastro aprovado!\nSenha temporária do usuário: ${res.tempPassword}`);
+      const text = `Olá, ${req.full_name}!\nÉ com grande alegria que te recebemos no William Moreira Performance System (WMPS).\nSeja muito bem-vindo!\nA partir de hoje, iniciamos uma nova jornada focada em evolução, performance e resultados.\n\nLogin (E-mail): ${req.email}\nSenha provisória: ${res.tempPassword}`;
+      navigator.clipboard.writeText(text);
+      alert(`Cadastro aprovado!\nA mensagem de boas-vindas foi copiada para sua área de transferência.`);
       await loadData();
     } else {
       alert('Erro ao aprovar: ' + res.error);

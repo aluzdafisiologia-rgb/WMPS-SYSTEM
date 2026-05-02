@@ -3907,7 +3907,7 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
 
   const handleCopyCredentials = () => {
     if (!credentials) return;
-    const text = `🏋️‍♂️ WMPS — William Moreira Performance System\n\nOlá, ${credentials.fullName}!\n\nSeu acesso foi aprovado. Utilize as credenciais abaixo para entrar na plataforma:\n\n📧 Login (E-mail): ${credentials.email}\n🔑 Senha provisória: ${credentials.password}\n\n⚠️ IMPORTANTE: Ao fazer o primeiro acesso, você será solicitado(a) a criar uma nova senha pessoal.\n\nAcesse em: ${typeof window !== 'undefined' ? window.location.origin : ''}\n\nBem-vindo(a) à equipe! 💪`;
+    const text = `Olá, ${credentials.fullName}!\nÉ com grande alegria que te recebemos no William Moreira Performance System (WMPS).\nSeja muito bem-vindo!\nA partir de hoje, iniciamos uma nova jornada focada em evolução, performance e resultados.\n\nLogin (E-mail): ${credentials.email}\nSenha provisória: ${credentials.password}`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
@@ -3957,10 +3957,10 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
             {/* Welcome Message Preview */}
             <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700 text-[10px] text-slate-400 leading-relaxed font-medium space-y-1">
               <p className="font-black text-slate-300 uppercase text-[9px] tracking-widest mb-2">Prévia da mensagem de boas-vindas:</p>
-              <p>🏋️‍♂️ <strong className="text-white">WMPS — William Moreira Performance System</strong></p>
               <p>Olá, <strong className="text-white">{credentials.fullName}</strong>!</p>
-              <p>Seu acesso foi aprovado. Utilize as credenciais acima para entrar na plataforma.</p>
-              <p className="text-yellow-500">⚠️ No primeiro acesso, você criará uma nova senha pessoal.</p>
+              <p>É com grande alegria que te recebemos no William Moreira Performance System (WMPS).</p>
+              <p>Seja muito bem-vindo!</p>
+              <p>A partir de hoje, iniciamos uma nova jornada focada em evolução, performance e resultados.</p>
             </div>
 
             {/* Actions */}
