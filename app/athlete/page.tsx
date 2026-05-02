@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Clock, Zap, CheckCircle2, Save, FileText, User, Dumbbell, Activity, Timer, MoveHorizontal, Footprints, Camera, Edit2, Check, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { logWorkout, logWellness, logAnamnesis, getUserRole, getActivePrescription, completeTraining, updateProfilePhoto } from '../actions';
+import { logWorkout, logWellness, logAnamnesis, getUserRole, getActivePrescription, completeTraining, updateProfilePhoto, getAthleteProfile } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
 import EvolutionModule from '../components/EvolutionModule';
 
@@ -111,11 +111,7 @@ export default function AthletePage() {
       const role = await getUserRole(session.user.id);
       setRole(role);
       
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+      const profileData = await getAthleteProfile(session.user.id);
       
       if (profileData) {
         setProfile(profileData);

@@ -531,3 +531,9 @@ export async function deleteRegistrationRequest(requestId: string) {
   revalidatePath('/coach');
   return { success: true };
 }
+
+export async function getAthleteProfile(userId: string) {
+  if (!supabase) return null;
+  const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  return data;
+}
