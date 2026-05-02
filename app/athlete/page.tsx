@@ -2,11 +2,12 @@
 
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Clock, Zap, CheckCircle2, Save, FileText, User, Dumbbell, Activity, Timer, MoveHorizontal, Footprints, Camera, Edit2, Check } from 'lucide-react';
+import { ArrowLeft, Clock, Zap, CheckCircle2, Save, FileText, User, Dumbbell, Activity, Timer, MoveHorizontal, Footprints, Camera, Edit2, Check, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { logWorkout, logWellness, logAnamnesis, getUserRole, getActivePrescription, completeTraining, updateProfilePhoto } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
+import EvolutionModule from '../components/EvolutionModule';
 
 const WELLNESS_LABELS = {
   sleep: ['Muito ruim', 'Ruim', 'Médio', 'Bom', 'Muito bom'],
@@ -52,7 +53,7 @@ const BORG_RPE_LABELS: Record<number, string> = {
 };
 
 export default function AthletePage() {
-  const [activeTab, setActiveTab] = useState<'workout' | 'wellness' | 'anamnesis' | 'training' | null>(null);
+  const [activeTab, setActiveTab] = useState<'workout' | 'wellness' | 'anamnesis' | 'training' | 'evolution' | null>(null);
   const [formData, setFormData] = useState({
     athleteName: '',
     duration: '',
@@ -96,7 +97,10 @@ export default function AthletePage() {
 
   React.useEffect(() => {
     async function checkAuth() {
-      if (!supabase) return;
+      if (!supabase) {
+        window.location.href = '/';
+        return;
+      }
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         window.location.href = '/';
@@ -398,12 +402,24 @@ export default function AthletePage() {
                 />
               </div>
             )}
+
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+              <MenuCard 
+                title="Metas & Evolução" 
+                sub="Longitudinal de Performance" 
+                icon={<TrendingUp className="w-10 h-10 text-blue-400" />} 
+                onClick={() => setActiveTab('evolution')} 
+                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-blue-500/30"
+                accentColor="from-blue-500/20 to-transparent"
+              />
+            </div>
           </div>
         ) : (
           <div className="space-y-6">
             <div className="bento-card bg-slate-800 border-slate-700 shadow-xl overflow-hidden p-0">
               <div className={`px-8 py-4 ${activeTab === 'workout' ? 'bg-blue-600' : activeTab === 'wellness' ? 'bg-emerald-600' : activeTab === 'training' ? 'bg-yellow-600' : 'bg-purple-600'}`}>
-                <h2 className="text-sm font-black text-white uppercase italic">{activeTab === 'workout' ? 'Pós-Treino' : activeTab === 'wellness' ? 'Pré-Treino' : activeTab === 'training' ? 'Prescrição do Treinador' : 'Anamnese'}</h2>
+                <h2 className="text-sm font-black text-white uppercase italic">{activeTab === 'workout' ? 'Pós-Treino' : activeTab === 'wellness' ? 'Pré-Treino' : activeTab === 'training' ? 'Prescrição do Treinador' : activeTab === 'evolution' ? 'Evolução' : 'Anamnese'}</h2>
               </div>
               
               <div className="p-8 space-y-8">
@@ -759,6 +775,13 @@ export default function AthletePage() {
                     </div>
                   );
                 })()}
+                {activeTab === 'evolution' && user && (
+                  <EvolutionModule 
+                    athletes={profile ? [profile] : []} 
+                    initialAthleteId={user.id} 
+                    hideSelector={true} 
+                  />
+                )}
               </div>
             </div>
             <motion.button

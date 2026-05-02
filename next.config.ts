@@ -25,7 +25,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  output: 'standalone',
   transpilePackages: ['motion'],
   async headers() {
     return [
@@ -54,6 +53,15 @@ const nextConfig: NextConfig = {
           }
         ],
       },
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/json; charset=utf-8',
+          }
+        ],
+      }
     ];
   },
   webpack: (config, {dev}) => {
@@ -66,4 +74,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withPWA(nextConfig);
+export default nextConfig;

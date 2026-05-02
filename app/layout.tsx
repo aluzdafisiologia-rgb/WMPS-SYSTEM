@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: 'WMPS - William Moreira Performance System',
   description: 'Monitoramento de carga interna de treino para atletas e treinadores.',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export const viewport = {
@@ -24,6 +27,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="pt-BR">
       <head>
+        <meta charSet="utf-8" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#10b981" />
         <link rel="apple-touch-icon" href="/icon-512.png" />

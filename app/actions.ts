@@ -9,7 +9,7 @@ import { addSession, addWellness, getDb, Session, WellnessEntry, saveProfile } f
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = (supabaseUrl && supabaseServiceKey) 
+const supabase = (typeof supabaseUrl === 'string' && supabaseUrl.startsWith('http') && typeof supabaseServiceKey === 'string') 
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
 
@@ -153,8 +153,12 @@ export async function saveAssessment(payload: { athlete_id: string, athlete_name
     const { data, error } = await supabase.from('avaliacoes').insert([payload]);
     if (error) {
       if (error.code === '42P01') {
-        console.warn('Tabela avaliacoes não existe. Ignore por enquanto ou rode o SQL.');
-        return { success: false, error: 'Tabela avaliacoes não existe no Supabase. Por favor, rode o script SQL fornecido.' };
+        console.warn('Tabela avaliacoes não existe. Execute o SQL em sql/fix_avaliacoes_rls.sql no Supabase Dashboard.');
+        return { success: false, error: 'Tabela avaliacoes não configurada. Execute sql/fix_avaliacoes_rls.sql no Supabase Dashboard.' };
+      }
+      if (error.code === '42501') {
+        console.warn('Permissão negada para avaliacoes. Execute o SQL em sql/fix_avaliacoes_rls.sql no Supabase Dashboard para corrigir as políticas RLS.');
+        return { success: false, error: 'Sem permissão na tabela avaliacoes. Execute sql/fix_avaliacoes_rls.sql no Supabase Dashboard.' };
       }
       throw error;
     }
@@ -174,7 +178,8 @@ export async function getAssessments(athleteId?: string) {
     
     const { data, error } = await query;
     if (error) {
-      if (error.code === '42P01') return []; // table doesn't exist
+      // Graceful fallback for table permission/existence issues
+      if (error.code === '42P01' || error.code === '42501') return [];
       throw error;
     }
     return data || [];
@@ -184,20 +189,24 @@ export async function getAssessments(athleteId?: string) {
   }
 }
 
-export async function getSessions() {
+export async function getSessions(athleteId?: string) {
   try {
     if (!supabase) return [];
-    const { data } = await supabase.from('sessions').select('*').order('date', { ascending: false });
+    let query = supabase.from('sessions').select('*').order('date', { ascending: true });
+    if (athleteId) query = query.eq('athlete_id', athleteId);
+    const { data } = await query;
     return data || [];
   } catch (e) {
     return [];
   }
 }
 
-export async function getWellness() {
+export async function getWellness(athleteId?: string) {
   try {
     if (!supabase) return [];
-    const { data } = await supabase.from('wellness').select('*').order('date', { ascending: false });
+    let query = supabase.from('wellness').select('*').order('date', { ascending: true });
+    if (athleteId) query = query.eq('athlete_id', athleteId);
+    const { data } = await query;
     return data || [];
   } catch (e) {
     return [];
@@ -307,11 +316,15 @@ export async function getAthletes() {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, athlete_id, full_name, sport, photo_url, role, team_name, is_injured')
+      .select('id, athlete_id, full_name, sport, photo_url, role, team_name, birth_date, gender, weight, height')
       .eq('role', 'athlete')
       .order('full_name', { ascending: true });
 
-    if (error) throw error;
+    if (error) {
+      console.error('SUPABASE ERROR IN getAthletes:', error);
+      throw error;
+    }
+    console.log(`getAthletes: Found ${data?.length || 0} athletes`);
     return data || [];
   } catch (error) {
     console.error('Error getting athletes:', error);

@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = (supabaseUrl && supabaseServiceKey) 
+const supabase = (typeof supabaseUrl === 'string' && supabaseUrl.startsWith('http') && typeof supabaseServiceKey === 'string') 
   ? createClient(supabaseUrl, supabaseServiceKey)
   : null;
 

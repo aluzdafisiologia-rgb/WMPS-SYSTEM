@@ -338,7 +338,7 @@ export default function Home() {
                 <motion.div whileHover={{ scale: 1.02, borderColor: '#3b82f6' }} whileTap={{ scale: 0.98 }} className="bento-card h-[280px] flex flex-col justify-between group-hover:bg-slate-800/80 bg-slate-900/60 transition-all border-slate-800 p-8">
                   <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 border border-blue-500/20 group-hover:scale-110 transition-transform"><User className="w-7 h-7" /></div>
                   <div className="space-y-3">
-                    <h2 className="text-4xl font-black text-white uppercase italic">Ãrea Aluno</h2>
+                    <h2 className="text-4xl font-black text-white uppercase italic">Área Aluno</h2>
                     <p className="text-sm text-slate-400 font-medium leading-relaxed">Registrar treinamentos, intensidade e percepções de esforço diárias.</p>
                   </div>
                   <div className="flex items-center gap-3 text-blue-400 text-[10px] font-black uppercase tracking-widest"><span>Entrar agora</span><ChevronRight className="w-4 h-4" /></div>

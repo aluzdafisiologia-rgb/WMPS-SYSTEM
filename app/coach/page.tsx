@@ -88,7 +88,7 @@ export default function CoachPage() {
   const [wellness, setWellness] = useState<WellnessEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'evolution' | 'forecast' | 'periodization' | 'prescription' | 'requests' | 'athletes' | 'teams' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'assessment_anamnesis'>('menu');
+  const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'evolution' | 'forecast' | 'periodization' | 'prescription' | 'requests' | 'athletes' | 'teams' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'assessment_anamnesis' | 'force_manifestations'>('menu');
   const [requests, setRequests] = useState<any[]>([]);
   const [athletes, setAthletes] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -113,7 +113,10 @@ export default function CoachPage() {
 
   useEffect(() => {
     async function initAuth() {
-      if (!supabase) return;
+      if (!supabase) {
+        window.location.href = '/';
+        return;
+      }
       const { data: { user: u } } = await supabase.auth.getUser();
       if (u) {
         setUser(u);
@@ -374,10 +377,16 @@ export default function CoachPage() {
               onClick={() => setActiveModule('teams')} 
             />
             <MenuButton 
-              title="Prontuário" 
-              subtitle="Evolução e Comparativos" 
+              title="Central de Evolução" 
+              subtitle="Monitoramento Elite" 
               icon={<TrendingUp className="w-8 h-8 text-blue-500" />} 
               onClick={() => setActiveModule('evolution')} 
+            />
+            <MenuButton 
+              title="Manifestações de Força" 
+              subtitle="Zonas e Intensidades" 
+              icon={<Zap className="w-8 h-8 text-orange-500" />} 
+              onClick={() => setActiveModule('force_manifestations')} 
             />
             <MenuButton 
               title="Previsão (IA)" 
@@ -802,7 +811,10 @@ export default function CoachPage() {
               Voltar para Avaliações
             </button>
             
-            <StrengthAssessmentModule />
+            <StrengthAssessmentModule 
+               athletes={athletes} 
+               onSave={(id, name, data) => handleAssessmentSave(id, name, 'assessment_strength', data)} 
+             />
           </div>
         ) : activeModule === 'assessment_power' ? (
           <div className="space-y-8">
@@ -814,7 +826,10 @@ export default function CoachPage() {
               Voltar para Avaliações
             </button>
             
-            <PowerAssessmentModule />
+            <PowerAssessmentModule 
+               athletes={athletes} 
+               onSave={(id, name, data) => handleAssessmentSave(id, name, 'assessment_power', data)} 
+             />
           </div>
         ) : activeModule === 'assessment_anthropometric' ? (
           <div className="space-y-8">
@@ -841,7 +856,10 @@ export default function CoachPage() {
               Voltar para Avaliações
             </button>
             
-            <EnduranceAssessmentModule />
+            <EnduranceAssessmentModule 
+               athletes={athletes} 
+               onSave={(id, name, data) => handleAssessmentSave(id, name, 'assessment_endurance', data)} 
+             />
           </div>
         ) : activeModule === 'assessment_agility' ? (
           <div className="space-y-8">
@@ -868,7 +886,10 @@ export default function CoachPage() {
               Voltar para Avaliações
             </button>
             
-            <FlexibilityAssessmentModule />
+            <FlexibilityAssessmentModule 
+               athletes={athletes} 
+               onSave={(id, name, data) => handleAssessmentSave(id, name, 'assessment_flexibility', data)} 
+             />
           </div>
         ) : activeModule === 'assessment_anamnesis' ? (
           <div className="space-y-8">
@@ -948,6 +969,8 @@ export default function CoachPage() {
           <EvolutionModule athletes={athletes} onBack={() => setActiveModule('menu')} />
         ) : activeModule === 'forecast' ? (
           <ForecastModule athletes={athletes} onBack={() => setActiveModule('menu')} />
+        ) : activeModule === 'force_manifestations' ? (
+          <ForceManifestationsModule onBack={() => setActiveModule('menu')} />
         ) : (
           <div className="py-20 flex flex-col items-center justify-center text-center space-y-6">
             <div className="w-20 h-20 bg-slate-800 rounded-3xl flex items-center justify-center border border-slate-700">
@@ -1100,11 +1123,24 @@ function IntensityZone({ label, range, reps, color }: { label: string, range: st
   );
 }
 
-function StrengthAssessmentModule() {
+function StrengthAssessmentModule({ athletes, onSave }: { athletes?: any[], onSave?: (athleteId: string, name: string, data: any) => void }) {
   const [weight, setWeight] = useState<string>('');
   const [reps, setReps] = useState<string>('');
   const [formula, setFormula] = useState<'brzycki' | 'epley'>('brzycki');
   const [exercise, setExercise] = useState('Supino Reto');
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+  
+
+  useEffect(() => {
+    if (selectedAthleteId && athletes) {
+      const athlete = athletes.find(a => a.id === selectedAthleteId);
+      if (athlete) {
+        if (athlete.weight != null && !weight) setWeight(athlete.weight.toString());
+      }
+    }
+  }, [selectedAthleteId, athletes]);
+
 
   const oneRM = useMemo(() => {
     const w = parseFloat(weight);
@@ -1197,7 +1233,7 @@ function StrengthAssessmentModule() {
                 <span className="text-[10px] font-black text-blue-400 uppercase italic">Referência Científica</span>
               </div>
               <p className="text-[9px] text-blue-400/70 font-bold uppercase leading-relaxed">
-                As equaçÃµes de predição de 1RM sÃƒÃƒâ€šÂÂ£o recomendadas para até 10 repetições. Protocolos acimade 10 reps podem apresentar maior margem de erro.
+                As equações de predição de 1RM são recomendadas para até 10 repetições. Protocolos acimade 10 reps podem apresentar maior margem de erro.
               </p>
             </div>
           </div>
@@ -1269,168 +1305,269 @@ function StrengthAssessmentModule() {
           </div>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 border-t border-slate-800">
-             <IntensityZone label="Força Máxima" range="85-100%" reps="1-6" color="text-red-500" />
-             <IntensityZone label="Hipertrofia" range="70-85%" reps="6-12" color="text-yellow-500" />
-             <IntensityZone label="Resistência" range="50-70%" reps="15+" color="text-emerald-500" />
+             <IntensityZone label="Força Máxima (Recrutamento Neuromuscular)" range="85-100%" reps="1-6" color="text-red-500" />
+             <IntensityZone label="Tensão Mecânica (Hipertrofia Miofibrilar)" range="70-85%" reps="6-12" color="text-yellow-500" />
+             <IntensityZone label="Resistência Muscular Local (Anaeróbica)" range="50-70%" reps="15+" color="text-emerald-500" />
           </div>
         </div>
       </div>
+      {athletes && onSave && (
+        <div className="lg:col-span-12 mt-8">
+          <div className="bento-card bg-slate-900 border-slate-800 p-8 flex flex-col md:flex-row items-end gap-6">
+            <div className="flex-1 space-y-1">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Vincular a Atleta</span>
+              <select
+                value={selectedAthleteId}
+                onChange={(e) => setSelectedAthleteId(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm outline-none focus:ring-1 focus:ring-blue-500 transition-all h-[46px]"
+              >
+                <option value="">Selecione o Atleta</option>
+                {athletes.map(a => <option key={a.id} value={a.id}>{a.full_name}</option>)}
+              </select>
+            </div>
+            <button 
+              disabled={!selectedAthleteId || !weight || !reps || isSaving}
+              onClick={async () => {
+                setIsSaving(true);
+                const ath = athletes.find(a => a.id === selectedAthleteId);
+                await onSave(selectedAthleteId, ath?.full_name, { 
+                  exercise,
+                  weight: parseFloat(weight), 
+                  reps: parseFloat(reps), 
+                  oneRM,
+                  formula
+                });
+                setIsSaving(false);
+                alert('Avaliação de força salva com sucesso!');
+              }}
+              className="px-10 h-[46px] bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-[10px] rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20"
+            >
+              {isSaving ? 'Salvando...' : 'Salvar Avaliação'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function PowerAssessmentModule() {
-  const [testType, setTestType] = useState<'jump' | 'medball' | 'sprint' | 'horizontal_jump' | 'ssc_analytics' | 'rsi'>('jump');
+function PowerAssessmentModule({ athletes, onSave }: { athletes?: any[], onSave?: (athleteId: string, name: string, data: any) => void }) {
+  const [testType, setTestType] = useState<string>('jump');
   const [mass, setMass] = useState<string>('75');
-  const [value, setValue] = useState<string>(''); // generic value
+  const [value, setValue] = useState<string>('');
   const [sjHeight, setSjHeight] = useState<string>('');
   const [cmjHeight, setCmjHeight] = useState<string>('');
   const [contactTime, setContactTime] = useState<string>('');
   const [jumpHeightRsi, setJumpHeightRsi] = useState<string>('');
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const POWER_TESTS: Record<string, { title: string; subtitle: string; inputLabel?: string; unit: string; distance?: number; ballMass?: number; isSpecial?: boolean }> = {
+    jump: { title: 'Salto Vertical (MIII)', subtitle: 'Sayers Equation', inputLabel: 'Altura do Salto (cm)', unit: 'W' },
+    horizontal_jump: { title: 'Salto Horizontal', subtitle: 'Potência de Explosão', inputLabel: 'Distância do Salto (cm)', unit: 'W' },
+    medball: { title: 'MedBall Throw (MS)', subtitle: 'Padrão 3kg', inputLabel: 'Distância do Lançamento (m)', unit: 'W', ballMass: 3 },
+    sprint_10: { title: 'Sprint 10 metros', subtitle: 'Aceleração Inicial', inputLabel: 'Tempo (s)', unit: 'W', distance: 10 },
+    sprint_20: { title: 'Sprint 20 metros', subtitle: 'Aceleração de Base', inputLabel: 'Tempo (s)', unit: 'W', distance: 20 },
+    sprint_30: { title: 'Sprint 30 metros', subtitle: 'Velocidade de Transição', inputLabel: 'Tempo (s)', unit: 'W', distance: 30 },
+    sprint_40: { title: 'Sprint 40 metros', subtitle: 'Velocidade Máxima Anaeróbica', inputLabel: 'Tempo (s)', unit: 'W', distance: 40 },
+    kneeling_throw_l: { title: 'Kneeling Basketball Throw (L)', subtitle: 'Potência MS - Lado Esquerdo', inputLabel: 'Distância (m)', unit: 'W', ballMass: 0.625 },
+    kneeling_throw_r: { title: 'Kneeling Basketball Throw (R)', subtitle: 'Potência MS - Lado Direito', inputLabel: 'Distância (m)', unit: 'W', ballMass: 0.625 },
+    ssc_analytics: { title: 'Análise EUR & SSC%', subtitle: 'CMJ vs SJ Analytics', isSpecial: true, unit: '%' },
+    rsi: { title: 'Índice Força Reativa (RSI)', subtitle: 'Capacidade Reativa / Pliometria', isSpecial: true, unit: 'RSI' }
+  };
+
+  useEffect(() => {
+    if (selectedAthleteId && athletes) {
+      const athlete = athletes.find(a => a.id === selectedAthleteId);
+      if (athlete) {
+        if (athlete.weight != null) setMass(athlete.weight.toString());
+      }
+    }
+  }, [selectedAthleteId, athletes]);
 
   const results = useMemo(() => {
     const m = parseFloat(mass);
     if (!m) return null;
 
+    const test = POWER_TESTS[testType];
+    const v = parseFloat(value);
+
     if (testType === 'jump') {
-      const v = parseFloat(value);
       if (!v) return null;
-      // Sayers Equation (Watts) - Peak Power
       const peakPower = (60.7 * v) + (45.3 * m) - 2055;
-      const relativePower = peakPower / m;
-      return { peakPower, relativePower, label: 'Potência de Pico (Vertical)', unit: 'W' };
-    } else if (testType === 'horizontal_jump') {
-      const v = parseFloat(value);
+      return { peakPower, relativePower: peakPower / m, label: test.title, unit: 'W', interpretation: peakPower > 4000 ? 'Potência de Nível Elite' : peakPower > 3000 ? 'Potência Adequada' : 'Necessário Desenvolvimento' };
+    } 
+    
+    if (testType === 'horizontal_jump') {
       if (!v) return null;
-      // Power estimation from horizontal jump
       const distM = v / 100;
       const estPower = 2.21 * m * Math.sqrt(9.81 * distM);
-      return { peakPower: estPower, relativePower: estPower / m, label: 'Potência Estimada (Horizontal)', unit: 'W' };
-    } else if (testType === 'medball') {
-      const v = parseFloat(value); // distance in meters
+      return { peakPower: estPower, relativePower: estPower / m, label: test.title, unit: 'W', interpretation: 'Estimativa baseada em deslocamento horizontal.' };
+    }
+
+    if (testType === 'medball' || testType.includes('throw')) {
       if (!v) return null;
-      // van den Tillaar & Ettema (2004): P = m_ball * g * d
-      // The system uses a 3kg med ball as standard; relative power = W/kg body mass
-      const ballMass = 3; // kg (standard med ball for upper body test)
-      const estPower = ballMass * 9.81 * v;
-      return { peakPower: estPower, relativePower: estPower / m, label: 'Potência Estimada (MS ââââ‚¬Å¡ÂÂ¬âââ€šÂ¬ÂÂ Med Ball 3kg)', unit: 'W' };
-    } else if (testType === 'sprint') {
-      const v = parseFloat(value);
+      const ballM = test.ballMass || 3;
+      const estPower = ballM * 9.81 * v;
+      return { peakPower: estPower, relativePower: estPower / m, label: test.title, unit: 'W', interpretation: 'Avaliação de potência de membros superiores.' };
+    }
+
+    if (testType.startsWith('sprint')) {
       if (!v) return null;
-      // Samozino et al. (2016): P_mean = 0.5 * m * (d/t)^2 / t
-      const dist = 40;
-      const v_avg = dist / v;
+      const d = test.distance || 40;
+      const v_avg = d / v;
       const power = 0.5 * m * v_avg * v_avg / v;
-      return { peakPower: power, relativePower: power / m, label: 'Potência AnaeràÂ³bica (Sprint)', unit: 'W' };
-    } else if (testType === 'ssc_analytics') {
+      return { peakPower: power, relativePower: power / m, label: test.title, unit: 'W', interpretation: 'Capacidade de aceleração e potência anaeróbica.' };
+    }
+
+    if (testType === 'ssc_analytics') {
       const sj = parseFloat(sjHeight);
       const cmj = parseFloat(cmjHeight);
       if (!sj || !cmj) return null;
+      
       const eur = cmj / sj;
       const sscDiff = ((cmj - sj) / sj) * 100;
+      const sscTotal = (cmj / sj) * 100;
+
+      let interpretation = "";
+      let recommendation = "";
+      let zoneClass = "";
+
+      if (sscTotal > 110) {
+        interpretation = "Déficit de Força Máxima Detectado";
+        recommendation = "O atleta apresenta excelente elasticidade, mas baixa base de força. Ênfase recomendada: Treinamento de força máxima e recrutamento neuromuscular (Cargas > 85% 1RM).";
+        zoneClass = "text-yellow-500";
+      } else if (sscTotal < 100) {
+        interpretation = "Baixa Eficiência do Ciclo Alongamento-Encurtamento (SSC)";
+        recommendation = "Incapacidade de utilizar a energia elástica. Ênfase recomendada: Treinamento pliométrico de baixa e média intensidade, exercícios reativos e técnica de salto.";
+        zoneClass = "text-rose-500";
+      } else {
+        interpretation = "Zona Ótima de Eficiência Neuromuscular";
+        recommendation = "Equilíbrio ideal entre força e reatividade. Recomendação: Manutenção do programa atual com progressão equilibrada de cargas e saltos.";
+        zoneClass = "text-emerald-500";
+      }
+
       return { 
-        peakPower: eur, 
-        relativePower: sscDiff, 
-        label: 'Análise de Ciclo (SSC)', 
+        eur, 
+        sscDiff, 
+        sscTotal,
+        label: 'Análise Biomecânica SSC/EUR', 
         isAnalytics: true,
-        eur,
-        sscDiff
+        interpretation,
+        recommendation,
+        zoneClass
       };
-    } else if (testType === 'rsi') {
+    }
+
+    if (testType === 'rsi') {
       const jh = parseFloat(jumpHeightRsi);
       const ct = parseFloat(contactTime);
       if (!jh || !ct) return null;
       const rsi = jh / ct;
+
+      let interpretation = "";
+      let recommendation = "";
+      if (rsi < 1.5) {
+        interpretation = "Capacidade Reativa Limitada";
+        recommendation = "Foco em pliometria extensiva e técnica de contato rápido com o solo.";
+      } else if (rsi <= 2.0) {
+        interpretation = "Capacidade Reativa Moderada";
+        recommendation = "Atleta apto a pliometria de intensidade moderada.";
+      } else if (rsi <= 2.5) {
+        interpretation = "Boa Capacidade Reativa";
+        recommendation = "Ênfase em pliometria de média e alta intensidade.";
+      } else {
+        interpretation = "Nível Elite de Força Reativa";
+        recommendation = "Capacidade máxima de reatividade. Foco em manutenção e potência específica.";
+      }
+
       return { 
-        peakPower: rsi, 
-        relativePower: rsi, 
-        label: 'ÃƒÃƒâ€šÂÂndice de Força Reativa (RSI)', 
+        rsiValue: rsi, 
+        label: test.title, 
         isRsi: true,
-        rsiValue: rsi
+        interpretation,
+        recommendation
       };
     }
+
     return null;
   }, [testType, mass, value, sjHeight, cmjHeight, contactTime, jumpHeightRsi]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      {/* SELEÇÃO DO TESTE */}
       <div className="lg:col-span-4 space-y-6">
-        <div className="bento-card bg-slate-900/50 border-slate-800 p-8">
+        <div className="bento-card bg-slate-900/50 border-slate-800 p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Zap className="w-16 h-16 text-yellow-500" />
+          </div>
+          
           <div className="mb-8">
-            <p className="label-caps italic mb-1">Avaliação Bioenergética</p>
-            <h3 className="text-xl font-black text-white uppercase italic">Capacidade de Potência</h3>
+            <p className="label-caps italic mb-1 text-emerald-500">Módulo Científico</p>
+            <h3 className="text-xl font-black text-white uppercase italic">Potência & Velocidade</h3>
           </div>
 
           <div className="space-y-6">
             <div className="space-y-3">
-              <label className="label-caps italic text-xs">Tipo de Teste</label>
-              <div className="grid grid-cols-1 gap-2">
-                {[
-                  { id: 'jump', title: 'Salto Vertical (MIII)', subtitle: 'Sayers Equation' },
-                  { id: 'horizontal_jump', title: 'Salto Horizontal', subtitle: 'Potência de ExplosÃƒÃƒâ€šÂÂ£o' },
-                  { id: 'medball', title: 'MedBall Throw (MS)', subtitle: 'Membros Superiores' },
-                  { id: 'sprint', title: 'Sprint 40m', subtitle: 'Protocolo AnaeràÂ³bico' },
-                  { id: 'ssc_analytics', title: 'Análise EUR & SSC%', subtitle: 'CMJ vs SJ Analytics' },
-                  { id: 'rsi', title: 'ÃƒÃƒâ€šÂÂndice Força Reativa', subtitle: 'RSI (Relação H/TC)' }
-                ].map(t => (
-                  <button 
-                    key={t.id}
-                    onClick={() => { setTestType(t.id as any); setValue(''); }}
-                    className={`p-4 rounded-xl text-left border transition-all ${
-                      testType === t.id ? 'bg-blue-600 border-blue-500 shadow-lg shadow-blue-600/20' : 'bg-slate-800 border-slate-700'
-                    }`}
-                  >
-                    <div className="font-black text-white uppercase italic text-xs mb-1">{t.title}</div>
-                    <div className={`text-[9px] font-bold uppercase ${testType === t.id ? 'text-white/70' : 'text-slate-500'}`}>{t.subtitle}</div>
-                  </button>
+              <label className="label-caps italic text-xs text-slate-400">Selecione o Protocolo</label>
+              <select 
+                value={testType}
+                onChange={(e) => { setTestType(e.target.value); setValue(''); }}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-4 text-sm font-black text-white focus:ring-2 focus:ring-emerald-500 outline-none transition-all cursor-pointer hover:bg-slate-700"
+              >
+                {Object.entries(POWER_TESTS).map(([id, t]) => (
+                  <option key={id} value={id}>{t.title}</option>
                 ))}
-              </div>
+              </select>
+              <p className="text-[9px] text-slate-500 font-bold uppercase italic tracking-widest mt-1">
+                {POWER_TESTS[testType].subtitle}
+              </p>
             </div>
 
-            <div className="space-y-4 pt-4 border-t border-slate-800">
+            <div className="space-y-4 pt-6 border-t border-white/5">
               <div className="space-y-2">
                 <label className="label-caps italic text-xs">Massa Corporal (kg)</label>
                 <input 
                   type="number"
                   value={mass}
                   onChange={(e) => setMass(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-black outline-none focus:ring-1 focus:ring-emerald-500 transition-all text-lg"
                 />
               </div>
 
               {testType === 'ssc_analytics' ? (
-                <>
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="label-caps italic text-xs">Salto Squat Jump (SJ - cm)</label>
+                    <label className="label-caps italic text-xs">Squat Jump (SJ - cm)</label>
                     <input 
                       type="number"
-                      placeholder="Sem contramovimento"
+                      placeholder="Salto estático (90º)"
                       value={sjHeight}
                       onChange={(e) => setSjHeight(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-black outline-none focus:ring-1 focus:ring-purple-500"
                     />
                   </div>
                   <div className="space-y-2">
-                    <label className="label-caps italic text-xs">Salto Countermovement (CMJ - cm)</label>
+                    <label className="label-caps italic text-xs">Countermovement (CMJ - cm)</label>
                     <input 
                       type="number"
-                      placeholder="Com contramovimento"
+                      placeholder="Salto com contramovimento"
                       value={cmjHeight}
                       onChange={(e) => setCmjHeight(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-black outline-none focus:ring-1 focus:ring-purple-500"
                     />
                   </div>
-                </>
+                </div>
               ) : testType === 'rsi' ? (
-                <>
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <label className="label-caps italic text-xs">Altura do Salto (cm)</label>
                     <input 
                       type="number"
-                      placeholder="H (cm)"
+                      placeholder="Altura (H)"
                       value={jumpHeightRsi}
                       onChange={(e) => setJumpHeightRsi(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-black outline-none focus:ring-1 focus:ring-cyan-500"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1438,24 +1575,24 @@ function PowerAssessmentModule() {
                     <input 
                       type="number"
                       step="0.001"
-                      placeholder="TC (ms ou s)"
+                      placeholder="Ex: 0.250"
                       value={contactTime}
                       onChange={(e) => setContactTime(e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-black outline-none focus:ring-1 focus:ring-cyan-500"
                     />
                   </div>
-                </>
+                </div>
               ) : (
                 <div className="space-y-2">
                   <label className="label-caps italic text-xs">
-                    {testType === 'jump' ? 'Altura do Salto (cm)' : testType === 'horizontal_jump' ? 'Distância do Salto (cm)' : testType === 'medball' ? 'Distância do Lançamento (m)' : 'Tempo do Sprint 40m (s)'}
+                    {POWER_TESTS[testType].inputLabel}
                   </label>
                   <input 
                     type="number"
                     placeholder="0"
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold outline-none focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white font-black outline-none focus:ring-1 focus:ring-yellow-500 transition-all text-xl"
                   />
                 </div>
               )}
@@ -1464,97 +1601,143 @@ function PowerAssessmentModule() {
         </div>
       </div>
 
+      {/* RESULTADOS E INTERPRETAÇÃO */}
       <div className="lg:col-span-8 space-y-8">
         {results ? (
-          <>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
+            {/* RESULTADOS VISUAIS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className={`bento-card border-none ${testType.includes('analytics') || testType === 'rsi' ? 'bg-purple-600' : 'bg-yellow-500'} p-8 flex flex-col justify-between relative overflow-hidden`}>
+              <div className={`bento-card border-none ${results.isAnalytics || results.isRsi ? 'bg-purple-600' : 'bg-yellow-500'} p-8 flex flex-col justify-between relative overflow-hidden shadow-xl`}>
                 <div className="relative z-10">
-                  <p className={`text-[10px] font-black ${testType.includes('analytics') || testType === 'rsi' ? 'text-white/60' : 'text-black/60'} uppercase italic tracking-widest mb-2`}>{results.label}</p>
-                  <h3 className={`text-5xl font-black ${testType.includes('analytics') || testType === 'rsi' ? 'text-white' : 'text-black'} italic`}>
-                    {testType === 'ssc_analytics' ? results.eur?.toFixed(2) : testType === 'rsi' ? results.rsiValue?.toFixed(2) : Math.round(results.peakPower as number)}
-                    <span className="text-xl ml-2 opacity-50 underline decoration-black/20">{testType === 'ssc_analytics' ? 'EUR' : testType === 'rsi' ? 'RSI' : 'W'}</span>
+                  <p className={`text-[10px] font-black ${results.isAnalytics || results.isRsi ? 'text-white/60' : 'text-black/60'} uppercase italic tracking-widest mb-2`}>Métrica Principal</p>
+                  <h3 className={`text-6xl font-black ${results.isAnalytics || results.isRsi ? 'text-white' : 'text-black'} italic tracking-tighter`}>
+                    {results.isAnalytics ? results.eur?.toFixed(2) : results.isRsi ? results.rsiValue?.toFixed(2) : Math.round(results.peakPower as number)}
+                    <span className="text-xl ml-2 opacity-40 uppercase">{results.isAnalytics ? 'EUR' : results.isRsi ? 'RSI' : 'Watts'}</span>
                   </h3>
                 </div>
-                <Zap className={`absolute -right-8 -bottom-8 w-48 h-48 opacity-10 rotate-12 ${testType.includes('analytics') || testType === 'rsi' ? 'text-white' : 'text-black'}`} />
-                <div className="relative z-10 mt-6 flex gap-3">
-                  <span className={`px-3 py-1 ${testType.includes('analytics') || testType === 'rsi' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'} rounded-full text-[10px] font-black italic uppercase`}>
-                    {testType === 'ssc_analytics' ? 'Taxa de Utilização' : testType === 'rsi' ? 'ÃƒÃƒâ€šÂÂndice Reativo' : 'Potência Estimada'}
-                  </span>
-                </div>
+                <Zap className={`absolute -right-8 -bottom-8 w-48 h-48 opacity-10 rotate-12 ${results.isAnalytics || results.isRsi ? 'text-white' : 'text-black'}`} />
               </div>
 
-              <div className="bento-card border-none bg-slate-900 border-slate-800 p-8 flex flex-col justify-between relative overflow-hidden">
+              <div className="bento-card bg-slate-900 border-slate-800 p-8 flex flex-col justify-between shadow-xl">
                 <div>
                   <p className="text-[10px] font-black text-slate-500 uppercase italic tracking-widest mb-2">
-                    {testType === 'ssc_analytics' ? 'Diferença SSC%' : testType === 'rsi' ? 'H/TC Ratio' : 'Relativa por Massa'}
+                    {results.isAnalytics ? 'SSC Eficiência' : results.isRsi ? 'H/TC Ratio' : 'Potência Relativa'}
                   </p>
-                  <h3 className="text-5xl font-black text-white italic">
-                    {testType === 'ssc_analytics' ? `${results.sscDiff?.toFixed(1)}%` : testType === 'rsi' ? (results.rsiValue as number).toFixed(1) : (results.relativePower as number).toFixed(1)}
-                    <span className="text-xl ml-2 opacity-30 italic">{testType === 'ssc_analytics' ? 'Diff' : testType === 'rsi' ? 'Index' : 'W/kg'}</span>
+                  <h3 className="text-5xl font-black text-white italic tracking-tighter">
+                    {results.isAnalytics ? `${results.sscTotal?.toFixed(1)}%` : results.isRsi ? (results.rsiValue as number).toFixed(2) : (results.relativePower as number).toFixed(1)}
+                    <span className="text-xl ml-2 opacity-30 italic">{results.isAnalytics ? 'Ref' : results.isRsi ? 'Index' : 'W/kg'}</span>
                   </h3>
                 </div>
                 <div className="mt-6">
-                  <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-blue-500 transition-all duration-1000" 
-                      style={{ width: `${Math.min(((testType === 'ssc_analytics' ? results.sscDiff as number : results.relativePower as number) / 60) * 100, 100)}%` }}
+                      className={`h-full transition-all duration-1000 ${results.isAnalytics ? (results.sscTotal as number >= 100 && results.sscTotal as number <= 110 ? 'bg-emerald-500' : 'bg-yellow-500') : 'bg-blue-500'}`} 
+                      style={{ width: `${Math.min(((results.isAnalytics ? results.sscTotal as number : results.relativePower as number * 2) / 120) * 100, 100)}%` }}
                     ></div>
                   </div>
                   <div className="flex justify-between mt-2">
-                    <span className="text-[8px] font-black text-slate-600 uppercase">Base</span>
-                    <span className="text-[8px] font-black text-slate-600 uppercase">Elite</span>
+                    <span className="text-[8px] font-black text-slate-600 uppercase italic">Base</span>
+                    <span className="text-[8px] font-black text-slate-600 uppercase italic">Alta Performance</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bento-card bg-slate-900 border-slate-800 p-8">
-              <div className="mb-8">
-                <p className="label-caps italic mb-1">Análise Normativa</p>
-                <h3 className="text-xl font-black text-white uppercase italic">Classificação e Zonas</h3>
+            {/* INTERPRETAÇÃO CIENTÍFICA */}
+            <div className="bento-card bg-slate-900 border-slate-800 p-8 shadow-xl">
+              <div className="flex items-center gap-3 mb-8">
+                <BrainCircuit className="w-6 h-6 text-emerald-500" />
+                <h3 className="text-xl font-black text-white uppercase italic tracking-widest">Interpretação e Análise</h3>
               </div>
 
-              <div className="space-y-6">
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <PowerClassCard 
-                      label="Explosão" 
-                      value={testType === 'ssc_analytics' ? (results.sscDiff as number > 15 ? 'Altíssima' : 'Normal') : 'Avaliado'} 
-                      icon={<Zap className="w-5 h-5" />} 
-                    />
-                    <PowerClassCard 
-                      label="Eficiência" 
-                      value={testType === 'rsi' ? (results.rsiValue as number > 2.5 ? 'Excelente' : 'Bom') : 'Base'} 
-                      icon={<Target className="w-5 h-5" />} 
-                    />
-                    <PowerClassCard label="Referência" value={testType === 'ssc_analytics' ? 'Meta >1.10' : 'Norma ACSM'} icon={<Info className="w-5 h-5" />} />
-                 </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Diagnóstico Neuromuscular</h4>
+                  <div className={`text-lg font-black italic uppercase leading-tight ${results.zoneClass || 'text-white'}`}>
+                    {results.interpretation}
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-medium leading-relaxed italic">
+                    Baseado em literatura consolidada sobre Eurcentric Utilization Ratio (EUR) e reatividade muscular.
+                  </p>
+                </div>
 
-                 <div className="bg-slate-800/40 p-6 rounded-2xl border border-slate-800">
-                    <h4 className="text-[10px] font-black text-white uppercase italic mb-4">Transferência para o Treinamento</h4>
-                    <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-                      {testType === 'ssc_analytics' ? (
-                        `O Ciclo Alongamento-Encurtamento (SSC) apresenta uma vantagem de ${results.sscDiff?.toFixed(1)}%. Um EUR acima de 1.10 indica boa utilização elástica. 
-                        Se estiver abaixo desse valor, priorize treinamentos de potência explosiva e saltos pliométricos.`
-                      ) : testType === 'rsi' ? (
-                        `O Ãndice de Força Reativa de ${results.rsiValue?.toFixed(2)} indica a capacidade de transição rápida da ação excêntrica para a concêntrica. 
-                        Valores acima de 2.0 são típicos de atletas bem treinados em pliometria.`
-                      ) : (
-                        `Capacidade detectada para o teste de ${testType}. Os dados sugerem foco em ${results.relativePower as number < 40 ? 'Potência de Base' : 'Pliometria e Velocidade'}.`
-                      )}
-                    </p>
-                 </div>
+                <div className="bg-emerald-500/5 border border-emerald-500/20 p-6 rounded-[2rem] space-y-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-emerald-500" />
+                    <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Conduta Recomendada</h4>
+                  </div>
+                  <p className="text-[12px] text-slate-300 font-bold leading-relaxed">
+                    {results.recommendation || "Continue o monitoramento periódico para validar a evolução da potência específica."}
+                  </p>
+                </div>
               </div>
             </div>
-          </>
+
+            {/* BOX DE REFERÊNCIA */}
+            <div className="bg-slate-950/50 border border-slate-800 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 opacity-60">
+               <div className="p-3 bg-slate-900 rounded-xl"><Info className="w-5 h-5 text-slate-500" /></div>
+               <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-relaxed text-center md:text-left">
+                 A análise de potência do WMPS segue diretrizes da NSCA e ACSM. O EUR (Eccentric Utilization Ratio) é calculado via CMJ/SJ, sendo o padrão-ouro para identificar a contribuição do componente elástico do músculo.
+               </p>
+            </div>
+          </motion.div>
         ) : (
-          <div className="h-full flex flex-col items-center justify-center p-12 text-center bg-slate-900/20 border border-dashed border-slate-800 rounded-[2rem]">
-            <Zap className="w-12 h-12 text-slate-700 mb-4" />
-            <h4 className="text-slate-500 font-black uppercase italic tracking-widest">Insira os dados para calcular</h4>
-            <p className="text-slate-600 text-[10px] mt-2 max-w-[200px]">Utilize instrumentos validados (fita métrica ou cronômetro) para maior precisão.</p>
+          <div className="h-full flex flex-col items-center justify-center p-20 text-center bg-slate-900/10 border-2 border-dashed border-slate-800 rounded-[3rem]">
+            <div className="w-20 h-20 bg-slate-900/50 rounded-full flex items-center justify-center mb-6">
+              <Dumbbell className="w-10 h-10 text-slate-700" />
+            </div>
+            <h4 className="text-slate-500 font-black uppercase italic tracking-[0.2em]">Aguardando Dados</h4>
+            <p className="text-slate-600 text-xs mt-3 max-w-[280px] font-medium">Selecione um teste e insira os resultados obtidos em campo para gerar a análise bioenergética.</p>
           </div>
         )}
       </div>
+
+      {/* VINCULAÇÃO A ATLETA */}
+      {athletes && onSave && (
+        <div className="lg:col-span-12">
+          <div className="bento-card bg-slate-900 border-slate-800 p-8 flex flex-col md:flex-row items-end gap-6 shadow-2xl">
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2 mb-1">
+                <User className="w-3 h-3 text-slate-500" />
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Identificar Atleta</span>
+              </div>
+              <select
+                value={selectedAthleteId}
+                onChange={(e) => setSelectedAthleteId(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white font-black text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all h-[52px]"
+              >
+                <option value="">Selecione o Aluno...</option>
+                {athletes.map(a => <option key={a.id} value={a.id}>{a.full_name}</option>)}
+              </select>
+            </div>
+            <button 
+              disabled={!selectedAthleteId || !results || isSaving}
+              onClick={async () => {
+                setIsSaving(true);
+                const ath = athletes.find(a => a.id === selectedAthleteId);
+                await onSave(selectedAthleteId, ath?.full_name, { 
+                  testType,
+                  mass: parseFloat(mass),
+                  results,
+                  input: { value, sjHeight, cmjHeight, jumpHeightRsi, contactTime }
+                });
+                setIsSaving(false);
+                alert('Avaliação de potência salva com sucesso!');
+              }}
+              className="px-12 h-[52px] bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black uppercase text-[11px] rounded-xl transition-all flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/20 tracking-widest"
+            >
+              {isSaving ? (
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>Registrar Avaliação</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1578,6 +1761,22 @@ function AnthropometricAssessmentModule({ athletes, onSave }: { athletes?: any[]
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+  
+  useEffect(() => {
+    if (selectedAthleteId && athletes) {
+      const athlete = athletes.find(a => a.id === selectedAthleteId);
+      if (athlete) {
+        if (athlete.weight) setWeight(athlete.weight.toString());
+        if (athlete.height) setHeight(athlete.height.toString());
+        if (athlete.gender) setGender(athlete.gender as any);
+        if (athlete.birth_date) {
+          const years = Math.floor(differenceInDays(new Date(), parseISO(athlete.birth_date)) / 365.25);
+          setAge(years.toString());
+        }
+      }
+    }
+  }, [selectedAthleteId, athletes]);
+
   
   // Perimeters
   const [waist, setWaist] = useState<string>('');
@@ -1664,22 +1863,22 @@ function AnthropometricAssessmentModule({ athletes, onSave }: { athletes?: any[]
     const leanMassValue = fatMassValue !== null ? w - fatMassValue : null;
 
     // Classification based on ACSM guidelines (simplified)
-    let classification = "Normal";
+    let classification = "Não Calculado";
     if (bodyFat) {
       if (gender === 'male') {
         // ACSM 11th ed. (2022) norms - Men
-        if (bodyFat < 6) classification = "Mínimo Essencial";
-        else if (bodyFat <= 13) classification = "Atleta/Excelente";
-        else if (bodyFat <= 17) classification = "Fitness/Bom";
-        else if (bodyFat <= 24) classification = "Aceitável";
-        else classification = "Obesidade/Risco";
+        if (bodyFat < 6) classification = "Mínimo Essencial (Risco Fisiológico)";
+        else if (bodyFat <= 13) classification = "Atleta (Excelente — Percentil â‰¥90)";
+        else if (bodyFat <= 17) classification = "Acima da Média (Percentil 75–89)";
+        else if (bodyFat <= 24) classification = "Média (Percentil 25–74)";
+        else classification = "Excesso de Gordura Corporal (â‰¥Percentil 95)";
       } else {
         // ACSM 11th ed. (2022) norms - Women
-        if (bodyFat < 14) classification = "Mínimo Essencial";
-        else if (bodyFat <= 20) classification = "Atleta/Excelente";
-        else if (bodyFat <= 24) classification = "Fitness/Bom";
-        else if (bodyFat <= 31) classification = "Aceitável";
-        else classification = "Obesidade/Risco";
+        if (bodyFat < 14) classification = "Mínimo Essencial (Risco Fisiológico)";
+        else if (bodyFat <= 20) classification = "Atleta (Excelente — Percentil â‰¥90)";
+        else if (bodyFat <= 24) classification = "Acima da Média (Percentil 75–89)";
+        else if (bodyFat <= 31) classification = "Média (Percentil 25–74)";
+        else classification = "Excesso de Gordura Corporal (â‰¥Percentil 95)";
       }
     }
 
@@ -1827,12 +2026,12 @@ function AnthropometricAssessmentModule({ athletes, onSave }: { athletes?: any[]
                     <ProtocolSummary 
                       title="Durnin (Geral)" 
                       val={results.bodyFatDurnin} 
-                      desc="Sensível ÃƒÃƒâ€šÂÂ  densidade àÂ³ssea por faixa etária." 
+                      desc="Sensível á densidade óssea por faixa etária." 
                     />
                     <ProtocolSummary 
                       title="Slaughter (Jovens)" 
                       val={results.bodyFatSlaughter} 
-                      desc="Equação padrÃƒÃƒâ€šÂÂ£o para fase de maturação." 
+                      desc="Equação padrão para fase de maturação." 
                     />
                  </div>
               </div>
@@ -1856,8 +2055,8 @@ function AnthropometricAssessmentModule({ athletes, onSave }: { athletes?: any[]
               </div>
               <div className="space-y-4">
                  <div className="p-4 bg-white/10 rounded-2xl border border-white/5 backdrop-blur-sm">
-                    <h4 className="text-[10px] font-black text-white uppercase italic mb-1">PadrÃƒÃƒâ€šÂÂ£o Pollock</h4>
-                    <p className="text-[9px] text-white/70 font-medium leading-relaxed">As mediçÃµes devem ser realizadas do lado direito do corpo de acordo com o protocolo ACSM.</p>
+                    <h4 className="text-[10px] font-black text-white uppercase italic mb-1">Padrão Pollock</h4>
+                    <p className="text-[9px] text-white/70 font-medium leading-relaxed">As medições devem ser realizadas do lado direito do corpo de acordo com o protocolo ACSM.</p>
                  </div>
                  <div className="p-4 bg-white/10 rounded-2xl border border-white/5 backdrop-blur-sm">
                     <h4 className="text-[10px] font-black text-white uppercase italic mb-1">WHR (RCQ)</h4>
@@ -1867,12 +2066,12 @@ function AnthropometricAssessmentModule({ athletes, onSave }: { athletes?: any[]
            </div>
 
            <div className="bento-card bg-slate-900 border-slate-800 p-8">
-              <h4 className="text-[10px] font-black text-slate-500 uppercase italic mb-4">Normas de Classificação</h4>
+               <h4 className="text-[10px] font-black text-slate-500 uppercase italic mb-4">Normas ACSM — Classificação por Percentil</h4>
                <div className="space-y-3">
-                  <RankingRow label="Atleta" range="6-13% (M) | 12-20% (F)" active={results?.bodyFat ? results.bodyFat < 13 : false} />
-                  <RankingRow label="Saudável" range="14-17% (M) | 21-25% (F)" active={results?.bodyFat ? results.bodyFat >= 14 && results.bodyFat <= 17 : false} />
-                  <RankingRow label="Média" range="18-24% (M) | 26-31% (F)" active={results?.bodyFat ? results.bodyFat >= 18 && results.bodyFat <= 24 : false} />
-                  <RankingRow label="Excesso" range=">25% (M) | >32% (F)" active={results?.bodyFat ? results.bodyFat > 25 : false} />
+                  <RankingRow label="Atleta (â‰¥Percentil 90)" range="6–13% (M) | 14–20% (F)" active={results?.bodyFat ? results.bodyFat < 13 : false} />
+                  <RankingRow label="Acima da Média (P75–89)" range="14–17% (M) | 21–24% (F)" active={results?.bodyFat ? results.bodyFat >= 14 && results.bodyFat <= 17 : false} />
+                  <RankingRow label="Média (P25–74)" range="18–24% (M) | 25–31% (F)" active={results?.bodyFat ? results.bodyFat >= 18 && results.bodyFat <= 24 : false} />
+                  <RankingRow label="Excesso de Gordura (â‰¥P95)" range=">25% (M) | >32% (F)" active={results?.bodyFat ? results.bodyFat > 25 : false} />
                </div>
            </div>
            
@@ -1965,9 +2164,28 @@ function RankingRow({ label, range, active }: { label: string, range: string, ac
   );
 }
 
-function EnduranceAssessmentModule() {
+function EnduranceAssessmentModule({ athletes, onSave }: { athletes?: any[], onSave?: (athleteId: string, name: string, data: any) => void }) {
   const [age, setAge] = useState<string>('');
-  const [testType, setTestType] = useState<'beep' | 'yoyo' | 'vift' | 'vcrit' | 'submax'>('beep');
+  const [testType, setTestType] = useState<'beep' | 'yoyo' | 'vift' | 'vcrit' | 'submax' | 'vvo2_tlim'>('beep');
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // vVO2max + Tlim State
+  const [vVO2maxInput, setVVO2maxInput] = useState<string>('');
+  const [tlimInput, setTlimInput] = useState<string>('');
+
+  useEffect(() => {
+    if (selectedAthleteId && athletes) {
+      const athlete = athletes.find(a => a.id === selectedAthleteId);
+      if (athlete) {
+        if (athlete.birth_date) {
+          const years = Math.floor(differenceInDays(new Date(), parseISO(athlete.birth_date)) / 365.25);
+          setAge(years.toString());
+        }
+      }
+    }
+  }, [selectedAthleteId, athletes]);
+
   
   // Beep Test State
   const [beepStage, setBeepStage] = useState<string>('');
@@ -2006,7 +2224,7 @@ function EnduranceAssessmentModule() {
         const v_mmin = v * 1000 / 60; // km/h to m/min
         const vo2_submax = 3.5 + (0.2 * v_mmin);
         
-        // Ãƒâââ€šÂ¬ÂÂ¦strand-Ryhming method adjusted by Tanaka FC_max:
+        // ãâ‚Â¦strand-Ryhming method adjusted by Tanaka FC_max:
         // VO2max = VO2_submax * (FC_max / FC_submax)
         const vo2max_est = vo2_submax * (maxHR_est / hr);
         
@@ -2014,7 +2232,7 @@ function EnduranceAssessmentModule() {
         const v_mmin_vo2max = (vo2max_est - 3.5) / 0.2;  // m/min
         const vVO2max = v_mmin_vo2max * 60 / 1000; // back to km/h
         
-        return { vo2max: vo2max_est, vVO2max, speed: v, type: 'Submáximo (Pred. Ãƒâââ€šÂ¬ÂÂ¦strand/Tanaka)' };
+        return { vo2max: vo2max_est, vVO2max, speed: v, type: 'Submáximo (Pred. ãâ‚Â¦strand/Tanaka)' };
       }
     }
 
@@ -2034,7 +2252,7 @@ function EnduranceAssessmentModule() {
 
     if (testType === 'yoyo') {
       // Bangsbo et al. (2008): VO2max = dist_total(m) * 0.0084 + 36.4
-      // Input: total distance run (m) ââââ‚¬Å¡ÂÂ¬âââ€šÂ¬ÂÂ registered directly from the test result sheet
+      // Input: total distance run (m) ââââ‚Â¬â‚Â registered directly from the test result sheet
       const dist = parseFloat(yoyoLevel); // yoyoLevel field repurposed as total distance
       if (!dist) return null;
       const vo2max = dist * 0.0084 + 36.4;
@@ -2093,8 +2311,24 @@ function EnduranceAssessmentModule() {
       }
     }
 
+    if (testType === 'vvo2_tlim') {
+      const v = parseFloat(vVO2maxInput);
+      const tlim = parseFloat(tlimInput);
+      if (v && tlim) {
+        const v_mmin = v * 1000 / 60;
+        const vo2max = 3.5 + (0.2 * v_mmin);
+        return { 
+          vo2max, 
+          vVO2max: v, 
+          tlim, 
+          type: 'vVO₂max + Tlim (Billat)',
+          isTlim: true
+        };
+      }
+    }
+
     return null;
-  }, [testType, age, beepStage, yoyoLevel, yoyoShuttles, viftFinalSpeed, dist1, time1, dist2, time2]);
+  }, [testType, age, beepStage, yoyoLevel, yoyoShuttles, viftFinalSpeed, dist1, time1, dist2, time2, vVO2maxInput, tlimInput]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -2120,6 +2354,7 @@ function EnduranceAssessmentModule() {
                    <option value="vift">VIFT 30-15</option>
                    <option value="submax">Submáximo (Esteira/Bike)</option>
                    <option value="vcrit">Velocidade Crítica (Vcrit)</option>
+                   <option value="vvo2_tlim">vVO₂max + Tempo Limite (Tlim)</option>
                 </select>
              </div>
 
@@ -2188,6 +2423,14 @@ function EnduranceAssessmentModule() {
                     )}
                   </div>
                 )}
+
+                {testType === 'vvo2_tlim' && (
+                  <div className="space-y-4">
+                    <InputField label="vVO₂max Identificada (km/h)" value={vVO2maxInput} set={setVVO2maxInput} />
+                    <InputField label="Tempo Limite - Tlim (seg)" value={tlimInput} set={setTlimInput} />
+                    <p className="text-[9px] text-slate-600 font-bold italic">* Correr na vVO₂max até a exaustão para medir o Tlim.</p>
+                  </div>
+                )}
              </div>
           </div>
         </div>
@@ -2235,6 +2478,12 @@ function EnduranceAssessmentModule() {
                             <p className="text-xl font-black text-emerald-500 italic">{results.vcrit.toFixed(1)} <span className="text-[10px] opacity-30">km/h</span></p>
                          </div>
                        )}
+                       {results.isTlim && (
+                         <div>
+                            <p className="text-[9px] font-black text-slate-500 uppercase mb-1">Tlim</p>
+                            <p className="text-xl font-black text-emerald-500 italic">{results.tlim} <span className="text-[10px] opacity-30">seg</span></p>
+                         </div>
+                       )}
                     </div>
                  </div>
               </div>
@@ -2271,6 +2520,18 @@ function EnduranceAssessmentModule() {
                     speed={results.isVcrit ? (results.vcrit! * 1.05).toFixed(1) : (results.vVO2max ? (results.vVO2max * 1.1).toFixed(1) : "--")} 
                   />
                </div>
+
+               {results.isTlim && (
+                 <div className="mt-8 p-6 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl space-y-3">
+                    <div className="flex items-center gap-2">
+                       <BrainCircuit className="w-4 h-4 text-emerald-500" />
+                       <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Prescrição de Treinamento (HIT Billat)</h4>
+                    </div>
+                    <p className="text-xs text-slate-300 font-bold leading-relaxed">
+                      Protocolo de 50-60% do Tlim: Realizar séries de <span className="text-emerald-500">{Math.round(results.tlim! * 0.5)} segundos</span> na vVO₂max (<span className="text-emerald-500">{results.vVO2max.toFixed(1)} km/h</span>) com recuperação ativa de <span className="text-emerald-500">{Math.round(results.tlim! * 0.5)} segundos</span>.
+                    </p>
+                 </div>
+               )}
             </div>
           </>
         ) : (
@@ -2278,11 +2539,45 @@ function EnduranceAssessmentModule() {
              <Timer className="w-16 h-16 text-slate-800 mb-6 group-hover:scale-110 transition-transform" />
              <h3 className="text-xl font-black text-slate-500 uppercase italic">Aguardando Execução</h3>
              <p className="text-slate-600 text-[10px] font-bold uppercase mt-2 max-w-[280px]">
-                Selecione o protocolo e insira os dados do teste para visualizar os resultados de resistência aeràÂ³bica.
+                Selecione o protocolo e insira os dados do teste para visualizar os resultados de resistência aeróbica.
              </p>
           </div>
         )}
       </div>
+      {athletes && onSave && (
+        <div className="lg:col-span-12 mt-8">
+          <div className="bento-card bg-slate-900 border-slate-800 p-8 flex flex-col md:flex-row items-end gap-6">
+            <div className="flex-1 space-y-1">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Vincular a Atleta</span>
+              <select
+                value={selectedAthleteId}
+                onChange={(e) => setSelectedAthleteId(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm outline-none focus:ring-1 focus:ring-emerald-500 transition-all h-[46px]"
+              >
+                <option value="">Selecione o Atleta</option>
+                {athletes.map(a => <option key={a.id} value={a.id}>{a.full_name}</option>)}
+              </select>
+            </div>
+            <button 
+              disabled={!selectedAthleteId || !results || isSaving}
+              onClick={async () => {
+                setIsSaving(true);
+                const ath = athletes.find(a => a.id === selectedAthleteId);
+                await onSave(selectedAthleteId, ath?.full_name, { 
+                  testType,
+                  age: parseFloat(age),
+                  results
+                });
+                setIsSaving(false);
+                alert('Avaliação de resistência salva com sucesso!');
+              }}
+              className="px-10 h-[46px] bg-emerald-600 hover:bg-emerald-500 text-white font-black uppercase text-[10px] rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+            >
+              {isSaving ? 'Salvando...' : 'Salvar Avaliação'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2336,6 +2631,12 @@ function AgilityAssessmentModule({ athletes, onSave }: { athletes?: any[], onSav
   const [startTime, setStartTime] = useState<number | null>(null);
   const [reactionTime, setReactionTime] = useState<number | null>(null);
   const [stimulusType, setStimulusType] = useState<'visual' | 'auditory' | 'both'>('visual');
+
+  useEffect(() => {
+    if (selectedAthleteId && athletes) {
+      // Agility doesn't have specific demographic auto-population for now
+    }
+  }, [selectedAthleteId, athletes]);
 
   const startReactiveTest = () => {
     setIsWaiting(true);
@@ -2492,7 +2793,7 @@ function AgilityAssessmentModule({ athletes, onSave }: { athletes?: any[], onSav
                          onClick={handleStop}
                          className="px-10 py-4 bg-white rounded-full text-emerald-600 font-black uppercase tracking-widest text-lg shadow-2xl hover:scale-105 active:scale-95 transition-all"
                        >
-                          Parar CronÃƒÃƒâ€šÂÂ´metro
+                          Parar Cronômetro
                        </button>
                     </div>
                   ) : (
@@ -2561,7 +2862,7 @@ function AgilityAssessmentModule({ athletes, onSave }: { athletes?: any[], onSav
             ) : (
               <div className="h-full min-h-[400px] flex flex-col items-center justify-center bg-slate-900/50 border border-dashed border-slate-800 rounded-[2rem] p-12 text-center group">
                  <Footprints className="w-16 h-16 text-slate-800 mb-6 group-hover:scale-110 transition-transform" />
-                 <h3 className="text-xl font-black text-slate-500 uppercase italic">CronÃƒÃƒâ€šÂÂ´metro Zerado</h3>
+                 <h3 className="text-xl font-black text-slate-500 uppercase italic">Cronômetro Zerado</h3>
                  <p className="text-slate-600 text-[10px] font-bold uppercase mt-2 max-w-[280px]">
                     Insira o tempo final do percurso para visualizar a classificação de agilidade e mudança de direção.
                  </p>
@@ -2587,6 +2888,41 @@ function AgilityAssessmentModule({ athletes, onSave }: { athletes?: any[], onSav
            </div>
         </div>
       </div>
+      {athletes && onSave && (
+        <div className="lg:col-span-12 mt-8">
+          <div className="bento-card bg-slate-900 border-slate-800 p-8 flex flex-col md:flex-row items-end gap-6">
+            <div className="flex-1 space-y-1">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Vincular a Atleta</span>
+              <select
+                value={selectedAthleteId}
+                onChange={(e) => setSelectedAthleteId(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm outline-none focus:ring-1 focus:ring-cyan-500 transition-all h-[46px]"
+              >
+                <option value="">Selecione o Atleta</option>
+                {athletes.map(a => <option key={a.id} value={a.id}>{a.full_name}</option>)}
+              </select>
+            </div>
+            <button 
+              disabled={!selectedAthleteId || !time || isSaving}
+              onClick={async () => {
+                setIsSaving(true);
+                const ath = athletes.find(a => a.id === selectedAthleteId);
+                await onSave(selectedAthleteId, ath?.full_name, { 
+                  testType,
+                  time: parseFloat(time),
+                  stimulusType: testType === 'reactive' ? stimulusType : null,
+                  reactionTime
+                });
+                setIsSaving(false);
+                alert('Avaliação de agilidade salva com sucesso!');
+              }}
+              className="px-10 h-[46px] bg-cyan-600 hover:bg-cyan-500 text-white font-black uppercase text-[10px] rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/20"
+            >
+              {isSaving ? 'Salvando...' : 'Salvar Avaliação'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2595,7 +2931,7 @@ function AgilityGuide({ testType }: { testType: string }) {
   const content = {
     't-test': {
       title: 'Setup T-Test',
-      steps: ['Corra 10m ÃƒÃƒâ€šÂÂ  frente', 'Deslocamento lateral 5m esquerda', 'Deslocamento lateral 10m direita', 'Lateral 5m volta ao centro', 'Corra 10m de costas para o início']
+      steps: ['Corra 10m á frente', 'Deslocamento lateral 5m esquerda', 'Deslocamento lateral 10m direita', 'Lateral 5m volta ao centro', 'Corra 10m de costas para o início']
     },
     'illinois': {
       title: 'Setup Illinois',
@@ -2603,11 +2939,11 @@ function AgilityGuide({ testType }: { testType: string }) {
     },
     'pro-agility': {
       title: 'Setup 5-10-5',
-      steps: ['ExplosÃƒÃƒâ€šÂÂ£o 5 jardas ÃƒÃƒâ€šÂÂ  esquerda', 'Cruzamento 10 jardas ÃƒÃƒâ€šÂÂ  direita', 'Sprint final 5 jardas ao ponto central']
+      steps: ['Explosão 5 jardas á esquerda', 'Cruzamento 10 jardas á direita', 'Sprint final 5 jardas ao ponto central']
     },
     'reactive': {
       title: 'Reactive Agility',
-      steps: ['Sinal randÃƒÃƒâ€šÂÂ´mico (2-5s)', 'Estímulo Visual (Flash)', 'Estímulo Sonoro (Beep)', 'Foco em tempo de decisÃƒÃƒâ€šÂÂ£o + execução']
+      steps: ['Sinal randômico (2-5s)', 'Estímulo Visual (Flash)', 'Estímulo Sonoro (Beep)', 'Foco em tempo de decisão + execução']
     }
   };
 
@@ -2628,55 +2964,67 @@ function AgilityGuide({ testType }: { testType: string }) {
   );
 }
 
-function FlexibilityAssessmentModule() {
+function FlexibilityAssessmentModule({ athletes, onSave }: { athletes?: any[], onSave?: (athleteId: string, name: string, data: any) => void }) {
   const [testType, setTestType] = useState<'sit-reach' | 'goniometry'>('sit-reach');
   const [sitProtocol, setSitProtocol] = useState<'wells' | 'floor'>('wells');
   const [gender, setGender] = useState<'male' | 'female'>('male');
   const [resultVal, setResultVal] = useState<string>('');
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (selectedAthleteId && athletes) {
+      const athlete = athletes.find(a => a.id === selectedAthleteId);
+      if (athlete) {
+        if (athlete.gender != null) setGender(athlete.gender as any);
+      }
+    }
+  }, [selectedAthleteId, athletes]);
+
   
   // Goniometry State
-  const [joint, setJoint] = useState<string>('Ombro - FlexÃƒÃƒâ€šÂÂ£o');
+  const [joint, setJoint] = useState<string>('Ombro - Flexão');
   const [angle, setAngle] = useState<string>('');
   const [side, setSide] = useState<'D' | 'E'>('D');
 
   // AAOS / ACSM Normal ROM values (degrees)
   const joints = [
     // Ombro
-    { group: 'Ombro', name: 'Ombro - FlexÃƒÃƒâ€šÂÂ£o', normal: 180, range: '170-180ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 150 },
-    { group: 'Ombro', name: 'Ombro - ExtensÃƒÃƒâ€šÂÂ£o', normal: 60, range: '50-60ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 40 },
-    { group: 'Ombro', name: 'Ombro - Abdução', normal: 180, range: '170-180ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 150 },
-    { group: 'Ombro', name: 'Ombro - Rot. Interna', normal: 70, range: '60-90ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 45 },
-    { group: 'Ombro', name: 'Ombro - Rot. Externa', normal: 90, range: '80-90ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 60 },
+    { group: 'Ombro', name: 'Ombro - Flexão', normal: 180, range: '170-180°', low: 150 },
+    { group: 'Ombro', name: 'Ombro - Extensão', normal: 60, range: '50-60°', low: 40 },
+    { group: 'Ombro', name: 'Ombro - Abdução', normal: 180, range: '170-180°', low: 150 },
+    { group: 'Ombro', name: 'Ombro - Rot. Interna', normal: 70, range: '60-90°', low: 45 },
+    { group: 'Ombro', name: 'Ombro - Rot. Externa', normal: 90, range: '80-90°', low: 60 },
     // Cotovelo / Antebraço
-    { group: 'Cotovelo', name: 'Cotovelo - FlexÃƒÃƒâ€šÂÂ£o', normal: 150, range: '140-150ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 120 },
-    { group: 'Cotovelo', name: 'Cotovelo - ExtensÃƒÃƒâ€šÂÂ£o', normal: 0, range: '0ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: -10 },
-    { group: 'Cotovelo', name: 'Antebraço - Pronação', normal: 80, range: '75-80ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 60 },
-    { group: 'Cotovelo', name: 'Antebraço - Supinação', normal: 80, range: '80-85ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 60 },
+    { group: 'Cotovelo', name: 'Cotovelo - Flexão', normal: 150, range: '140-150°', low: 120 },
+    { group: 'Cotovelo', name: 'Cotovelo - Extensão', normal: 0, range: '0°', low: -10 },
+    { group: 'Cotovelo', name: 'Antebraço - Pronação', normal: 80, range: '75-80°', low: 60 },
+    { group: 'Cotovelo', name: 'Antebraço - Supinação', normal: 80, range: '80-85°', low: 60 },
     // Punho
-    { group: 'Punho', name: 'Punho - FlexÃƒÃƒâ€šÂÂ£o', normal: 80, range: '70-80ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 60 },
-    { group: 'Punho', name: 'Punho - ExtensÃƒÃƒâ€šÂÂ£o', normal: 70, range: '60-70ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 50 },
-    { group: 'Punho', name: 'Punho - Desvio Radial', normal: 20, range: '15-20ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 10 },
-    { group: 'Punho', name: 'Punho - Desvio Ulnar', normal: 30, range: '30-35ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 20 },
+    { group: 'Punho', name: 'Punho - Flexão', normal: 80, range: '70-80°', low: 60 },
+    { group: 'Punho', name: 'Punho - Extensão', normal: 70, range: '60-70°', low: 50 },
+    { group: 'Punho', name: 'Punho - Desvio Radial', normal: 20, range: '15-20°', low: 10 },
+    { group: 'Punho', name: 'Punho - Desvio Ulnar', normal: 30, range: '30-35°', low: 20 },
     // Quadril
-    { group: 'Quadril', name: 'Quadril - FlexÃƒÃƒâ€šÂÂ£o', normal: 120, range: '115-125ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 90 },
-    { group: 'Quadril', name: 'Quadril - ExtensÃƒÃƒâ€šÂÂ£o', normal: 20, range: '10-20ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 5 },
-    { group: 'Quadril', name: 'Quadril - Abdução', normal: 45, range: '40-50ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 30 },
-    { group: 'Quadril', name: 'Quadril - Adução', normal: 30, range: '20-30ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 15 },
-    { group: 'Quadril', name: 'Quadril - Rot. Interna', normal: 45, range: '30-45ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 20 },
-    { group: 'Quadril', name: 'Quadril - Rot. Externa', normal: 45, range: '40-60ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 25 },
+    { group: 'Quadril', name: 'Quadril - Flexão', normal: 120, range: '115-125°', low: 90 },
+    { group: 'Quadril', name: 'Quadril - Extensão', normal: 20, range: '10-20°', low: 5 },
+    { group: 'Quadril', name: 'Quadril - Abdução', normal: 45, range: '40-50°', low: 30 },
+    { group: 'Quadril', name: 'Quadril - Adução', normal: 30, range: '20-30°', low: 15 },
+    { group: 'Quadril', name: 'Quadril - Rot. Interna', normal: 45, range: '30-45°', low: 20 },
+    { group: 'Quadril', name: 'Quadril - Rot. Externa', normal: 45, range: '40-60°', low: 25 },
     // Joelho
-    { group: 'Joelho', name: 'Joelho - FlexÃƒÃƒâ€šÂÂ£o', normal: 140, range: '130-150ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 110 },
-    { group: 'Joelho', name: 'Joelho - ExtensÃƒÃƒâ€šÂÂ£o', normal: 0, range: '0ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: -10 },
+    { group: 'Joelho', name: 'Joelho - Flexão', normal: 140, range: '130-150°', low: 110 },
+    { group: 'Joelho', name: 'Joelho - Extensão', normal: 0, range: '0°', low: -10 },
     // Tornozelo / Pé
-    { group: 'Tornozelo', name: 'Tornozelo - DorsiflexÃƒÃƒâ€šÂÂ£o', normal: 20, range: '15-20ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 10 },
-    { group: 'Tornozelo', name: 'Tornozelo - Plantar FlexÃƒÃƒâ€šÂÂ£o', normal: 50, range: '45-50ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 30 },
-    { group: 'Tornozelo', name: 'Subtalar - InversÃƒÃƒâ€šÂÂ£o', normal: 35, range: '30-40ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 20 },
-    { group: 'Tornozelo', name: 'Subtalar - EversÃƒÃƒâ€šÂÂ£o', normal: 15, range: '10-20ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 5 },
+    { group: 'Tornozelo', name: 'Tornozelo - Dorsiflexão', normal: 20, range: '15-20°', low: 10 },
+    { group: 'Tornozelo', name: 'Tornozelo - Plantar Flexão', normal: 50, range: '45-50°', low: 30 },
+    { group: 'Tornozelo', name: 'Subtalar - Inversão', normal: 35, range: '30-40°', low: 20 },
+    { group: 'Tornozelo', name: 'Subtalar - Eversão', normal: 15, range: '10-20°', low: 5 },
     // Coluna
-    { group: 'Coluna', name: 'Coluna - FlexÃƒÃƒâ€šÂÂ£o (lombar)', normal: 60, range: '40-60ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 30 },
-    { group: 'Coluna', name: 'Coluna - ExtensÃƒÃƒâ€šÂÂ£o (lombar)', normal: 25, range: '20-30ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 10 },
-    { group: 'Coluna', name: 'Coluna - Rotação (cervical)', normal: 80, range: '70-80ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 50 },
-    { group: 'Coluna', name: 'Coluna - FlexÃƒÃƒâ€šÂÂ£o Lateral', normal: 35, range: '25-35ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°', low: 15 },
+    { group: 'Coluna', name: 'Coluna - Flexão (lombar)', normal: 60, range: '40-60°', low: 30 },
+    { group: 'Coluna', name: 'Coluna - Extensão (lombar)', normal: 25, range: '20-30°', low: 10 },
+    { group: 'Coluna', name: 'Coluna - Rotação (cervical)', normal: 80, range: '70-80°', low: 50 },
+    { group: 'Coluna', name: 'Coluna - Flexão Lateral', normal: 35, range: '25-35°', low: 15 },
   ];
 
   const groups = [...new Set(joints.map(j => j.group))];
@@ -2698,7 +3046,7 @@ function FlexibilityAssessmentModule() {
       const val = parseFloat(resultVal);
       if (isNaN(val)) return null;
       if (sitProtocol === 'wells') {
-        // ACSM Wells Bank ââââ‚¬Å¡ÂÂ¬âââ€šÂ¬ÂÂ sex-specific norms (18-29 yrs reference)
+        // ACSM Wells Bank ââââ‚Â¬â‚Â sex-specific norms (18-29 yrs reference)
         if (gender === 'male') {
           if (val >= 34) return { label: 'Excelente', color: 'bg-emerald-500' };
           if (val >= 28) return { label: 'Bom', color: 'bg-blue-500' };
@@ -2722,7 +3070,7 @@ function FlexibilityAssessmentModule() {
     return null;
   }, [testType, sitProtocol, gender, resultVal]);
 
-  // Goniometer angle capped at 180ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ° for visual
+  // Goniometer angle capped at 180° for visual
   const visualAngle = Math.min(parseFloat(angle) || 0, 180);
 
   return (
@@ -2777,7 +3125,7 @@ function FlexibilityAssessmentModule() {
                          onClick={() => setSitProtocol('floor')}
                          className={`py-2 rounded-lg text-[9px] font-black uppercase transition-all ${sitProtocol === 'floor' ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-500'}`}
                        >
-                         No ChÃƒÃƒâ€šÂÂ£o (S/ Banco)
+                         No Chão (S/ Banco)
                        </button>
                     </div>
                   </div>
@@ -2814,7 +3162,7 @@ function FlexibilityAssessmentModule() {
                       <button onClick={() => setSide('E')} className={`py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${side === 'E' ? 'bg-pink-600 text-white' : 'bg-slate-800 text-slate-500'}`}>Esquerdo (E)</button>
                     </div>
                   </div>
-                  <InputField label="Ãƒâââ€šÂ¬Ã…Â¡ngulo Medido (Graus ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°)" value={angle} set={setAngle} />
+                  <InputField label="Ângulo Medido (Graus °)" value={angle} set={setAngle} />
                   {currentJoint && (
                     <div className="p-3 bg-slate-800/50 rounded-xl border border-slate-700">
                       <p className="text-[9px] font-black text-slate-500 uppercase">ADM Normal (AAOS)</p>
@@ -2832,7 +3180,7 @@ function FlexibilityAssessmentModule() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className={`bento-card border-none p-8 flex flex-col justify-between text-white relative overflow-hidden shadow-2xl ${classification?.color || 'bg-pink-600'}`}>
                <div className="relative z-10">
-                  <p className="text-[10px] font-black text-white/50 uppercase italic tracking-widest mb-2">Resultado ââââ‚¬Å¡ÂÂ¬âââ€šÂ¬ÂÂ Sentar e Alcançar</p>
+                  <p className="text-[10px] font-black text-white/50 uppercase italic tracking-widest mb-2">Resultado ââââ‚Â¬â‚Â Sentar e Alcançar</p>
                   <div className="flex items-baseline gap-2">
                      <h3 className="text-6xl font-black italic">{resultVal}</h3>
                      <span className="text-xl font-black text-white/40">cm</span>
@@ -2845,11 +3193,11 @@ function FlexibilityAssessmentModule() {
             </div>
 
             <div className="bento-card bg-slate-900 border-slate-800 p-8 flex flex-col justify-center">
-               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Normas ACSM ââââ‚¬Å¡ÂÂ¬âââ€šÂ¬ÂÂ {gender === 'male' ? 'Masculino' : 'Feminino'}</p>
+               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Normas ACSM ââââ‚Â¬â‚Â {gender === 'male' ? 'Masculino' : 'Feminino'}</p>
                <div className="space-y-3">
                   <div className="flex justify-between items-center text-[10px] font-bold">
                     <span className="text-emerald-400">Excelente</span>
-                    <span className="text-emerald-400">{sitProtocol === 'wells' ? (gender === 'male' ? 'ââââ€šÂ¬ÂÂ°Ãƒâ€šÂÂ¥ 34cm' : 'ââââ€šÂ¬ÂÂ°Ãƒâ€šÂÂ¥ 38cm') : 'ââââ€šÂ¬ÂÂ°Ãƒâ€šÂÂ¥ 15cm'}</span>
+                    <span className="text-emerald-400">{sitProtocol === 'wells' ? (gender === 'male' ? 'ââ‚°≥ 34cm' : 'ââ‚°≥ 38cm') : 'ââ‚°≥ 15cm'}</span>
                   </div>
                   <div className="flex justify-between items-center text-[10px] font-bold">
                     <span className="text-blue-400">Bom</span>
@@ -2871,7 +3219,7 @@ function FlexibilityAssessmentModule() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* Visual Goniometer */}
               <div className="bento-card bg-slate-900 border-slate-800 p-8 flex flex-col items-center justify-center">
-                <p className="text-[9px] font-black text-pink-500 uppercase tracking-widest mb-6">{joint} ââââ‚¬Å¡ÂÂ¬âââ€šÂ¬ÂÂ Lado {side}</p>
+                <p className="text-[9px] font-black text-pink-500 uppercase tracking-widest mb-6">{joint} ââââ‚Â¬â‚Â Lado {side}</p>
                 <div className="relative w-44 h-44">
                   {/* Background arc */}
                   <svg viewBox="0 0 100 100" className="w-full h-full">
@@ -2883,7 +3231,7 @@ function FlexibilityAssessmentModule() {
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-black text-white italic">{angle}ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ°</span>
+                    <span className="text-3xl font-black text-white italic">{angle}°</span>
                     <span className={`text-[9px] font-black uppercase ${goniometryClassification?.color || 'text-slate-500'}`}>{goniometryClassification?.label}</span>
                   </div>
                 </div>
@@ -2909,7 +3257,7 @@ function FlexibilityAssessmentModule() {
                 </div>
                 <div className="pt-4 border-t border-slate-800 space-y-2">
                   {[
-                    { label: 'Normal (ââââ€šÂ¬ÂÂ°Ãƒâ€šÂÂ¥ 90%)', col: 'text-emerald-400' },
+                    { label: 'Normal (ââ‚°≥ 90%)', col: 'text-emerald-400' },
                     { label: 'Leve redução (75-89%)', col: 'text-yellow-400' },
                     { label: 'Moderada (50-74%)', col: 'text-orange-400' },
                     { label: 'Severa (< 50%)', col: 'text-red-400' },
@@ -2927,8 +3275,8 @@ function FlexibilityAssessmentModule() {
               <p className="text-[9px] font-black text-pink-500 uppercase tracking-widest mb-2">Interpretação Clínica</p>
               <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
                 {goniometryClassification?.label === 'ADM Normal'
-                  ? `A amplitude de movimento de ${angle}ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ° para ${joint} está dentro dos valores normais segundo a AAOS (${currentJoint.range}). Manutenção com exercícios de mobilidade preventiva.`
-                  : `A amplitude de ${angle}ÃƒÆ’ââ‚¬Å¡Ãƒâ€šÂÂ° está abaixo do esperado para ${joint} (Normal: ${currentJoint.range}). Recomenda-se avaliação clínica detalhada e protocolo de mobilização articular específico.`
+                  ? `A amplitude de movimento de ${angle}° para ${joint} está dentro dos valores normais segundo a AAOS (${currentJoint.range}). Manutenção com exercícios de mobilidade preventiva.`
+                  : `A amplitude de ${angle}° está abaixo do esperado para ${joint} (Normal: ${currentJoint.range}). Recomenda-se avaliação clínica detalhada e protocolo de mobilização articular específico.`
                 }
               </p>
             </div>
@@ -2936,7 +3284,7 @@ function FlexibilityAssessmentModule() {
         ) : (
           <div className="h-full min-h-[400px] flex flex-col items-center justify-center bg-slate-900/50 border border-dashed border-slate-800 rounded-[2rem] p-12 text-center group">
              <MoveHorizontal className="w-16 h-16 text-slate-800 mb-6 group-hover:scale-110 transition-transform" />
-             <h3 className="text-xl font-black text-slate-500 uppercase italic">Dados de Mobilidade</h3>
+             <h3 className="text-xl font-black text-slate-500 uppercase italic">Dados de Flexibilidade</h3>
              <p className="text-slate-600 text-[10px] font-bold uppercase mt-2 max-w-[280px]">
                 Selecione o protocolo de flexibilidade ou goniometria para registrar e classificar a amplitude de movimento.
              </p>
@@ -2948,7 +3296,7 @@ function FlexibilityAssessmentModule() {
            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
               {[
                 { title: 'Performance', desc: 'Melhora a eficiência biomecânica do movimento esportivo.' },
-                { title: 'Prevenção', desc: 'Reduz riscos de lesÃµes em articulaçÃµes e tecidos moles.' },
+                { title: 'Prevenção', desc: 'Reduz riscos de lesões em articulações e tecidos moles.' },
                 { title: 'Funcionalidade', desc: 'Garante amplitude necessária para atividades diárias.' }
               ].map(item => (
                 <div key={item.title} className="space-y-2">
@@ -2959,6 +3307,45 @@ function FlexibilityAssessmentModule() {
            </div>
         </div>
       </div>
+      {athletes && onSave && (
+        <div className="lg:col-span-12 mt-8">
+          <div className="bento-card bg-slate-900 border-slate-800 p-8 flex flex-col md:flex-row items-end gap-6">
+            <div className="flex-1 space-y-1">
+              <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Vincular a Atleta</span>
+              <select
+                value={selectedAthleteId}
+                onChange={(e) => setSelectedAthleteId(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white font-bold text-sm outline-none focus:ring-1 focus:ring-pink-500 transition-all h-[46px]"
+              >
+                <option value="">Selecione o Atleta</option>
+                {athletes.map(a => <option key={a.id} value={a.id}>{a.full_name}</option>)}
+              </select>
+            </div>
+            <button 
+              disabled={!selectedAthleteId || (!resultVal && !angle) || isSaving}
+              onClick={async () => {
+                setIsSaving(true);
+                const ath = athletes.find(a => a.id === selectedAthleteId);
+                await onSave(selectedAthleteId, ath?.full_name, { 
+                  testType,
+                  sitProtocol,
+                  gender,
+                  resultVal: parseFloat(resultVal),
+                  angle: parseFloat(angle),
+                  joint,
+                  side,
+                  classification: testType === 'sit-reach' ? classification : goniometryClassification
+                });
+                setIsSaving(false);
+                alert('Avaliação de flexibilidade salva com sucesso!');
+              }}
+              className="px-10 h-[46px] bg-pink-600 hover:bg-pink-500 text-white font-black uppercase text-[10px] rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-pink-600/20"
+            >
+              {isSaving ? 'Salvando...' : 'Salvar Avaliação'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3091,11 +3478,11 @@ function PeriodizationModule({ setWizardAthlete, setShowWizard }: { setWizardAth
             {/* KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bento-card bg-slate-900 border-slate-800 p-6 text-center">
-                <p className="text-[9px] font-black text-slate-500 uppercase mb-1">SessÃµes Prescritas</p>
+                <p className="text-[9px] font-black text-slate-500 uppercase mb-1">Sessões Prescritas</p>
                 <p className="text-3xl font-black text-white italic">{totalPrescribed}</p>
               </div>
               <div className="bento-card bg-emerald-600 border-none p-6 text-center">
-                <p className="text-[9px] font-black text-white/60 uppercase mb-1">SessÃµes Concluídas</p>
+                <p className="text-[9px] font-black text-white/60 uppercase mb-1">Sessões Concluídas</p>
                 <p className="text-3xl font-black text-white italic">{totalCompleted}</p>
               </div>
               <div className="bento-card bg-slate-900 border-slate-800 p-6 text-center">
@@ -3113,7 +3500,7 @@ function PeriodizationModule({ setWizardAthlete, setShowWizard }: { setWizardAth
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <p className="label-caps italic mb-1">Avanço do Macrociclo</p>
-                  <h3 className="text-xl font-black text-white uppercase italic">Progressão Semanal â€” Prescrito vs Concluído</h3>
+                  <h3 className="text-xl font-black text-white uppercase italic">Progressão Semanal â€" Prescrito vs Concluído</h3>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2"><span className="w-3 h-3 rounded bg-blue-500"></span><span className="text-[9px] font-black uppercase text-slate-500">Prescrito</span></div>
@@ -3144,7 +3531,7 @@ function PeriodizationModule({ setWizardAthlete, setShowWizard }: { setWizardAth
               </div>
             </div>
 
-            {/* Lista de sessÃµes */}
+            {/* Lista de sessões */}
             <div className="bento-card bg-slate-900 border-slate-800 p-8 space-y-4">
               <h3 className="text-sm font-black text-white uppercase italic">Histórico Detalhado</h3>
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
@@ -3162,13 +3549,13 @@ function PeriodizationModule({ setWizardAthlete, setShowWizard }: { setWizardAth
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black ${
                             done ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500'
                           }`}>
-                            {done ? 'âœ“' : `${totalPrescribed - i}`}
+                            {done ? 'âÅ“"' : `${totalPrescribed - i}`}
                           </div>
                           <div>
                             <p className="text-xs font-black text-white uppercase italic">Sessão #{totalPrescribed - i}</p>
                             <p className="text-[9px] text-slate-500 font-bold uppercase">
                               {format(parseISO(p.created_at.split('T')[0]), 'dd/MM/yyyy')}
-                              {blocksText && ` Â· ${blocksText}`}
+                              {blocksText && ` · ${blocksText}`}
                             </p>
                           </div>
                         </div>
@@ -3432,13 +3819,13 @@ function AnamnesisModule() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {selectedRecord.data.previousInjuries && (
                   <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800">
-                    <p className="text-[10px] font-black text-rose-400 uppercase italic mb-2">Histórico de LesÃµes</p>
+                    <p className="text-[10px] font-black text-rose-400 uppercase italic mb-2">Histórico de Lesões</p>
                     <p className="text-xs text-white font-medium leading-relaxed">{selectedRecord.data.previousInjuries}</p>
                   </div>
                 )}
                 {selectedRecord.data.details && (
                   <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800">
-                    <p className="text-[10px] font-black text-slate-500 uppercase italic mb-2">ObservaçÃµes Adicionais</p>
+                    <p className="text-[10px] font-black text-slate-500 uppercase italic mb-2">Observações Adicionais</p>
                     <p className="text-xs text-white font-medium leading-relaxed">{selectedRecord.data.details}</p>
                   </div>
                 )}
@@ -3520,7 +3907,7 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
 
   const handleCopyCredentials = () => {
     if (!credentials) return;
-    const text = `🏋️‍♂️ WMPS — William Moreira Performance System\n\nOlá, ${credentials.fullName}!\n\nSeu acesso foi aprovado. Utilize as credenciais abaixo para entrar na plataforma:\n\n📧 Login (E-mail): ${credentials.email}\n🔑 Senha provisória: ${credentials.password}\n\n⚠️ IMPORTANTE: Ao fazer o primeiro acesso, você será solicitado(a) a criar uma nova senha pessoal.\n\nAcesse em: ${typeof window !== 'undefined' ? window.location.origin : ''}\n\nBem-vindo(a) à equipe! 💪`;
+    const text = `ðŸ‹ï¸â€â™‚ï¸ WMPS — William Moreira Performance System\n\nOlá, ${credentials.fullName}!\n\nSeu acesso foi aprovado. Utilize as credenciais abaixo para entrar na plataforma:\n\nðŸ“§ Login (E-mail): ${credentials.email}\nðŸ”‘ Senha provisória: ${credentials.password}\n\nâš ï¸ IMPORTANTE: Ao fazer o primeiro acesso, você será solicitado(a) a criar uma nova senha pessoal.\n\nAcesse em: ${typeof window !== 'undefined' ? window.location.origin : ''}\n\nBem-vindo(a) à equipe! ðŸ’ª`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 3000);
@@ -3570,10 +3957,10 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
             {/* Welcome Message Preview */}
             <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700 text-[10px] text-slate-400 leading-relaxed font-medium space-y-1">
               <p className="font-black text-slate-300 uppercase text-[9px] tracking-widest mb-2">Prévia da mensagem de boas-vindas:</p>
-              <p>🏋️‍♂️ <strong className="text-white">WMPS — William Moreira Performance System</strong></p>
+              <p>ðŸ‹ï¸â€â™‚ï¸ <strong className="text-white">WMPS — William Moreira Performance System</strong></p>
               <p>Olá, <strong className="text-white">{credentials.fullName}</strong>!</p>
               <p>Seu acesso foi aprovado. Utilize as credenciais acima para entrar na plataforma.</p>
-              <p className="text-yellow-500">⚠️ No primeiro acesso, você criará uma nova senha pessoal.</p>
+              <p className="text-yellow-500">âš ï¸ No primeiro acesso, você criará uma nova senha pessoal.</p>
             </div>
 
             {/* Actions */}
@@ -3586,7 +3973,7 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
                     : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20'
                 }`}
               >
-                {copied ? '✓ Copiado!' : '📋 Copiar Mensagem'}
+                {copied ? 'âœ“ Copiado!' : 'ðŸ“‹ Copiar Mensagem'}
               </button>
               <button
                 onClick={() => setCredentials(null)}
@@ -5525,3 +5912,385 @@ function TeamDetailsModal({ teamName, teamAthletes, allAthletes, onClose, onUpda
     </motion.div>
   );
 }
+
+function ForceManifestationsModule({ onBack }: { onBack: () => void }) {
+  const [filter, setFilter] = useState<'all' | 'neural' | 'metabolic' | 'mechanical'>('all');
+  const [selectedZone, setSelectedZone] = useState<number | null>(null);
+
+  const manifestations = [
+    // FORÇA NEURAL
+    {
+      id: 'max-force',
+      category: 'neural',
+      title: 'Força Máxima',
+      definition: 'A maior força que o sistema neuromuscular pode exercer em uma contração voluntária máxima.',
+      physiologicalGoal: 'Recrutamento de unidades motoras e coordenação intramuscular.',
+      intensity: '85-100% 1RM',
+      zone: 5,
+      examples: 'Agachamento 1-3 RM, Levantamento Terra pesado.',
+      indication: 'Atletas de alto rendimento, powerlifting, base para potência.',
+      color: 'bg-red-600',
+      icon: <Dumbbell className="w-5 h-5" />
+    },
+    {
+      id: 'explosive-force',
+      category: 'neural',
+      title: 'Força Explosiva',
+      definition: 'Capacidade de produzir a maior tensão possível no menor tempo (Taxa de Desenvolvimento de Força - RFD).',
+      physiologicalGoal: 'Sincronização de unidades motoras de contração rápida.',
+      intensity: '30-60% 1RM (Alta Velocidade)',
+      zone: 5,
+      examples: 'Saltos, Arremessos, Levantamento Olímpico.',
+      indication: 'Esportes de explosão (sprint, saltos), esportes de combate.',
+      color: 'bg-orange-600',
+      icon: <Zap className="w-5 h-5" />
+    },
+    {
+      id: 'power',
+      category: 'neural',
+      title: 'Potência',
+      definition: 'Produto da força pela velocidade. Capacidade de realizar trabalho no menor tempo.',
+      physiologicalGoal: 'Otimização da curva força-velocidade.',
+      intensity: '30-70% 1RM',
+      zone: 4,
+      examples: 'Clean & Jerk, Pliometria de alta intensidade.',
+      indication: 'Futebol, Basquete, Vôlei (mudanças de direção e saltos).',
+      color: 'bg-yellow-600',
+      icon: <Zap className="w-5 h-5" />
+    },
+    {
+      id: 'fast-force',
+      category: 'neural',
+      title: 'Força Rápida',
+      definition: 'Capacidade de vencer resistências com alta velocidade de contração.',
+      physiologicalGoal: 'Melhora da velocidade de execução sob carga moderada.',
+      intensity: '40-70% 1RM',
+      zone: 4,
+      examples: 'Sprints com carga, movimentos balísticos.',
+      indication: 'Esportes coletivos e provas de atletismo.',
+      color: 'bg-amber-600',
+      icon: <Activity className="w-5 h-5" />
+    },
+
+    // FORÇA METABÓLICA
+    {
+      id: 'resistance-aerobic',
+      category: 'metabolic',
+      title: 'Resistência de Força Aeróbica',
+      definition: 'Capacidade de manter a produção de força por longos períodos sob predominância aeróbica.',
+      physiologicalGoal: 'Aumento da densidade mitocondrial e eficiência oxidativa.',
+      intensity: '< 50% 1RM',
+      zone: 2,
+      examples: 'Método Contínuo Extensivo (>20 min, <50% 1RM), séries longas multiarticulares (>3 min por série).',
+      indication: 'Atletas de resistência aeróbica (triatlo, ciclismo de longa distância, corrida de fundo).',
+      color: 'bg-emerald-600',
+      icon: <Timer className="w-5 h-5" />
+    },
+    {
+      id: 'resistance-anaerobic',
+      category: 'metabolic',
+      title: 'Resistência de Força Anaeróbica',
+      definition: 'Capacidade de manter alta intensidade de força sob acúmulo de metabólitos.',
+      physiologicalGoal: 'Tolerância ao lactato e capacidade de tamponamento.',
+      intensity: '50-70% 1RM',
+      zone: 3,
+      examples: 'Séries de 15-25 reps com alta densidade esforço:pausa (1:1), métodos de tolerância ao lactato.',
+      indication: 'Remo, Lutas (MMA/Jiu-Jitsu), 400m rasos.',
+      color: 'bg-blue-600',
+      icon: <Zap className="w-5 h-5" />
+    },
+
+    // FORÇA MECÂNICA
+    {
+      id: 'isometric',
+      category: 'mechanical',
+      title: 'Força Isométrica',
+      definition: 'Contração sem alteração no comprimento do músculo ou ângulo articular.',
+      physiologicalGoal: 'Estabilidade articular e fortalecimento em ângulos específicos.',
+      intensity: 'Variável (conforme tempo)',
+      zone: 3,
+      examples: 'Prancha, agachamento estático (wall sit).',
+      indication: 'Reabilitação, escalada, ginástica artística.',
+      color: 'bg-slate-600',
+      icon: <MoveHorizontal className="w-5 h-5" />
+    },
+    {
+      id: 'eccentric',
+      category: 'mechanical',
+      title: 'Força Excêntrica',
+      definition: 'Capacidade de produzir tensão enquanto o músculo se alonga (fase de frenagem).',
+      physiologicalGoal: 'Dano tecidual controlado e síntese de colágeno (tendões).',
+      intensity: '80-120% 1RM',
+      zone: 5,
+      examples: 'Nórdico, descida controlada no supino com sobrecarga.',
+      indication: 'Prevenção de lesões, hipertrofia sarcoplasmática.',
+      color: 'bg-rose-600',
+      icon: <Scale className="w-5 h-5" />
+    },
+    {
+      id: 'concentric',
+      category: 'mechanical',
+      title: 'Força Concêntrica',
+      definition: 'Produção de tensão enquanto o músculo encurta.',
+      physiologicalGoal: 'Trabalho mecânico positivo e hipertrofia.',
+      intensity: '30-100% 1RM',
+      zone: 4,
+      examples: 'Subida do agachamento, fase de puxada.',
+      indication: 'Base do treinamento de força convencional.',
+      color: 'bg-indigo-600',
+      icon: <Dumbbell className="w-5 h-5" />
+    },
+    {
+      id: 'reactive',
+      category: 'mechanical',
+      title: 'Força Reativa',
+      definition: 'Capacidade de utilizar a energia elástica (Ciclo Alongamento-Encurtamento - CEA).',
+      physiologicalGoal: 'Eficiência mecânica e rigidez tendínea (stiffness).',
+      intensity: 'Alta Velocidade / Baixo Contato',
+      zone: 5,
+      examples: 'Pliometria, Drop Jumps, Pulos de corda rápidos.',
+      indication: 'Basquete, Atletismo, Futebol (agilidade e impulsão).',
+      color: 'bg-cyan-600',
+      icon: <Footprints className="w-5 h-5" />
+    },
+    {
+      id: 'relative-force',
+      category: 'mechanical',
+      title: 'Força Relativa',
+      definition: 'Força máxima dividida pelo peso corporal do indivíduo.',
+      physiologicalGoal: 'Otimização da potência-peso.',
+      intensity: 'Foco em força neural',
+      zone: 4,
+      examples: 'Barra fixa, flexão de braço com carga.',
+      indication: 'Ginastas, lutadores com divisão de peso, escaladores.',
+      color: 'bg-violet-600',
+      icon: <Activity className="w-5 h-5" />
+    },
+    {
+      id: 'absolute-force',
+      category: 'mechanical',
+      title: 'Força Absoluta',
+      definition: 'Capacidade máxima de força independente do peso corporal.',
+      physiologicalGoal: 'Capacidade bruta de tensão muscular.',
+      intensity: 'Máxima',
+      zone: 5,
+      examples: 'Strongman, Levantamento Terra 1RM.',
+      indication: 'Lançadores de peso, Linha ofensiva (futebol americano).',
+      color: 'bg-stone-600',
+      icon: <Dumbbell className="w-5 h-5" />
+    }
+  ];
+
+  const zones = [
+    { id: 1, label: 'Zona 1', title: 'Muito Leve', desc: 'Recuperação Ativa', color: 'bg-slate-400' },
+    { id: 2, label: 'Zona 2', title: 'Leve', desc: 'Base Aeróbica', color: 'bg-emerald-500' },
+    { id: 3, label: 'Zona 3', title: 'Moderada', desc: 'Hipertrofia / Resistência', color: 'bg-blue-500' },
+    { id: 4, label: 'Zona 4', title: 'Alta', desc: 'Potência / Força Rápida', color: 'bg-orange-500' },
+    { id: 5, label: 'Zona 5', title: 'Máxima', desc: 'Força Pura / Explosão', color: 'bg-red-600' }
+  ];
+
+  const filteredManifestations = manifestations.filter(m => {
+    const categoryMatch = filter === 'all' || m.category === filter;
+    const zoneMatch = selectedZone === null || m.zone === selectedZone;
+    return categoryMatch && zoneMatch;
+  });
+
+  return (
+    <div className="space-y-8 pb-20">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <button 
+            onClick={onBack}
+            className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group mb-4"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            Voltar ao Menu
+          </button>
+          <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Manifestações de Força</h2>
+          <p className="text-slate-500 text-sm font-bold uppercase italic mt-1">Organização Técnica e Aplicação Prática WMPS</p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button 
+            onClick={() => { setFilter('all'); setSelectedZone(null); }}
+            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${filter === 'all' && selectedZone === null ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+          >
+            Todos
+          </button>
+          <button 
+            onClick={() => setFilter('neural')}
+            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${filter === 'neural' ? 'bg-orange-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+          >
+            Neural
+          </button>
+          <button 
+            onClick={() => setFilter('metabolic')}
+            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${filter === 'metabolic' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+          >
+            Metabólica
+          </button>
+          <button 
+            onClick={() => setFilter('mechanical')}
+            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${filter === 'mechanical' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+          >
+            Mecânica
+          </button>
+        </div>
+      </div>
+
+      {/* Training Zones Dashboard */}
+      <div className="bento-card bg-slate-900 border-slate-800 p-8 overflow-hidden relative">
+        <div className="absolute top-0 right-0 p-8 opacity-10">
+          <TrendingUp className="w-32 h-32 text-blue-500" />
+        </div>
+        <div className="relative z-10">
+          <div className="mb-8">
+            <p className="label-caps italic mb-1">Prescrição</p>
+            <h3 className="text-2xl font-black text-white uppercase italic">Zonas de Treinamento e Intensidade</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
+            {zones.map(z => (
+              <button 
+                key={z.id}
+                onClick={() => setSelectedZone(selectedZone === z.id ? null : z.id)}
+                className={`p-6 rounded-2xl border transition-all text-left group ${selectedZone === z.id ? 'bg-slate-800 border-blue-500 ring-1 ring-blue-500' : 'bg-slate-800/30 border-slate-800 hover:border-slate-700'}`}
+              >
+                <div className={`w-8 h-1 rounded-full mb-4 ${z.color}`}></div>
+                <h4 className="text-[10px] font-black text-white uppercase italic tracking-widest">{z.label}</h4>
+                <p className="text-lg font-black text-white italic mt-1 leading-none">{z.title}</p>
+                <p className="text-[9px] text-slate-500 font-bold uppercase mt-2">{z.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Manifestations Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <AnimatePresence mode="popLayout">
+          {filteredManifestations.map((m, idx) => (
+            <motion.div
+              layout
+              key={m.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ delay: idx * 0.05 }}
+              className="bento-card bg-slate-900 border-slate-800 hover:border-blue-500/30 transition-all flex flex-col group h-full"
+            >
+              <div className="p-8 space-y-6 flex-1">
+                <div className="flex justify-between items-start">
+                  <div className={`p-3 rounded-xl ${m.color} text-white shadow-lg`}>
+                    {m.icon}
+                  </div>
+                  <div className="flex flex-col items-end text-right">
+                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest italic mb-1">{m.category}</span>
+                    <span className={`text-[10px] font-black px-2 py-0.5 rounded italic text-white ${zones.find(z => z.id === m.zone)?.color || 'bg-slate-700'}`}>
+                      Zona {m.zone}
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-black text-white uppercase italic tracking-tighter group-hover:text-blue-400 transition-colors">{m.title}</h3>
+                  <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-2">{m.definition}</p>
+                </div>
+
+                <div className="space-y-4 pt-4 border-t border-slate-800/50">
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Objetivo Fisiológico</p>
+                    <p className="text-[10px] text-slate-300 font-bold italic">{m.physiologicalGoal}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Intensidade</p>
+                    <p className="text-[10px] text-white font-black italic">{m.intensity}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-slate-800/30 p-6 rounded-b-[2rem] border-t border-slate-800/50 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Dumbbell className="w-3 h-3 text-blue-500 mt-0.5" />
+                  <div>
+                    <p className="text-[8px] font-black text-slate-500 uppercase">Exemplos Práticos</p>
+                    <p className="text-[10px] text-slate-400 font-bold italic">{m.examples}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Target className="w-3 h-3 text-emerald-500 mt-0.5" />
+                  <div>
+                    <p className="text-[8px] font-black text-slate-500 uppercase">Indicação de Uso</p>
+                    <p className="text-[10px] text-slate-400 font-bold italic">{m.indication}</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* Performance Graph Placeholder */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bento-card bg-slate-900 border-slate-800 p-8">
+          <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic mb-6">Correlação Força-Velocidade</h4>
+          <div className="h-[200px] flex items-end gap-2 relative">
+             <div className="absolute left-0 bottom-0 top-0 w-px bg-slate-800"></div>
+             <div className="absolute left-0 right-0 bottom-0 h-px bg-slate-800"></div>
+             {/* Force Curve Representation */}
+             <svg className="absolute inset-0 w-full h-full overflow-visible">
+                <path 
+                  d="M 10 20 Q 50 180 300 190" 
+                  fill="none" 
+                  stroke="url(#gradient-curve)" 
+                  strokeWidth="4" 
+                  strokeLinecap="round"
+                />
+                <defs>
+                  <linearGradient id="gradient-curve" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" />
+                    <stop offset="100%" stopColor="#3b82f6" />
+                  </linearGradient>
+                </defs>
+             </svg>
+             <div className="absolute left-4 top-4 text-[8px] font-black text-red-500 uppercase">Alta Força / Baixa Vel.</div>
+             <div className="absolute right-4 bottom-4 text-[8px] font-black text-blue-500 uppercase">Baixa Força / Alta Vel.</div>
+          </div>
+          <div className="mt-4 flex justify-between text-[8px] font-black text-slate-600 uppercase tracking-widest italic">
+            <span>Força Absoluta</span>
+            <span>Potência</span>
+            <span>Velocidade</span>
+          </div>
+        </div>
+
+        <div className="bento-card bg-slate-900 border-slate-800 p-8 space-y-4">
+           <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic mb-2">Resumo de Categorização</h4>
+           <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 rounded-2xl bg-orange-600/10 border border-orange-600/20 flex items-center justify-center text-orange-600 font-black italic">N</div>
+                 <div>
+                    <p className="text-[10px] font-black text-white uppercase italic">Força Neural</p>
+                    <p className="text-[9px] text-slate-500 font-bold">Foco em sistema nervoso e coordenação motora.</p>
+                 </div>
+              </div>
+              <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 rounded-2xl bg-blue-600/10 border border-blue-600/20 flex items-center justify-center text-blue-600 font-black italic">M</div>
+                 <div>
+                    <p className="text-[10px] font-black text-white uppercase italic">Força Metabólica</p>
+                    <p className="text-[9px] text-slate-500 font-bold">Foco em sistemas energéticos e tolerância à fadiga.</p>
+                 </div>
+              </div>
+              <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 rounded-2xl bg-indigo-600/10 border border-indigo-600/20 flex items-center justify-center text-indigo-600 font-black italic">MC</div>
+                 <div>
+                    <p className="text-[10px] font-black text-white uppercase italic">Força Mecânica</p>
+                    <p className="text-[9px] text-slate-500 font-bold">Foco em tipos de contração e vetores de força.</p>
+                 </div>
+              </div>
+           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+

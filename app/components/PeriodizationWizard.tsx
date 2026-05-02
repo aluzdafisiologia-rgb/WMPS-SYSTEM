@@ -27,11 +27,11 @@ interface PeriodizationWizardProps {
 }
 
 const GOALS = [
-  { id: 'hypertrophy', label: 'Hipertrofia', icon: <Dumbbell className="w-5 h-5" />, color: 'from-blue-500 to-indigo-600' },
-  { id: 'strength', label: 'Força Máxima', icon: <Zap className="w-5 h-5" />, color: 'from-red-500 to-orange-600' },
-  { id: 'power', label: 'Potência', icon: <Zap className="w-5 h-5 text-yellow-400" />, color: 'from-yellow-500 to-orange-500' },
-  { id: 'endurance', label: 'Resistência', icon: <Timer className="w-5 h-5" />, color: 'from-emerald-500 to-teal-600' },
-  { id: 'weight_loss', label: 'Emagrecimento', icon: <TrendingUp className="w-5 h-5" />, color: 'from-pink-500 to-rose-600' },
+  { id: 'hypertrophy', label: 'Hipertrofia Muscular', icon: <Dumbbell className="w-5 h-5" />, color: 'from-blue-500 to-indigo-600', description: 'Tensão mecânica + estresse metabólico (70–85% 1RM)' },
+  { id: 'strength', label: 'Força Máxima', icon: <Zap className="w-5 h-5" />, color: 'from-red-500 to-orange-600', description: 'Recrutamento máximo de unidades motoras (>85% 1RM)' },
+  { id: 'power', label: 'Potência / RFD', icon: <Zap className="w-5 h-5 text-yellow-400" />, color: 'from-yellow-500 to-orange-500', description: 'Taxa de Desenvolvimento de Força — via fosfagênio' },
+  { id: 'endurance', label: 'Resistência Aeróbica (Oxidativa)', icon: <Timer className="w-5 h-5" />, color: 'from-emerald-500 to-teal-600', description: 'Capacidade oxidativa (VO₂máx / Vcrit)' },
+  { id: 'body_composition', label: 'Otimização da Composição Corporal', icon: <TrendingUp className="w-5 h-5" />, color: 'from-pink-500 to-rose-600', description: '↑ Massa Magra / ↓ Gordura Corporal — balanço energético' },
 ];
 
 export default function PeriodizationWizard({ athlete, sessions, onClose, onSave }: PeriodizationWizardProps) {
@@ -173,14 +173,19 @@ export default function PeriodizationWizard({ athlete, sessions, onClose, onSave
                         <div className={`p-3 rounded-xl w-fit ${selectedGoals.includes(goal.id) ? 'bg-white/20 text-white' : 'bg-slate-900 text-slate-500 group-hover:text-white transition-colors'}`}>
                           {goal.icon}
                         </div>
-                        <span className={`text-xs font-black uppercase italic tracking-widest ${selectedGoals.includes(goal.id) ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>
-                          {goal.label}
-                        </span>
-                        {selectedGoals.includes(goal.id) && (
-                          <div className="absolute top-4 right-4">
-                            <Check className="w-4 h-4 text-white" />
-                          </div>
-                        )}
+                         <span className={`text-xs font-black uppercase italic tracking-widest ${selectedGoals.includes(goal.id) ? 'text-white' : 'text-slate-500 group-hover:text-white'}`}>
+                           {goal.label}
+                         </span>
+                         {selectedGoals.includes(goal.id) && (
+                           <div className="absolute top-4 right-4">
+                             <Check className="w-4 h-4 text-white" />
+                           </div>
+                         )}
+                         {'description' in goal && (
+                           <span className={`text-[8px] font-bold uppercase leading-tight mt-1 ${selectedGoals.includes(goal.id) ? 'text-white/60' : 'text-slate-600'}`}>
+                             {(goal as any).description}
+                           </span>
+                         )}
                       </button>
                     ))}
                   </div>
@@ -285,9 +290,9 @@ export default function PeriodizationWizard({ athlete, sessions, onClose, onSave
                       <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest italic">Raciocínio Clínico do Sistema</span>
                    </div>
                    <p className="text-[10px] text-blue-400/70 font-medium leading-relaxed italic">
-                      Planejamento estruturado em modelo {durationWeeks > 8 ? 'Macrociclo Matveev' : 'Pliométrico Curto'}. 
-                      A distribuição prioriza {selectedGoals.join(' + ')} com ondas de carga progressivas e polimento final para supercompensação.
-                   </p>
+                       Planejamento estruturado em modelo {durationWeeks > 8 ? 'Macrociclo (Matveev / ATR)' : 'Modelo ATR Curto (Issurin, 4–8 semanas)'}. 
+                       A distribuição prioriza {selectedGoals.join(' + ')} com ondas de carga progressivas (sobrecarga linear/ondulária) e tapering final para supercompensação máxima.
+                    </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -1,7 +1,46 @@
+# Dependencies
 node_modules/
+
+# Build
 .next/
-coverage/
-.DS_Store
-*.log
+out/
+
+# Environment files (NEVER commit secrets)
 .env*
 !.env.example
+
+# System
+.DS_Store
+*.log
+Thumbs.db
+
+# Vercel
+.vercel
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+
+# Scratch / temporary files
+scratch/
+*.patch
+
+# Backup/recovery files
+coach_page_recovered.txt
+coach_page_win1252.txt
+all_changes.patch
+
+# Debug / test scripts (root level)
+add_button.js
+clean.js
+clean_coach.ps1
+debug_eq.js
+fix-safe.js
+fix_encoding.ps1
+fix_equations.js
+test-mojibake.js
+
+# Force manifestations text (draft)
+app/coach/force-manifestations-module.txt
+
+# Coverage
+coverage/

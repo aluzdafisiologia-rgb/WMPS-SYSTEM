@@ -54,10 +54,11 @@ export function generateFullPlan(athlete: any, goals: string[], durationWeeks: n
 
     // Sugestão de Exercícios baseada no Objetivo
     const suggestions = [];
-    if (goals.includes('hypertrophy')) suggestions.push('Multiarticulares (6-12 reps)', 'Isoladores (12-15 reps)');
-    if (goals.includes('strength')) suggestions.push('Básicos (1-5 reps)', 'Cluster Sets');
-    if (goals.includes('power')) suggestions.push('Pliometria', 'Derivados de LPO');
-    if (goals.includes('endurance')) suggestions.push('Treino Intervalado', 'Circuitos');
+    if (goals.includes('hypertrophy')) suggestions.push('Exercícios Multiarticulares (6–12 reps, 70–85% 1RM)', 'Exercícios Monoarticulares (12–15 reps, 65–75% 1RM)');
+    if (goals.includes('strength')) suggestions.push('Exercícios Básicos / Força Máxima (1–5 reps, >85% 1RM)', 'Cluster Sets / Método de Esforço Máximo');
+    if (goals.includes('power')) suggestions.push('Pliometria (CEA — Ciclo Alongamento-Encurtamento)', 'Derivados de Levantamento Olímpico (30–60% 1RM, alta RFD)');
+    if (goals.includes('endurance')) suggestions.push('HIIT (≥85% vVO₂máx, densidade 1:1–1:2)', 'Método Contínuo Extensivo (65–75% FC máx, >20 min)');
+    if (goals.includes('body_composition')) suggestions.push('Método de Repetições Elevadas (15–20 reps, alta densidade)', 'Combinação Aeróbico + Resistência (HIIT + Força Moderada)');
 
     plan.push({
       week: w,
@@ -74,10 +75,30 @@ export function generateFullPlan(athlete: any, goals: string[], durationWeeks: n
 }
 
 export const STRENGTH_ZONES: TrainingZone[] = [
-  { name: 'Resistência Muscular', minIntensity: 40, maxIntensity: 60, description: 'Foco em volume alto e baixa carga' },
-  { name: 'Hipertrofia', minIntensity: 70, maxIntensity: 85, description: 'Foco em ganho de massa muscular' },
-  { name: 'Força Máxima', minIntensity: 85, maxIntensity: 100, description: 'Foco em recrutamento neuromuscular' },
-  { name: 'Potência', minIntensity: 30, maxIntensity: 50, description: 'Foco em velocidade de execução' },
+  {
+    name: 'Resistência Muscular Local (Anaeróbica)',
+    minIntensity: 50,
+    maxIntensity: 70,
+    description: 'Tolerância ao acúmulo lático — alto volume (≥15 reps), densid. 1:1. Predominância glicolítica.'
+  },
+  {
+    name: 'Zona de Tensão Mecânica (Hipertrofia Miofibrilar/Sarcoplasmática)',
+    minIntensity: 70,
+    maxIntensity: 85,
+    description: 'Estresse mecânico e metabólico para adaptações hipertróficas (6–12 reps, Schoenfeld 2010).'
+  },
+  {
+    name: 'Força Máxima (Recrutamento Neuromuscular)',
+    minIntensity: 85,
+    maxIntensity: 100,
+    description: 'Recrutamento máximo de unidades motoras e sincronização intramuscular (1–5 reps, NSCA).'
+  },
+  {
+    name: 'Potência / RFD (Fosfagênio — ATP-CP)',
+    minIntensity: 30,
+    maxIntensity: 60,
+    description: 'Maximização da Taxa de Desenvolvimento de Força (RFD) e potência de pico (W) — alta velocidade de execução.'
+  },
 ];
 
 /**
@@ -124,14 +145,14 @@ export function calculateACWR(sessions: Session[]): { ratio: number; status: 'lo
 
   const ratio = Number((acuteEWMA / chronicEWMA).toFixed(2));
   let status: 'low' | 'optimal' | 'high' = 'optimal';
-  let message = 'Sweet Spot (EWMA)';
+  let message = 'Zona de Sobrecarga Funcional (ACWR 0.8–1.3) — Adaptação Ótima';
 
   if (ratio > 1.5) {
     status = 'high';
-    message = 'Risco Exponencial (Danger Zone)';
+    message = 'Zona de Alto Risco (ACWR >1.5) — Sobrecarga Aguda Não Funcional';
   } else if (ratio < 0.8) {
     status = 'low';
-    message = 'Descondicionamento (Under-training)';
+    message = 'Síndrome de Subtreinamento (ACWR <0.8) — Destreinamento Progressivo';
   }
 
   return { ratio, status, message, acuteEWMA, chronicEWMA };

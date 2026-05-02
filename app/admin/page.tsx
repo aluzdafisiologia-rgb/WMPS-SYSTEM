@@ -29,7 +29,10 @@ export default function AdminDashboard() {
   }, []);
 
   const checkAdminAccess = async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      window.location.href = '/';
+      return;
+    }
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
