@@ -57,6 +57,8 @@ export async function approveRegistration(request: any) {
       const existingUser = listData?.users.find(u => u.email === request.email);
       if (existingUser) {
         userId = existingUser.id;
+        // Força a atualização da senha para garantir que a senha provisória exibida no alerta realmente funcione
+        await supabase.auth.admin.updateUserById(userId, { password: tempPassword });
       } else {
         return { success: false, error: 'Erro ao buscar usuário existente' };
       }
