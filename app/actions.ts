@@ -461,20 +461,28 @@ export async function approveRegistration(requestId: string) {
       user_metadata: { full_name: request.full_name }
     });
 
+    let userId = authData?.user?.id;
+
     if (authError) {
-      // Se o erro for que o usuário já existe, tentamos apenas atualizar o status
-      if (authError.message.includes('already registered')) {
-         await supabase.from('registration_requests').update({ status: 'aprovado' }).eq('id', requestId);
-         return { success: true, alreadyExists: true };
+      // Se o erro for que o usuário já existe, buscamos o ID para tentar recuperar a criação do Profile
+      if (authError.message.includes('already been registered') || authError.message.includes('already registered')) {
+         const { data: listData } = await supabase.auth.admin.listUsers();
+         const existingUser = listData?.users.find(u => u.email === request.email);
+         if (existingUser) {
+           userId = existingUser.id;
+         } else {
+           throw new Error('Usuário já registrado no Auth, mas ID não encontrado.');
+         }
+      } else {
+        throw authError;
       }
-      throw authError;
     }
 
     // 4. Criar perfil
     const { error: profileError } = await supabase
       .from('profiles')
       .upsert([{
-        id: authData.user.id,
+        id: userId,
         full_name: request.full_name,
         email: request.email,
         phone: request.phone,

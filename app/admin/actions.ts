@@ -45,7 +45,7 @@ export async function approveRegistration(request: any) {
       email_confirm: true
     });
 
-    if (authError && !authError.message.includes('already registered')) {
+    if (authError && !authError.message.includes('already been registered') && !authError.message.includes('already registered')) {
       return { success: false, error: 'Erro ao criar usuário: ' + authError.message };
     }
 
