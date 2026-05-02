@@ -462,6 +462,7 @@ export async function approveRegistration(requestId: string) {
     });
 
     let userId = authData?.user?.id;
+    let alreadyExists = false;
 
     if (authError) {
       // Se o erro for que o usuário já existe, buscamos o ID para tentar recuperar a criação do Profile
@@ -470,6 +471,7 @@ export async function approveRegistration(requestId: string) {
          const existingUser = listData?.users.find(u => u.email === request.email);
          if (existingUser) {
            userId = existingUser.id;
+           alreadyExists = true;
          } else {
            throw new Error('Usuário já registrado no Auth, mas ID não encontrado.');
          }
@@ -508,11 +510,12 @@ export async function approveRegistration(requestId: string) {
       success: true, 
       email: request.email, 
       password: tempPassword,
-      fullName: request.full_name
+      fullName: request.full_name,
+      alreadyExists
     };
   } catch (error: any) {
     console.error('Error approving registration:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, alreadyExists: false };
   }
 }
 
