@@ -122,3 +122,22 @@ export async function changeUserRole(userId: string, newRole: string) {
   revalidatePath('/admin');
   return { success: !error, error: error?.message };
 }
+
+// Resetar Senha
+export async function resetUserPassword(userId: string) {
+  if (!supabase) return { success: false, error: 'Sem conexão' };
+  
+  try {
+    const tempPassword = Math.random().toString(36).slice(-8) + 'WMPS!';
+    
+    const { error: authError } = await supabase.auth.admin.updateUserById(userId, { password: tempPassword });
+    if (authError) return { success: false, error: 'Erro ao resetar no Auth: ' + authError.message };
+    
+    const { error: profError } = await supabase.from('profiles').update({ must_change_password: true }).eq('id', userId);
+    if (profError) return { success: false, error: 'Erro ao atualizar perfil: ' + profError.message };
+    
+    return { success: true, tempPassword };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

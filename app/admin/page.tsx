@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { getPendingRequests, getAllUsers, approveRegistration, denyRegistration, changeUserRole } from './actions';
+import { getPendingRequests, getAllUsers, approveRegistration, denyRegistration, changeUserRole, resetUserPassword } from './actions';
 import { getUserRole } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
 
@@ -97,6 +97,20 @@ export default function AdminDashboard() {
       await loadData();
     } else {
       alert('Erro ao alterar permissão: ' + res.error);
+    }
+    setActionLoading(null);
+  };
+
+  const handleResetPassword = async (userId: string, userName: string, userEmail: string) => {
+    if (!confirm(`Gerar nova senha provisória para ${userName}?`)) return;
+    setActionLoading(`reset_${userId}`);
+    const res = await resetUserPassword(userId);
+    if (res.success) {
+      const text = `Olá, ${userName}!\nSua senha foi resetada pelo administrador.\n\nLogin (E-mail): ${userEmail}\nNova senha provisória: ${res.tempPassword}`;
+      navigator.clipboard.writeText(text);
+      alert(`Senha resetada com sucesso!\nA mensagem com a nova senha foi copiada para sua área de transferência.`);
+    } else {
+      alert('Erro ao resetar senha: ' + res.error);
     }
     setActionLoading(null);
   };
@@ -262,7 +276,7 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {users.map(user => (
-                  <div key={user.id} className={`bento-card border-slate-800 p-6 flex flex-col justify-between h-[260px] relative overflow-hidden transition-all ${user.role === 'admin' ? 'bg-purple-900/20 border-purple-500/30' : user.role === 'coach' ? 'bg-emerald-900/10' : user.role === 'blocked' ? 'bg-rose-950/20 border-rose-900/50 opacity-70' : 'bg-slate-900/60'}`}>
+                  <div key={user.id} className={`bento-card border-slate-800 p-6 flex flex-col justify-between min-h-[290px] h-auto relative overflow-hidden transition-all ${user.role === 'admin' ? 'bg-purple-900/20 border-purple-500/30' : user.role === 'coach' ? 'bg-emerald-900/10' : user.role === 'blocked' ? 'bg-rose-950/20 border-rose-900/50 opacity-70' : 'bg-slate-900/60'}`}>
                     
                     {/* Role Badge */}
                     <div className="absolute top-4 right-4">
@@ -322,6 +336,13 @@ export default function AdminDashboard() {
                           )}
                         </>
                       )}
+                      <button 
+                        onClick={() => handleResetPassword(user.id, user.full_name, user.email)}
+                        disabled={actionLoading !== null}
+                        className="col-span-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-colors border border-yellow-500/20"
+                      >
+                        {actionLoading === `reset_${user.id}` ? <div className="w-3 h-3 border-2 border-yellow-500/30 border-t-yellow-500 rounded-full animate-spin"/> : <><Zap className="w-3 h-3"/> Resetar Senha</>}
+                      </button>
                     </div>
                   </div>
                 ))}
