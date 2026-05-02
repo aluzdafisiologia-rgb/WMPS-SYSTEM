@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+// Types and Interfaces for the William Moreira Performance System (WMPS)
 
 export interface Session {
   id: string;
@@ -65,79 +65,5 @@ export interface TrainingPrescription {
   completed_at?: string;
 }
 
-export interface Database {
-  sessions: Session[];
-  wellness: WellnessEntry[];
-  profiles: Profile[];
-}
-
-export async function getDb(): Promise<Database> {
-  if (!supabase) return { sessions: [], wellness: [], profiles: [] };
-  const { data: sessions, error: sErr } = await supabase.from('sessions').select('*');
-  const { data: wellness, error: wErr } = await supabase.from('wellness').select('*');
-  const { data: profiles, error: pErr } = await supabase.from('profiles').select('*');
-  
-  if (sErr) console.error('Error fetching sessions:', sErr);
-  if (wErr) console.error('Error fetching wellness:', wErr);
-  if (pErr) console.error('Error fetching profiles:', pErr);
-
-  return {
-    sessions: sessions || [],
-    wellness: wellness || [],
-    profiles: profiles || []
-  };
-}
-
-export async function saveProfile(profile: Profile) {
-  if (!supabase) throw new Error('Supabase client not initialized');
-  const { data, error } = await supabase.from('profiles').upsert([profile], { onConflict: 'athlete_id' }).select().single();
-  if (error) {
-    console.error('Supabase error (profiles):', error);
-    throw error;
-  }
-  return data;
-}
-
-export async function saveDb(data: Database) {
-  // saveDb was mainly used internally for the JSON file.
-  // With Supabase, we insert/update directly.
-  console.warn('saveDb called, but should use direct Supabase inserts.');
-}
-
-export async function addSession(session: Omit<Session, 'id' | 'load'>) {
-  const load = session.rpe * session.duration;
-  
-  if (!supabase) throw new Error('Supabase client not initialized');
-  const { data, error } = await supabase.from('sessions').insert([{
-    ...session,
-    load
-  }]).select().single();
-
-  if (error) {
-    console.error('Supabase insert error (sessions):', error);
-    throw error;
-  }
-  return data;
-}
-
-export async function addWellness(entry: Omit<WellnessEntry, 'id' | 'score' | 'classification'>) {
-  const total = entry.recovery + entry.sleep + entry.stress + entry.fatigue + entry.soreness;
-  const score = Number((total / 40 * 100).toFixed(0));
-  
-  let classification = 'Médio';
-  if (total >= 32) classification = 'Alto';
-  else if (total <= 18) classification = 'Baixo';
-
-  if (!supabase) throw new Error('Supabase client not initialized');
-  const { data, error } = await supabase.from('wellness').insert([{
-    ...entry,
-    score,
-    classification
-  }]).select().single();
-
-  if (error) {
-    console.error('Supabase insert error (wellness):', error);
-    throw error;
-  }
-  return data;
-}
+// Nota: Todas as funções de banco de dados foram movidas para app/actions.ts 
+// para garantir consistência e segurança via Server Actions.

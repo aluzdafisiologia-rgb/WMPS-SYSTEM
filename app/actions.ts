@@ -3,7 +3,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
-import { addSession, addWellness, getDb, Session, WellnessEntry, saveProfile } from '@/lib/db';
+import { Session, WellnessEntry, Profile } from '@/lib/db';
 
 // Conexão direta e segura
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -23,7 +23,7 @@ export async function logAnamnesis(userId: string, data: any) {
   if (!supabase) return;
   try {
     const { error } = await supabase
-      .from('anamnesis')
+      .from('anamnese')
       .upsert({
         athlete_id: userId,
         athlete_name: data.athleteName,
@@ -42,7 +42,7 @@ export async function getAnamnesis() {
   if (!supabase) return [];
   try {
     const { data, error } = await supabase
-      .from('anamnesis')
+      .from('anamnese')
       .select('*')
       .order('date', { ascending: false });
 
@@ -57,7 +57,6 @@ export async function getAnamnesis() {
 // --- PERMISSÕES E ROLES ---
 
 // --- FUNÇÕES DE CADASTRO ---
-
 export async function submitRegistrationRequest(request: any) {
   try {
     if (!supabase) {
@@ -105,7 +104,7 @@ export async function logWorkout(userId: string, formData: any) {
   try {
     if (!supabase) throw new Error('Banco de dados indisponível');
     
-    await supabase.from('sessions').insert([{
+    await supabase.from('sessoes_treino').insert([{
       athlete_id: userId,
       athlete_name: formData.athleteName,
       date: formData.date,
@@ -128,7 +127,14 @@ export async function logWellness(userId: string, formData: any) {
   try {
     if (!supabase) throw new Error('Banco de dados indisponível');
 
-    await supabase.from('wellness').insert([{
+    const total = formData.recovery + formData.sleep + formData.stress + formData.fatigue + formData.soreness;
+    const score = Math.round((total / 40) * 100);
+    
+    let classification = 'Médio';
+    if (total >= 32) classification = 'Alto';
+    else if (total <= 18) classification = 'Baixo';
+
+    await supabase.from('bem_estar').insert([{
       athlete_id: userId,
       athlete_name: formData.athleteName,
       date: formData.date,
@@ -137,12 +143,16 @@ export async function logWellness(userId: string, formData: any) {
       stress: formData.stress,
       fatigue: formData.fatigue,
       soreness: formData.soreness,
-      score: Math.round((formData.recovery + formData.sleep + formData.stress + formData.fatigue + formData.soreness) / 5)
+      score: score,
+      classification: classification
     }]);
 
     revalidatePath('/coach');
-  } catch (e) {
+    revalidatePath('/athlete');
+    return { success: true, score, classification };
+  } catch (e: any) {
     console.error('Error logging wellness:', e);
+    return { success: false, error: e.message };
   }
 }
 
@@ -192,7 +202,7 @@ export async function getAssessments(athleteId?: string) {
 export async function getSessions(athleteId?: string) {
   try {
     if (!supabase) return [];
-    let query = supabase.from('sessions').select('*').order('date', { ascending: true });
+    let query = supabase.from('sessoes_treino').select('*').order('date', { ascending: true });
     if (athleteId) query = query.eq('athlete_id', athleteId);
     const { data } = await query;
     return data || [];
@@ -204,7 +214,7 @@ export async function getSessions(athleteId?: string) {
 export async function getWellness(athleteId?: string) {
   try {
     if (!supabase) return [];
-    let query = supabase.from('wellness').select('*').order('date', { ascending: true });
+    let query = supabase.from('bem_estar').select('*').order('date', { ascending: true });
     if (athleteId) query = query.eq('athlete_id', athleteId);
     const { data } = await query;
     return data || [];
@@ -225,11 +235,20 @@ export async function registerProfile(profile: any) {
     weight: profile.weight,
     sport: profile.sport,
     goal: profile.goal,
-    experience_level: profile.experienceLevel
+    experience_level: profile.experienceLevel,
+    role: 'athlete'
   };
 
   try {
-    const result = await saveProfile(data); 
+    if (!supabase) throw new Error('Database not available');
+    const { data: result, error } = await supabase
+      .from('atletas')
+      .upsert([data], { onConflict: 'athlete_id' })
+      .select()
+      .single();
+
+    if (error) throw error;
+
     revalidatePath('/');
     revalidatePath('/coach');
     return result;
@@ -243,7 +262,7 @@ export async function updateProfilePhoto(userId: string, photoUrl: string) {
   if (!supabase) return { success: false, error: 'Database not available' };
   try {
     const { error } = await supabase
-      .from('profiles')
+      .from('atletas')
       .update({ photo_url: photoUrl })
       .eq('id', userId);
     
@@ -260,7 +279,7 @@ export async function updateProfilePhoto(userId: string, photoUrl: string) {
 export async function checkMustChangePassword(userId: string) {
   if (!supabase) return false;
   const { data } = await supabase
-    .from('profiles')
+    .from('atletas')
     .select('must_change_password')
     .eq('id', userId)
     .single();
@@ -278,7 +297,7 @@ export async function updateUserPassword(userId: string, newPassword: string) {
 
     // 2. Marcar como alterado no Profile
     const { error: profError } = await supabase
-      .from('profiles')
+      .from('atletas')
       .update({ must_change_password: false })
       .eq('id', userId);
     
@@ -294,7 +313,7 @@ export async function updateUserPassword(userId: string, newPassword: string) {
 export async function getUserRole(userId: string) {
   if (!supabase) return 'athlete';
   try {
-    const { data } = await supabase.from('profiles').select('role').eq('id', userId).single();
+    const { data } = await supabase.from('atletas').select('role').eq('id', userId).single();
     return data?.role || 'athlete';
   } catch (e) {
     return 'athlete';
@@ -315,8 +334,8 @@ export async function getAthletes() {
   if (!supabase) return [];
   try {
     const { data, error } = await supabase
-      .from('profiles')
-      .select('id, athlete_id, full_name, sport, photo_url, role, team_name, birth_date, gender, weight, height')
+      .from('atletas')
+      .select('id, athlete_id, full_name, sport, photo_url, role, team_name, birth_date, gender, weight, height, goal, experience_level, is_minor, email, phone, guardian_name, guardian_cpf, guardian_phone, guardian_relationship')
       .eq('role', 'athlete')
       .order('full_name', { ascending: true });
 
@@ -324,7 +343,6 @@ export async function getAthletes() {
       console.error('SUPABASE ERROR IN getAthletes:', error);
       throw error;
     }
-    console.log(`getAthletes: Found ${data?.length || 0} athletes`);
     return data || [];
   } catch (error) {
     console.error('Error getting athletes:', error);
@@ -336,7 +354,7 @@ export async function saveTrainingPrescription(prescription: any) {
   if (!supabase) throw new Error('Supabase client not initialized');
   try {
     const { data, error } = await supabase
-      .from('training_prescriptions')
+      .from('treinos')
       .insert([{
         athlete_id: prescription.athlete_id,
         coach_id: prescription.coach_id,
@@ -360,7 +378,7 @@ export async function getActivePrescription(athleteId: string) {
   if (!supabase) return null;
   try {
     const { data, error } = await supabase
-      .from('training_prescriptions')
+      .from('treinos')
       .select('*')
       .eq('athlete_id', athleteId)
       .eq('status', 'pending')
@@ -380,7 +398,7 @@ export async function getAthletePrescriptions(athleteId: string) {
   if (!supabase) return [];
   try {
     const { data, error } = await supabase
-      .from('training_prescriptions')
+      .from('treinos')
       .select('id, athlete_id, athlete_name, status, completed_at, completed_blocks, total_blocks, created_at, data')
       .eq('athlete_id', athleteId)
       .order('created_at', { ascending: true });
@@ -397,7 +415,7 @@ export async function getAllPrescriptions() {
   if (!supabase) return [];
   try {
     const { data, error } = await supabase
-      .from('training_prescriptions')
+      .from('treinos')
       .select('id, athlete_id, athlete_name, status, completed_at, completed_blocks, total_blocks, created_at')
       .order('created_at', { ascending: false });
 
@@ -414,7 +432,7 @@ export async function completeTraining(prescriptionId: string, workoutData: any)
   try {
     // Marcar prescrição como concluída, salvando metadados de blocos executados
     const { error: pError } = await supabase
-      .from('training_prescriptions')
+      .from('treinos')
       .update({ 
         status: 'completed',
         completed_at: new Date().toISOString(),
@@ -434,7 +452,7 @@ export async function completeTraining(prescriptionId: string, workoutData: any)
   }
 }
 
-export async function approveRegistration(requestId: string) {
+export async function approveAthleteRegistration(requestId: string) {
   if (!supabase) return { success: false, error: 'Supabase não configurado' };
   
   // Proteção contra acesso não autorizado
@@ -482,7 +500,7 @@ export async function approveRegistration(requestId: string) {
 
     // 4. Criar perfil
     const { error: profileError } = await supabase
-      .from('profiles')
+      .from('atletas')
       .upsert([{
         id: userId,
         full_name: request.full_name,
@@ -519,6 +537,73 @@ export async function approveRegistration(requestId: string) {
   }
 }
 
+export async function createAthlete(athleteData: any) {
+  if (!supabase) return { success: false, error: 'Supabase não inicializado' };
+
+  try {
+    // 1. Verificar se já existe perfil com esse email
+    const { data: existing } = await supabase
+      .from('atletas')
+      .select('id')
+      .eq('email', athleteData.email)
+      .maybeSingle();
+
+    if (existing) {
+      return { success: false, error: 'Um atleta com este e-mail já está cadastrado.' };
+    }
+
+    // 2. Criar usuário no Auth com senha temporária
+    const tempPassword = 'WMPS' + Math.random().toString(36).slice(-6) + '!';
+    
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email: athleteData.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { role: 'athlete', full_name: athleteData.full_name }
+    });
+
+    if (authError) throw authError;
+
+    const userId = authUser.user.id;
+
+    // 3. Criar perfil na tabela 'atletas'
+    const { error: profileError } = await supabase
+      .from('atletas')
+      .upsert([{
+        id: userId,
+        full_name: athleteData.full_name,
+        email: athleteData.email,
+        phone: athleteData.phone,
+        birth_date: athleteData.birth_date,
+        gender: athleteData.gender,
+        height: athleteData.height,
+        weight: athleteData.weight,
+        sport: athleteData.sport,
+        goal: athleteData.goal,
+        experience_level: athleteData.experience_level,
+        is_minor: athleteData.is_minor,
+        guardian_name: athleteData.guardian_name,
+        guardian_phone: athleteData.guardian_phone,
+        guardian_relationship: athleteData.guardian_relationship,
+        role: 'athlete',
+        must_change_password: true
+      }]);
+
+    if (profileError) throw profileError;
+
+    revalidatePath('/coach');
+    return { 
+      success: true, 
+      email: athleteData.email, 
+      password: tempPassword,
+      fullName: athleteData.full_name
+    };
+  } catch (error: any) {
+    console.error('Error creating athlete:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 export async function deleteRegistrationRequest(requestId: string) {
   if (!supabase) return { success: false, error: 'Supabase não inicializado' };
   
@@ -534,6 +619,204 @@ export async function deleteRegistrationRequest(requestId: string) {
 
 export async function getAthleteProfile(userId: string) {
   if (!supabase) return null;
-  const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  const { data } = await supabase.from('atletas').select('*').eq('id', userId).single();
   return data;
 }
+
+export async function updateAthleteProfile(athleteId: string, updates: any) {
+  if (!supabase) return { success: false, error: 'Sem conexão' };
+  const { error } = await supabase.from('atletas').update(updates).eq('id', athleteId);
+  revalidatePath('/coach');
+  revalidatePath('/athlete');
+  return { success: !error, error: error?.message };
+}
+
+// --- MÓDULO DE CICLO MENSTRUAL (NÚCLEO FISIOLÓGICO) ---
+
+export async function saveMenstrualCycle(userId: string, data: { lastPeriodDate: string, cycleDuration: number, regular: boolean }) {
+  try {
+    if (!supabase) throw new Error('Banco de dados indisponível');
+    const { error } = await supabase
+      .from('ciclo_menstrual')
+      .upsert([{
+        athlete_id: userId,
+        last_period_date: data.lastPeriodDate,
+        cycle_duration: data.cycleDuration,
+        regular: data.regular
+      }], { onConflict: 'athlete_id' });
+
+    if (error) throw error;
+    revalidatePath('/athlete');
+    return { success: true };
+  } catch (e: any) {
+    console.error('Erro ao salvar ciclo:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+export async function logMenstrualSymptoms(userId: string, symptoms: any) {
+  try {
+    if (!supabase) throw new Error('Database unavailable');
+    const { error } = await supabase
+      .from('sintomas_menstruais')
+      .insert([{
+        athlete_id: userId,
+        date: new Date().toISOString().split('T')[0],
+        ...symptoms
+      }]);
+
+    if (error) throw error;
+    revalidatePath('/athlete');
+    return { success: true };
+  } catch (e: any) {
+    console.error('Error logging symptoms:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+export async function getMenstrualData(userId: string) {
+  try {
+    if (!supabase) throw new Error('Banco de dados indisponível');
+    
+    const { data: cycle } = await supabase
+      .from('ciclo_menstrual')
+      .select('*')
+      .eq('athlete_id', userId)
+      .maybeSingle();
+
+    const { data: symptoms } = await supabase
+      .from('sintomas_menstruais')
+      .select('*')
+      .eq('athlete_id', userId)
+      .order('date', { ascending: false })
+      .limit(30);
+
+    return { cycle, symptoms: symptoms || [] };
+  } catch (e) {
+    console.error('Error fetching menstrual data:', e);
+    return { cycle: null, symptoms: [] };
+  }
+}
+
+// --- MÓDULO DE PRONTIDÃO (READINESS SCORE ENGINE) ---
+
+
+// --- MÓDULO DE PRONTIDÃO (READINESS SCORE ENGINE) ---
+
+export async function saveReadinessScore(userId: string, score: number, data: any) {
+  try {
+    if (!supabase) throw new Error('Banco de dados indisponível');
+    const { error } = await supabase
+      .from('prontidao')
+      .upsert([{
+        athlete_id: userId,
+        date: new Date().toISOString().split('T')[0],
+        score,
+        data
+      }], { onConflict: 'athlete_id,date' });
+
+    if (error) throw error;
+    revalidatePath('/athlete');
+    return { success: true };
+  } catch (e: any) {
+    console.error('Erro ao salvar readiness:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+export async function getReadinessHistory(userId: string) {
+  try {
+    if (!supabase) throw new Error('Banco de dados indisponível');
+    const { data } = await supabase
+      .from('prontidao')
+      .select('*')
+      .eq('athlete_id', userId)
+      .order('date', { ascending: false })
+      .limit(7);
+    return data || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+// --- MÓDULO DE MONITORAMENTO CLÍNICO ---
+
+export async function saveClinicalProfile(userId: string, data: any) {
+  try {
+    if (!supabase) throw new Error('Banco de dados indisponível');
+    const { error } = await supabase
+      .from('comorbidades')
+      .upsert([{
+        athlete_id: userId,
+        ...data,
+        updated_at: new Date().toISOString()
+      }], { onConflict: 'athlete_id' });
+
+    if (error) throw error;
+    revalidatePath('/athlete');
+    return { success: true };
+  } catch (e: any) {
+    console.error('Erro ao salvar perfil clínico:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+export async function logClinicalData(userId: string, data: any) {
+  try {
+    if (!supabase) throw new Error('Banco de dados indisponível');
+    const { error } = await supabase
+      .from('registros_clinicos')
+      .insert([{
+        athlete_id: userId,
+        date: new Date().toISOString().split('T')[0],
+        ...data
+      }]);
+
+    if (error) throw error;
+    revalidatePath('/athlete');
+    return { success: true };
+  } catch (e: any) {
+    console.error('Erro ao salvar log clínico:', e);
+    return { success: false, error: e.message };
+  }
+}
+
+export async function getClinicalData(userId: string) {
+  try {
+    if (!supabase) throw new Error('Banco de dados indisponível');
+    const { data: profile } = await supabase
+      .from('comorbidades')
+      .select('*')
+      .eq('athlete_id', userId)
+      .single();
+    
+    const { data: logs } = await supabase
+      .from('registros_clinicos')
+      .select('*')
+      .eq('athlete_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    return { profile: profile || null, logs: logs || [] };
+  } catch (e) {
+    return { profile: null, logs: [] };
+  }
+}
+
+export async function getLatestWellness(userId: string) {
+  try {
+    if (!supabase) throw new Error('Banco de dados indisponível');
+    const { data } = await supabase
+      .from('bem_estar')
+      .select('*')
+      .eq('athlete_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    return data || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+

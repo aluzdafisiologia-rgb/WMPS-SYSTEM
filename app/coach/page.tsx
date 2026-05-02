@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic';
 import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -39,7 +40,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis, getAthletes, saveTrainingPrescription, approveRegistration, getAthletePrescriptions, getAllPrescriptions, deleteRegistrationRequest, updateProfilePhoto, saveAssessment } from '../actions';
+import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis, getAthletes, saveTrainingPrescription, approveAthleteRegistration, getAthletePrescriptions, getAllPrescriptions, deleteRegistrationRequest, updateProfilePhoto, saveAssessment, updateAthleteProfile, createAthlete } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
 import { Session, WellnessEntry } from '@/lib/db';
 import { calculateACWR, calculateMonotony, calculateRiskScore } from '@/lib/periodization-engine';
@@ -83,7 +84,7 @@ const WELLNESS_CLASS = (score: number) => {
   return { label: 'EX', fullName: 'Excelente', color: 'bg-blue-500' };
 };
 
-export default function CoachPage() {
+function CoachPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [wellness, setWellness] = useState<WellnessEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -357,8 +358,8 @@ export default function CoachPage() {
             />
 
             <MenuButton 
-              title="Alunos" 
-              subtitle="Gestão de Atletas" 
+              title="Atletas" 
+              subtitle="Gestão e Elenco" 
               icon={<User className="w-8 h-8 text-cyan-400" />} 
               onClick={() => setActiveModule('athletes')} 
             />
@@ -1684,7 +1685,7 @@ function PowerAssessmentModule({ athletes, onSave }: { athletes?: any[], onSave?
                 onChange={(e) => setSelectedAthleteId(e.target.value)}
                 className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white font-black text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all h-[52px]"
               >
-                <option value="">Selecione o Aluno...</option>
+                <option value="">Selecione o Atleta...</option>
                 {athletes.map(a => <option key={a.id} value={a.id}>{a.full_name}</option>)}
               </select>
             </div>
@@ -2093,14 +2094,14 @@ function AnthropometricAssessmentModule({ athletes, onSave }: { athletes?: any[]
   );
 }
 
-function InputField({ label, value, set, disabled = false }: { label: string, value: string, set: (v: string) => void, disabled?: boolean }) {
+function InputField({ label, value, set, disabled = false, type = "number" }: { label: string, value: string, set: (v: string) => void, disabled?: boolean, type?: string }) {
   return (
     <div className="space-y-1 group">
        <div className="flex justify-between items-center px-1">
           <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-focus-within:text-blue-500 transition-colors">{label}</span>
        </div>
        <input 
-         type="number" 
+         type={type} 
          disabled={disabled}
          value={value} 
          onChange={e => set(e.target.value)} 
@@ -3594,9 +3595,42 @@ function PeriodizationModule({ setWizardAthlete, setShowWizard }: { setWizardAth
           </div>
         )}
 
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-4 max-w-2xl mx-auto">
+          <div className="w-20 h-20 bg-blue-600/10 rounded-full flex items-center justify-center mx-auto mb-2 border border-blue-500/20">
+            <Target className="w-10 h-10 text-blue-500" />
+          </div>
           <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Configuração da Periodização</h2>
-          <p className="text-slate-400">Insira os dados do aluno para gerar a estrutura ideal de treinamento.</p>
+          <p className="text-slate-400 text-sm font-medium leading-relaxed">Selecione um atleta abaixo para iniciar o planejamento estratégico de elite ou gerenciar o macrociclo ativo.</p>
+          
+          <div className="pt-8 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+            <div className="md:col-span-8 text-left space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Selecione o Atleta</label>
+              <select 
+                value={selectedAthleteId || ''}
+                onChange={(e) => setSelectedAthleteId(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-800 rounded-2xl px-6 py-4 text-white font-black text-sm outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none cursor-pointer"
+              >
+                <option value="">Escolha um atleta...</option>
+                {athletes.map(a => (
+                  <option key={a.id} value={a.id}>{a.full_name}</option>
+                ))}
+              </select>
+            </div>
+            <button 
+              disabled={!selectedAthleteId}
+              onClick={() => {
+                const ath = athletes.find(a => a.id === selectedAthleteId);
+                if (ath) {
+                  setWizardAthlete(ath);
+                  setShowWizard(true);
+                }
+              }}
+              className="md:col-span-4 w-full py-4 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black uppercase text-[11px] rounded-2xl transition-all shadow-xl shadow-blue-600/20 tracking-widest flex items-center justify-center gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              Iniciar Planejamento
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -3812,7 +3846,7 @@ function AnamnesisModule() {
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-20 bento-card bg-slate-900/30 border-dashed border-slate-800">
               <User className="w-16 h-16 text-slate-800 mb-4" />
-              <p className="text-slate-600 font-black uppercase italic tracking-widest text-sm">Selecione um aluno para visualizar o relatório</p>
+              <p className="text-slate-600 font-black uppercase italic tracking-widest text-sm">Selecione um atleta para visualizar o relatório</p>
             </div>
           )}
         </div>
@@ -3842,7 +3876,7 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
   const handleApprove = async (req: any) => {
     setLoadingId(req.id);
     try {
-      const result = await approveRegistration(req.id);
+      const result = await approveAthleteRegistration(req.id);
       if (result.success && !result.alreadyExists) {
         const updated = localRequests.filter(r => r.id !== req.id);
         setLocalRequests(updated);
@@ -3904,7 +3938,7 @@ function RequestsModule({ requests, onApproved }: { requests: any[], onApproved:
               </div>
               <div>
                 <h3 className="text-xl font-black text-white uppercase italic">Acesso Criado!</h3>
-                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Envie as credenciais ao aluno</p>
+                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Envie as credenciais ao atleta</p>
               </div>
             </div>
 
@@ -5016,10 +5050,52 @@ function AdvancedCardioCard({ values, onChange }: { values: any[], onChange: (ne
 }
 
 function AthletesModule({ coachId, onPeriodize }: { coachId?: string, onPeriodize?: (athlete: any) => void }) {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newAthlete, setNewAthlete] = useState({
+    full_name: '',
+    email: '',
+    phone: '',
+    birth_date: '',
+    gender: 'male',
+    sport: '',
+    goal: '',
+    experience_level: 'Iniciante',
+    height: '',
+    weight: '',
+    is_minor: false,
+    guardian_name: '',
+    guardian_cpf: '',
+    guardian_phone: '',
+    guardian_relationship: ''
+  });
   const [athletes, setAthletes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAthlete, setSelectedAthlete] = useState<any>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreateAthlete = async () => {
+    if (!newAthlete.full_name || !newAthlete.email) {
+      alert('Nome e E-mail são obrigatórios.');
+      return;
+    }
+    setIsCreating(true);
+    const result = await createAthlete(newAthlete);
+    if (result.success) {
+      alert(`Atleta cadastrado com sucesso!\nEmail: ${result.email}\nSenha Temporária: ${result.password}`);
+      setShowAddModal(false);
+      setNewAthlete({
+        full_name: '', email: '', phone: '', birth_date: '', gender: 'male',
+        sport: '', goal: '', experience_level: 'Iniciante', height: '', weight: '',
+        is_minor: false, guardian_name: '', guardian_cpf: '', guardian_phone: '', guardian_relationship: ''
+      });
+      // Refresh list
+      getAthletes().then(setAthletes);
+    } else {
+      alert('Erro ao cadastrar: ' + result.error);
+    }
+    setIsCreating(false);
+  };
 
   useEffect(() => {
     async function load() {
@@ -5031,7 +5107,7 @@ function AthletesModule({ coachId, onPeriodize }: { coachId?: string, onPeriodiz
   }, []);
 
   const filteredAthletes = useMemo(() => {
-    return athletes.filter(a => 
+    return athletes.filter((a: any) => 
       a.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       a.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       a.sport?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -5049,18 +5125,27 @@ function AthletesModule({ coachId, onPeriodize }: { coachId?: string, onPeriodiz
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-900/50 p-8 rounded-[2rem] border border-slate-800">
         <div>
-          <h2 className="text-3xl font-black text-white uppercase italic">Gestão de Alunos</h2>
+          <h2 className="text-3xl font-black text-white uppercase italic">Gestão de Atletas</h2>
           <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-1">Total de {athletes.length} atletas ativos no sistema</p>
         </div>
-        <div className="relative w-full md:w-96 group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
-          <input 
-            type="text" 
-            placeholder="Buscar por nome, esporte ou email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold text-white outline-none focus:border-cyan-500/50 transition-all"
-          />
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+          <div className="relative w-full md:w-96 group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
+            <input 
+              type="text" 
+              placeholder="Buscar por nome, esporte ou email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold text-white outline-none focus:border-cyan-500/50 transition-all"
+            />
+          </div>
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="w-full md:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-black uppercase text-[10px] rounded-2xl transition-all shadow-xl shadow-blue-600/20 tracking-widest flex items-center justify-center gap-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            Novo Atleta de Elite
+          </button>
         </div>
       </div>
 
@@ -5142,6 +5227,150 @@ function AthletesModule({ coachId, onPeriodize }: { coachId?: string, onPeriodiz
             onClose={() => setSelectedAthlete(null)} 
           />
         )}
+
+        {showAddModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 30 }}
+              className="bg-slate-900 border border-slate-800 w-full max-w-4xl rounded-[3rem] overflow-hidden shadow-2xl relative flex flex-col max-h-[90vh]"
+            >
+              <div className="p-8 border-b border-slate-800 flex justify-between items-center bg-slate-950/50">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                    <UserPlus className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-white uppercase italic">Novo Atleta</h3>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Cadastro Direto de Performance</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowAddModal(false)}
+                  className="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl text-slate-400 hover:text-white transition-all"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-8 overflow-y-auto space-y-8 custom-scrollbar">
+                {/* Dados Básicos */}
+                <div className="space-y-6">
+                  <h4 className="text-[11px] font-black text-blue-500 uppercase italic tracking-widest border-l-2 border-blue-500 pl-3">Identificação e Contato</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <InputField label="Nome Completo" type="text" value={newAthlete.full_name} set={(v) => setNewAthlete({...newAthlete, full_name: v})} />
+                    <InputField label="E-mail (Login)" type="email" value={newAthlete.email} set={(v) => setNewAthlete({...newAthlete, email: v})} />
+                    <InputField label="Telefone" type="tel" value={newAthlete.phone} set={(v) => setNewAthlete({...newAthlete, phone: v})} />
+                    <InputField label="Data de Nascimento" type="date" value={newAthlete.birth_date} set={(v) => setNewAthlete({...newAthlete, birth_date: v})} />
+                  </div>
+                </div>
+
+                {/* Dados Fisiológicos e Esportivos */}
+                <div className="space-y-6">
+                  <h4 className="text-[11px] font-black text-emerald-500 uppercase italic tracking-widest border-l-2 border-emerald-500 pl-3">Perfil Esportivo e Fisiológico</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Sexo Biológico</label>
+                      <select 
+                        value={newAthlete.gender} 
+                        onChange={(e) => setNewAthlete({...newAthlete, gender: e.target.value})}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-emerald-500/50"
+                      >
+                        <option value="male">Masculino</option>
+                        <option value="female">Feminino</option>
+                        <option value="other">Outro</option>
+                      </select>
+                    </div>
+                    <InputField label="Altura (cm)" type="number" value={newAthlete.height} set={(v) => setNewAthlete({...newAthlete, height: v})} />
+                    <InputField label="Peso (kg)" type="number" value={newAthlete.weight} set={(v) => setNewAthlete({...newAthlete, weight: v})} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <InputField label="Esporte Principal" type="text" value={newAthlete.sport} set={(v) => setNewAthlete({...newAthlete, sport: v})} />
+                    <InputField label="Objetivo Principal" type="text" value={newAthlete.goal} set={(v) => setNewAthlete({...newAthlete, goal: v})} />
+                    <div className="space-y-1.5">
+                      <label className="text-[9px] font-black text-slate-500 uppercase ml-1">Nível de Experiência</label>
+                      <select 
+                        value={newAthlete.experience_level} 
+                        onChange={(e) => setNewAthlete({...newAthlete, experience_level: e.target.value})}
+                        className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-sm font-bold text-white outline-none focus:border-emerald-500/50"
+                      >
+                        <option value="Iniciante">Iniciante</option>
+                        <option value="Intermediário">Intermediário</option>
+                        <option value="Avançado">Avançado</option>
+                        <option value="Elite">Elite / Profissional</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Proteção de Menores */}
+                <div className="p-8 bg-slate-950/50 border border-slate-800 rounded-[2rem] space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Users className="w-5 h-5 text-amber-500" />
+                      <h4 className="text-[11px] font-black text-amber-500 uppercase italic tracking-widest">Proteção de Menores</h4>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={newAthlete.is_minor}
+                        onChange={(e) => setNewAthlete({...newAthlete, is_minor: e.target.checked})}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-11 h-6 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-amber-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                      <span className="ml-3 text-[10px] font-black text-slate-500 uppercase">Atleta Menor de Idade</span>
+                    </label>
+                  </div>
+
+                  {newAthlete.is_minor && (
+                    <motion.div 
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-800/50"
+                    >
+                      <InputField label="Nome do Responsável" type="text" value={newAthlete.guardian_name} set={(v) => setNewAthlete({...newAthlete, guardian_name: v})} />
+                      <InputField label="CPF do Responsável" type="text" value={newAthlete.guardian_cpf} set={(v) => setNewAthlete({...newAthlete, guardian_cpf: v})} />
+                      <InputField label="Telefone do Responsável" type="tel" value={newAthlete.guardian_phone} set={(v) => setNewAthlete({...newAthlete, guardian_phone: v})} />
+                      <InputField label="Grau de Parentesco" type="text" value={newAthlete.guardian_relationship} set={(v) => setNewAthlete({...newAthlete, guardian_relationship: v})} />
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-8 border-t border-slate-800 bg-slate-950/50 flex justify-end gap-4">
+                <button 
+                  onClick={() => setShowAddModal(false)}
+                  className="px-8 py-4 bg-slate-800 hover:bg-slate-700 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  disabled={isCreating}
+                  onClick={handleCreateAthlete}
+                  className="px-12 py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl text-[10px] font-black text-white uppercase tracking-widest shadow-xl shadow-blue-600/20 transition-all flex items-center gap-2"
+                >
+                  {isCreating ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Criando Atleta...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      Finalizar Cadastro
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
@@ -5199,17 +5428,17 @@ function AthleteProfileModal({ athlete, onClose }: { athlete: any, onClose: () =
   const handleSaveDM = async () => {
     if (!supabase) return;
     setIsUpdatingDM(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ is_injured: isInjured, injury_description: injuryDesc })
-      .eq('id', athlete.id);
+    const { success, error: updateError } = await updateAthleteProfile(athlete.id, { 
+      is_injured: isInjured, 
+      injury_description: injuryDesc 
+    });
     
-    if (!error) {
+    if (success) {
       athlete.is_injured = isInjured;
       athlete.injury_description = injuryDesc;
       alert('Status médico atualizado com sucesso!');
     } else {
-      alert('Erro ao atualizar status médico: ' + error.message);
+      alert('Erro ao atualizar status médico: ' + updateError);
     }
     setIsUpdatingDM(false);
   };
@@ -5217,16 +5446,15 @@ function AthleteProfileModal({ athlete, onClose }: { athlete: any, onClose: () =
   const handleSaveTeam = async () => {
     if (!supabase) return;
     setIsUpdatingTeam(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ team_name: teamName })
-      .eq('id', athlete.id);
+    const { success, error: updateError } = await updateAthleteProfile(athlete.id, { 
+      team_name: teamName 
+    });
     
-    if (!error) {
+    if (success) {
       athlete.team_name = teamName;
       alert('Equipe atualizada com sucesso!');
     } else {
-      alert('Erro ao atualizar equipe: ' + error.message);
+      alert('Erro ao atualizar equipe: ' + updateError);
     }
     setIsUpdatingTeam(false);
   };
@@ -5752,15 +5980,12 @@ function TeamDetailsModal({ teamName, teamAthletes, allAthletes, onClose, onUpda
   const handleRemove = async (athleteId: string) => {
     if (!supabase) return;
     setIsUpdating(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ team_name: null })
-      .eq('id', athleteId);
+    const { success, error: updateError } = await updateAthleteProfile(athleteId, { team_name: null });
     
-    if (!error) {
+    if (success) {
       onUpdate();
     } else {
-      alert('Erro ao remover: ' + error.message);
+      alert('Erro ao remover: ' + updateError);
     }
     setIsUpdating(false);
   };
@@ -5768,15 +5993,12 @@ function TeamDetailsModal({ teamName, teamAthletes, allAthletes, onClose, onUpda
   const handleAdd = async (athleteId: string) => {
     if (!supabase) return;
     setIsUpdating(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ team_name: teamName })
-      .eq('id', athleteId);
+    const { success, error: updateError } = await updateAthleteProfile(athleteId, { team_name: teamName });
     
-    if (!error) {
+    if (success) {
       onUpdate();
     } else {
-      alert('Erro ao adicionar: ' + error.message);
+      alert('Erro ao adicionar: ' + updateError);
     }
     setIsUpdating(false);
   };
@@ -6271,4 +6493,6 @@ function ForceManifestationsModule({ onBack }: { onBack: () => void }) {
     </div>
   );
 }
+
+export default dynamic(() => Promise.resolve(CoachPage), { ssr: false });
 

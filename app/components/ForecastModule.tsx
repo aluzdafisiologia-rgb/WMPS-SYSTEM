@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   TrendingUp, Calendar, Target, AlertCircle, 
@@ -31,24 +31,25 @@ export default function ForecastModule({ athletes, onBack }: ForecastModuleProps
 
   const selectedAthlete = athletes.find(a => a.id === selectedAthleteId);
 
-  useEffect(() => {
-    if (selectedAthleteId) {
-      loadData(selectedAthleteId);
-    }
-  }, [selectedAthleteId]);
-
-  const loadData = async (id: string) => {
+  const loadData = useCallback(async (id: string) => {
     setLoading(true);
     const [evals, well, sess] = await Promise.all([
       getAssessments(id),
-      getWellness(), // Filters are done in memory for now or we could optimize actions
+      getWellness(), 
       getSessions()
     ]);
     setAssessments(evals);
     setWellness(well.filter((w: any) => w.athlete_id === id));
     setSessions(sess.filter((s: any) => s.athlete_name === selectedAthlete?.full_name));
     setLoading(false);
-  };
+  }, [selectedAthlete?.full_name]);
+
+  useEffect(() => {
+    if (selectedAthleteId) {
+      loadData(selectedAthleteId);
+    }
+  }, [selectedAthleteId, loadData]);
+
 
   const forecast = useMemo(() => {
     if (!selectedAthleteId || !targetGoal || assessments.length < 2) return null;

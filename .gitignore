@@ -44,3 +44,5 @@ app/coach/force-manifestations-module.txt
 
 # Coverage
 coverage/
+
+.vercel

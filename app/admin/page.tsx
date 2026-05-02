@@ -1,5 +1,6 @@
 'use client'
 
+import dynamic from 'next/dynamic';
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -9,11 +10,11 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { getPendingRequests, getAllUsers, approveRegistration, denyRegistration, changeUserRole, resetUserPassword } from './actions';
+import { getPendingRequests, getAllUsers, adminApproveRegistration, denyRegistration, changeUserRole, resetUserPassword } from './actions';
 import { getUserRole } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
 
-export default function AdminDashboard() {
+function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -29,6 +30,7 @@ export default function AdminDashboard() {
   }, []);
 
   const checkAdminAccess = async () => {
+    if (typeof window === 'undefined') return;
     if (!supabase) {
       window.location.href = '/';
       return;
@@ -66,10 +68,12 @@ export default function AdminDashboard() {
 
   const handleApprove = async (req: any) => {
     setActionLoading(`approve_${req.id}`);
-    const res = await approveRegistration(req);
+    const res = await adminApproveRegistration(req);
     if (res.success) {
       const text = `Olá, ${req.full_name}!\nÉ com grande alegria que te recebemos no William Moreira Performance System (WMPS).\nSeja muito bem-vindo!\nA partir de hoje, iniciamos uma nova jornada focada em evolução, performance e resultados.\n\nLogin (E-mail): ${req.email}\nSenha provisória: ${res.tempPassword}`;
-      navigator.clipboard.writeText(text);
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+      }
       alert(`Cadastro aprovado!\nA mensagem de boas-vindas foi copiada para sua área de transferência.`);
       await loadData();
     } else {
@@ -107,7 +111,9 @@ export default function AdminDashboard() {
     const res = await resetUserPassword(userId);
     if (res.success) {
       const text = `Olá, ${userName}!\nSua senha foi resetada pelo administrador.\n\nLogin (E-mail): ${userEmail}\nNova senha provisória: ${res.tempPassword}`;
-      navigator.clipboard.writeText(text);
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+      }
       alert(`Senha resetada com sucesso!\nA mensagem com a nova senha foi copiada para sua área de transferência.`);
     } else {
       alert('Erro ao resetar senha: ' + res.error);
@@ -158,7 +164,7 @@ export default function AdminDashboard() {
               href="/athlete"
               className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-500/20 transition-all flex items-center gap-2"
             >
-              <Zap className="w-3.5 h-3.5" /> Área Aluno
+              <Zap className="w-3.5 h-3.5" /> Área Atleta
             </Link>
             
             <div className="flex bg-slate-800/50 p-1 rounded-xl ml-4">
@@ -282,7 +288,7 @@ export default function AdminDashboard() {
                     <div className="absolute top-4 right-4">
                       {user.role === 'admin' && <span className="bg-purple-500 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1"><ShieldCheck className="w-3 h-3"/> Master</span>}
                       {user.role === 'coach' && <span className="bg-emerald-500 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1"><Star className="w-3 h-3"/> Professor</span>}
-                      {user.role === 'athlete' && <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Aluno</span>}
+                      {user.role === 'athlete' && <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Atleta</span>}
                       {user.role === 'blocked' && <span className="bg-rose-500 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1"><ShieldAlert className="w-3 h-3"/> Bloqueado</span>}
                     </div>
 
@@ -355,6 +361,8 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+export default dynamic(() => Promise.resolve(AdminDashboard), { ssr: false });
 
 // User Icon fallback
 function User(props: any) {

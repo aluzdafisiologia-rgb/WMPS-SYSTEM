@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -13,7 +14,7 @@ import { registerProfile, submitRegistrationRequest, getUserRole } from './actio
 
 type ViewState = 'login' | 'register' | 'selection';
 
-export default function Home() {
+function Home() {
   const [view, setView] = useState<ViewState>('login');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -63,14 +64,16 @@ export default function Home() {
 
 
       if (role === 'admin') {
-        window.location.href = '/admin';
+        if (typeof window !== 'undefined') window.location.href = '/admin';
       } else if (role === 'coach') {
-        window.location.href = '/coach';
+        if (typeof window !== 'undefined') window.location.href = '/coach';
       } else {
         setError(`Acesso negado: Seu cargo atual é "${role}". Contate o administrador.`);
         setLoading(false);
         // Opcional: redirecionar após alguns segundos ou deixar o usuário ver o erro
-        setTimeout(() => { window.location.href = '/athlete'; }, 3000);
+        setTimeout(() => { 
+          if (typeof window !== 'undefined') window.location.href = '/athlete'; 
+        }, 3000);
       }
     } catch (err: any) {
       console.error('Erro inesperado:', err);
@@ -324,7 +327,7 @@ export default function Home() {
               <button 
                 onClick={async () => { 
                   if (supabase) await supabase.auth.signOut();
-                  setView('login'); 
+                  if (typeof window !== 'undefined') window.location.href = '/';
                 }}
                 className="bg-slate-800/50 hover:bg-slate-800 px-4 py-2 rounded-xl border border-slate-700 backdrop-blur-sm transition-all group"
               >
@@ -338,7 +341,7 @@ export default function Home() {
                 <motion.div whileHover={{ scale: 1.02, borderColor: '#3b82f6' }} whileTap={{ scale: 0.98 }} className="bento-card h-[280px] flex flex-col justify-between group-hover:bg-slate-800/80 bg-slate-900/60 transition-all border-slate-800 p-8">
                   <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 border border-blue-500/20 group-hover:scale-110 transition-transform"><User className="w-7 h-7" /></div>
                   <div className="space-y-3">
-                    <h2 className="text-4xl font-black text-white uppercase italic">Área Aluno</h2>
+                    <h2 className="text-4xl font-black text-white uppercase italic">Área Atleta</h2>
                     <p className="text-sm text-slate-400 font-medium leading-relaxed">Registrar treinamentos, intensidade e percepções de esforço diárias.</p>
                   </div>
                   <div className="flex items-center gap-3 text-blue-400 text-[10px] font-black uppercase tracking-widest"><span>Entrar agora</span><ChevronRight className="w-4 h-4" /></div>
@@ -373,3 +376,5 @@ export default function Home() {
 }
 
 
+
+export default dynamic(() => Promise.resolve(Home), { ssr: false });

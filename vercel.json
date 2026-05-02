@@ -1,0 +1,11 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "build": {
+    "env": {
+      "LANG": "pt_BR.UTF-8",
+      "LC_ALL": "pt_BR.UTF-8"
+    }
+  }
+}

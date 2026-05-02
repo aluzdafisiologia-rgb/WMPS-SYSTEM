@@ -1,13 +1,15 @@
 'use client'
 
-import React, { useState, useRef } from 'react';
+import dynamic from 'next/dynamic';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Clock, Zap, CheckCircle2, Save, FileText, User, Dumbbell, Activity, Timer, MoveHorizontal, Footprints, Camera, Edit2, Check, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Clock, Zap, CheckCircle2, Save, FileText, User, Dumbbell, Activity, Timer, MoveHorizontal, Footprints, Camera, Edit2, Check, TrendingUp, AlertTriangle, Info, Calendar, Droplets, Thermometer, Brain, Smile, Heart, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { logWorkout, logWellness, logAnamnesis, getUserRole, getActivePrescription, completeTraining, updateProfilePhoto, getAthleteProfile } from '../actions';
+import { logWorkout, logWellness, logAnamnesis, getUserRole, getActivePrescription, completeTraining, updateProfilePhoto, getAthleteProfile, updateAthleteProfile, saveMenstrualCycle, logMenstrualSymptoms, getMenstrualData, saveReadinessScore, getReadinessHistory, saveClinicalProfile, logClinicalData, getClinicalData, getLatestWellness } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
 import EvolutionModule from '../components/EvolutionModule';
+import AthleteReportModule from '../components/AthleteReportModule';
 
 const WELLNESS_LABELS = {
   sleep: ['Muito ruim', 'Ruim', 'Médio', 'Bom', 'Muito bom'],
@@ -52,8 +54,8 @@ const BORG_RPE_LABELS: Record<number, string> = {
   20: 'Máximo esforço'
 };
 
-export default function AthletePage() {
-  const [activeTab, setActiveTab] = useState<'workout' | 'wellness' | 'anamnesis' | 'training' | 'evolution' | null>(null);
+function AthletePage() {
+  const [activeTab, setActiveTab] = useState<'workout' | 'wellness' | 'anamnesis' | 'training' | 'evolution' | 'profile_edit' | 'menstrual' | 'clinical_profile' | 'daily_health' | null>(null);
   const [formData, setFormData] = useState({
     athleteName: '',
     duration: '',
@@ -92,8 +94,135 @@ export default function AthletePage() {
   const [activePrescription, setActivePrescription] = useState<any>(null);
   const [completedExercises, setCompletedExercises] = useState<Record<string, boolean>>({});
   const [profile, setProfile] = useState<any>(null);
+  const [menstrualData, setMenstrualData] = useState<any>({ cycle: null, symptoms: [] });
+  const [readinessScore, setReadinessScore] = useState<{ score: number, class: string, color: string, recommendation: string } | null>(null);
+  const [readinessHistory, setReadinessHistory] = useState<any[]>([]);
+  const [clinicalProfile, setClinicalProfile] = useState<any>(null);
+  const [clinicalLogs, setClinicalLogs] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [editProfileData, setEditProfileData] = useState({
+    full_name: '',
+    email: '',
+    gender: '',
+    phone: '',
+    cpf: '',
+    birth_date: '',
+    height: '',
+    weight: '',
+    sport: '',
+    goal: '',
+  });
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    const profileData = await getAthleteProfile(user.id);
+    if (profileData) {
+      setProfile(profileData);
+      // Carregar histórico de prontidão
+      const history = await getReadinessHistory(user.id);
+      setReadinessHistory(history);
+      if (history.length > 0) {
+        const last = history[0];
+        let classification = "";
+        let color = "";
+        let recommendation = "";
+        const score = last.score;
+        if (score >= 85) { classification = "Alta Prontidão"; color = "text-emerald-500"; recommendation = "Dia excelente para quebrar recordes e treinar pesado!"; }
+        else if (score >= 70) { classification = "Boa Prontidão"; color = "text-blue-500"; recommendation = "Ótimo dia para seguir a planilha com intensidade."; }
+        else if (score >= 50) { classification = "Moderada"; color = "text-amber-500"; recommendation = "Escute seu corpo. Talvez reduzir 10-15% da carga seja prudente."; }
+        else if (score >= 30) { classification = "Baixa"; color = "text-orange-500"; recommendation = "Reduza volume e foque em técnica ou flexibilidade."; }
+        else { classification = "Muito Baixa"; color = "text-rose-500"; recommendation = "Priorize a recuperação total hoje. Sono e hidratação."; }
+        setReadinessScore({ score, class: classification, color, recommendation });
+      }
+      const clinical = await getClinicalData(user.id);
+      setClinicalProfile(clinical.profile);
+      setClinicalLogs(clinical.logs);
+
+      const latestWell = await getLatestWellness(user.id);
+      if (latestWell) {
+        setWellnessData({
+          recovery: latestWell.recovery || 14,
+          sleep: latestWell.sleep || 3,
+          stress: latestWell.stress || 3,
+          fatigue: latestWell.fatigue || 3,
+          soreness: latestWell.soreness || 3,
+        });
+      }
+
+      // ... restante da lógica de profile
+      setFormData(prev => ({ ...prev, athleteName: profileData.full_name }));
+      setEditProfileData({
+        full_name: profileData.full_name || '',
+        email: profileData.email || '',
+        gender: profileData.gender || '',
+        phone: profileData.phone || '',
+        cpf: profileData.cpf || '',
+        birth_date: profileData.birth_date || '',
+        height: profileData.height?.toString() || '',
+        weight: profileData.weight?.toString() || '',
+        sport: profileData.sport || '',
+        goal: profileData.goal || '',
+      });
+    }
+  };
+
+  const fetchMenstrualData = async () => {
+    if (!user) return;
+    const data = await getMenstrualData(user.id);
+    setMenstrualData(data);
+    if (wellnessData) calculateAndSaveReadiness(wellnessData, data);
+  };
+
+  const calculateAndSaveReadiness = async (well: any, mens: any) => {
+    if (!user) return;
+    
+    // 1. Fatores de Bem-Estar (Max 70 se feminino, Max 100 se masculino)
+    const sleepScore = (well.sleep / 5) * 20;
+    const fatigueScore = (1 - (well.fatigue - 1) / 4) * 20;
+    const sorenessScore = (1 - (well.soreness - 1) / 4) * 15;
+    const stressScore = (1 - (well.stress - 1) / 4) * 15;
+    
+    let wellnessBase = sleepScore + fatigueScore + sorenessScore + stressScore; // Max 70
+    
+    let finalScore = 0;
+    const isFemale = profile?.gender === 'Feminino';
+
+    if (isFemale) {
+      // 2. Fatores Hormonais (Max 30)
+      const phase = mens.cycle ? calculateCyclePhase(mens.cycle.last_period_date, mens.cycle.cycle_duration) : null;
+      let phasePoints = 0;
+      if (phase?.name === 'Folicular') phasePoints = 15;
+      else if (phase?.name === 'Ovulatória') phasePoints = 12;
+      else if (phase?.name.includes('Lútea')) phasePoints = 8;
+      else if (phase?.name === 'Menstrual') phasePoints = 5;
+
+      const latestSymptoms = mens.symptoms[0] || { fatigue: 1, pain: 1, bloating: 1, mood: 1 };
+      const avgSymptoms = (latestSymptoms.fatigue + latestSymptoms.pain + latestSymptoms.bloating + latestSymptoms.mood) / 4;
+      const symptomPoints = (1 - (avgSymptoms - 1) / 4) * 15;
+
+      finalScore = wellnessBase + phasePoints + symptomPoints;
+    } else {
+      // Normaliza bem-estar para 100
+      finalScore = (wellnessBase / 70) * 100;
+    }
+
+    const score = Math.round(Math.max(0, Math.min(100, finalScore)));
+    
+    let classification = "";
+    let color = "";
+    let recommendation = "";
+
+    if (score >= 85) { classification = "Alta Prontidão"; color = "text-emerald-500"; recommendation = "Dia excelente para quebrar recordes e treinar pesado!"; }
+    else if (score >= 70) { classification = "Boa Prontidão"; color = "text-blue-500"; recommendation = "Ótimo dia para seguir a planilha com intensidade."; }
+    else if (score >= 50) { classification = "Moderada"; color = "text-amber-500"; recommendation = "Escute seu corpo. Talvez reduzir 10-15% da carga seja prudente."; }
+    else if (score >= 30) { classification = "Baixa"; color = "text-orange-500"; recommendation = "Reduza volume e foque em técnica ou flexibilidade."; }
+    else { classification = "Muito Baixa"; color = "text-rose-500"; recommendation = "Priorize a recuperação total hoje. Sono e hidratação."; }
+
+    setReadinessScore({ score, class: classification, color, recommendation });
+    await saveReadinessScore(user.id, score, { wellness: well, menstrual: mens });
+  };
 
   React.useEffect(() => {
     async function checkAuth() {
@@ -111,18 +240,18 @@ export default function AthletePage() {
       const role = await getUserRole(session.user.id);
       setRole(role);
       
-      const profileData = await getAthleteProfile(session.user.id);
-      
-      if (profileData) {
-        setProfile(profileData);
-        setFormData(prev => ({ ...prev, athleteName: profileData.full_name }));
-      }
-
       const prescription = await getActivePrescription(session.user.id);
       setActivePrescription(prescription);
     }
     checkAuth();
   }, []);
+
+  React.useEffect(() => {
+    if (user) {
+      fetchProfile();
+      fetchMenstrualData();
+    }
+  }, [user]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -225,6 +354,50 @@ export default function AthletePage() {
     }
   };
 
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setIsSubmitting(true);
+    try {
+      const { email, ...updates } = editProfileData;
+      
+      const res = await updateAthleteProfile(user.id, {
+        ...updates,
+        height: parseFloat(editProfileData.height) || null,
+        weight: parseFloat(editProfileData.weight) || null,
+      });
+      if (res.success) {
+        await fetchProfile();
+        setActiveTab(null);
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      } else {
+        alert('Erro ao atualizar perfil: ' + res.error);
+      }
+    } catch (error) {
+      console.error('Action error (handleUpdateProfile):', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- LÓGICA FISIOLÓGICA DO CICLO (MC2) ---
+  const calculateCyclePhase = (lastDate: string, duration: number) => {
+    if (!lastDate) return null;
+    const start = new Date(lastDate);
+    const today = new Date();
+    const diffDays = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) % duration;
+    const day = diffDays + 1;
+
+    if (day <= 5) return { name: 'Menstrual', day, color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/30', desc: 'Hormônios em nível basal. Foco em recuperação.', strategy: 'Recuperação Ativa' };
+    if (day <= 12) return { name: 'Folicular', day, color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', desc: 'Janela anabólica (estrógeno alto). Foco em força.', strategy: 'Carga Máxima' };
+    if (day <= 15) return { name: 'Ovulatória', day, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/30', desc: 'Pico de desempenho. Atenção a risco de lesão.', strategy: 'Performance' };
+    if (day <= 22) return { name: 'Lútea Inicial', day, color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/30', desc: 'Aumento da temperatura e FC basal.', strategy: 'Resistência' };
+    return { name: 'Lútea Tardia (TPM)', day, color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/30', desc: 'Queda hormonal. Reduzir volume.', strategy: 'Regenerativo' };
+  };
+
+  const currentPhase = menstrualData.cycle ? calculateCyclePhase(menstrualData.cycle.last_period_date, menstrualData.cycle.cycle_duration) : null;
+
   const handleCompleteTraining = async () => {
     if (!activePrescription) return;
     const allKeys = getPrescriptionKeys(activePrescription.data);
@@ -288,7 +461,6 @@ export default function AthletePage() {
       </header>
 
       <main className="max-w-xl mx-auto px-6 mt-8 space-y-8 relative">
-        {/* Profile Identity Section */}
         <div className="relative">
           <div className="absolute -inset-4 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 blur-3xl rounded-[3rem] -z-10"></div>
           
@@ -328,46 +500,134 @@ export default function AthletePage() {
               />
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-3">
               <h2 className="text-3xl font-black text-white uppercase italic tracking-tight">{profile?.full_name || 'Carregando...'}</h2>
-              {profile?.team_name ? (
-                <div className="flex items-center justify-center gap-2">
+              <div className="flex flex-col items-center gap-3">
+                {profile?.team_name ? (
                   <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-[10px] font-black text-emerald-400 uppercase italic tracking-widest">
                     Atleta da equipe {profile.team_name}
                   </span>
-                </div>
-              ) : (
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Atleta Individual</p>
-              )}
+                ) : (
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Atleta Individual</p>
+                )}
+                
+                <button 
+                  onClick={() => setActiveTab('profile_edit')}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-800 border border-white/5 hover:border-emerald-500/30 rounded-xl transition-all group"
+                >
+                  <Edit2 className="w-3 h-3 text-emerald-500 group-hover:scale-110 transition-transform" />
+                  <span className="text-[10px] font-black text-white uppercase italic tracking-widest">Editar Cadastro</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Decorative background glow */}
-        <div className="fixed top-1/4 -left-20 w-64 h-64 bg-emerald-500/10 blur-[100px] pointer-events-none rounded-full"></div>
-        <div className="fixed bottom-1/4 -right-20 w-64 h-64 bg-blue-500/10 blur-[100px] pointer-events-none rounded-full"></div>
+        {profile && (!profile.cpf || !profile.phone || !profile.gender) && !activeTab && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-500/20 rounded-lg">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-white uppercase italic tracking-widest">Seu perfil está incompleto</p>
+                <p className="text-[10px] text-amber-500/70 font-bold uppercase">Complete seus dados para melhorar seu monitoramento.</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setActiveTab('profile_edit')}
+              className="px-4 py-2 bg-amber-500 text-black text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-amber-400 transition-colors"
+            >
+              Completar Agora
+            </button>
+          </motion.div>
+        )}
+
+        {/* CLINICAL ALERTS */}
+        {!activeTab && clinicalLogs.length > 0 && (
+          <div className="space-y-4">
+            {clinicalLogs[0].glucose_pre < 70 && clinicalProfile?.has_diabetes && (
+              <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="p-4 bg-rose-500/20 border border-rose-500/40 rounded-2xl flex items-center gap-4">
+                <AlertTriangle className="w-6 h-6 text-rose-500" />
+                <div>
+                  <p className="text-[10px] font-black text-white uppercase italic">Alerta de Hipoglicemia!</p>
+                  <p className="text-[9px] text-rose-200/70 font-bold uppercase">Glicemia {clinicalLogs[0].glucose_pre} mg/dL. Não treine sem estabilizar.</p>
+                </div>
+              </motion.div>
+            )}
+            {(clinicalLogs[0].bp_sys > 160 || clinicalLogs[0].bp_dia > 100) && clinicalProfile?.has_hypertension && (
+              <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="p-4 bg-rose-500/20 border border-rose-500/40 rounded-2xl flex items-center gap-4">
+                <AlertTriangle className="w-6 h-6 text-rose-500" />
+                <div>
+                  <p className="text-[10px] font-black text-white uppercase italic">Alerta de Hipertensão!</p>
+                  <p className="text-[9px] text-rose-200/70 font-bold uppercase">PA {clinicalLogs[0].bp_sys}/{clinicalLogs[0].bp_dia}. Risco cardiovascular elevado.</p>
+                </div>
+              </motion.div>
+            )}
+          </div>
+        )}
+        
+        {/* READINESS SCORE CARD */}
+        {!activeTab && readinessScore && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-8 bg-slate-900/60 rounded-[3rem] border border-white/5 shadow-2xl relative overflow-hidden group"
+          >
+            <div className={`absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000`}></div>
+            
+            <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+              <div className="relative">
+                <svg className="w-32 h-32 transform -rotate-90">
+                  <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800" />
+                  <motion.circle 
+                    cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" 
+                    strokeDasharray={364.4}
+                    initial={{ strokeDashoffset: 364.4 }}
+                    animate={{ strokeDashoffset: 364.4 - (364.4 * readinessScore.score) / 100 }}
+                    transition={{ duration: 2, ease: "easeOut" }}
+                    className={readinessScore.color}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-4xl font-black text-white leading-none">{readinessScore.score}</span>
+                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Score</span>
+                </div>
+              </div>
+
+              <div>
+                <h3 className={`text-xl font-black uppercase italic ${readinessScore.color}`}>{readinessScore.class}</h3>
+                <p className="text-xs text-white/70 font-medium leading-relaxed italic mt-2 px-4">
+                  "{readinessScore.recommendation}"
+                </p>
+              </div>
+
+              {currentPhase && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
+                  <Droplets className="w-3 h-3 text-rose-500" />
+                  <span className="text-[9px] font-black text-white/60 uppercase tracking-widest">
+                    Fase {currentPhase.name}
+                  </span>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         {!activeTab ? (
           <div className="grid grid-cols-1 gap-6 py-8">
             <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-blue-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-              <MenuCard 
-                title="Anamnese" 
-                sub="Fase 0: Triagem Clínica" 
-                icon={<FileText className="w-10 h-10 text-purple-400" />} 
-                onClick={() => setActiveTab('anamnesis')} 
-                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-purple-500/30"
-                accentColor="from-purple-500/20 to-transparent"
-              />
-            </div>
-            
-            <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
               <MenuCard 
-                title="PRÉ-TREINO" 
-                sub="Diário de Prontidão" 
-                icon={<Zap className="w-10 h-10 text-emerald-400" />} 
-                onClick={() => setActiveTab('wellness')} 
+                title="MEU TREINO" 
+                sub="Acesse sua planilha diária" 
+                icon={<Dumbbell className="w-10 h-10 text-emerald-400" />} 
+                onClick={() => setActiveTab('training')} 
                 color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-emerald-500/30"
                 accentColor="from-emerald-500/20 to-transparent"
               />
@@ -376,46 +636,76 @@ export default function AthletePage() {
             <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
               <MenuCard 
-                title="PÓS-TREINO" 
-                sub="Monitoramento PSE" 
-                icon={<Clock className="w-10 h-10 text-blue-400" />} 
-                onClick={() => setActiveTab('workout')} 
+                title="BEM-ESTAR" 
+                sub="Prontidão & Recuperação" 
+                icon={<Activity className="w-10 h-10 text-blue-400" />} 
+                onClick={() => setActiveTab('wellness')} 
                 color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-blue-500/30"
                 accentColor="from-blue-500/20 to-transparent"
               />
             </div>
 
-            {activePrescription && (
-               <div className="relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-[2rem] blur opacity-30 animate-pulse transition duration-1000"></div>
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+              <MenuCard 
+                title="SAÚDE CLÍNICA" 
+                sub="Monitoramento & Medicina" 
+                icon={<Heart className="w-10 h-10 text-cyan-400" />} 
+                onClick={() => clinicalProfile ? setActiveTab('daily_health') : setActiveTab('clinical_profile')} 
+                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-cyan-500/30"
+                accentColor="from-cyan-500/20 to-transparent"
+              />
+            </div>
+
+            {profile?.gender === 'Feminino' && (
+              <div className="relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-rose-500 to-purple-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
                 <MenuCard 
-                  title="Prescrição" 
-                  sub="Treinamento Pendente" 
-                  icon={<Dumbbell className="w-10 h-10 text-yellow-400" />} 
-                  onClick={() => setActiveTab('training')} 
-                  color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-yellow-500/30"
-                  accentColor="from-yellow-500/20 to-transparent"
+                  title="CICLO MENSTRUAL" 
+                  sub="Fisiologia & Performance" 
+                  icon={<Calendar className="w-10 h-10 text-rose-400" />} 
+                  onClick={() => setActiveTab('menstrual')} 
+                  color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-rose-500/30"
+                  accentColor="from-rose-500/20 to-transparent"
                 />
               </div>
             )}
 
             <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-blue-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
               <MenuCard 
-                title="Metas & Evolução" 
-                sub="Longitudinal de Performance" 
-                icon={<TrendingUp className="w-10 h-10 text-blue-400" />} 
+                title="EVOLUÇÃO" 
+                sub="Metas & Histórico" 
+                icon={<TrendingUp className="w-10 h-10 text-purple-400" />} 
                 onClick={() => setActiveTab('evolution')} 
-                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-blue-500/30"
-                accentColor="from-blue-500/20 to-transparent"
+                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-purple-500/30"
+                accentColor="from-purple-500/20 to-transparent"
               />
             </div>
+
+            {/* RELATÓRIO PROFISSIONAL */}
+            <AthleteReportModule 
+              data={{
+                profile,
+                clinicalProfile,
+                clinicalLogs,
+                readinessHistory,
+                menstrualData
+              }}
+            />
           </div>
         ) : (
           <div className="space-y-6">
             <div className="bento-card bg-slate-800 border-slate-700 shadow-xl overflow-hidden p-0">
-              <div className={`px-8 py-4 ${activeTab === 'workout' ? 'bg-blue-600' : activeTab === 'wellness' ? 'bg-emerald-600' : activeTab === 'training' ? 'bg-yellow-600' : 'bg-purple-600'}`}>
-                <h2 className="text-sm font-black text-white uppercase italic">{activeTab === 'workout' ? 'Pós-Treino' : activeTab === 'wellness' ? 'Pré-Treino' : activeTab === 'training' ? 'Prescrição do Treinador' : activeTab === 'evolution' ? 'Evolução' : 'Anamnese'}</h2>
+              <div className={`px-8 py-4 ${activeTab === 'workout' ? 'bg-blue-600' : activeTab === 'wellness' ? 'bg-emerald-600' : activeTab === 'training' ? 'bg-yellow-600' : activeTab === 'profile_edit' ? 'bg-emerald-500' : 'bg-purple-600'}`}>
+                <h2 className="text-sm font-black text-white uppercase italic">
+                  {activeTab === 'workout' ? 'Pós-Treino' : 
+                   activeTab === 'wellness' ? 'Pré-Treino' : 
+                   activeTab === 'training' ? 'Prescrição do Treinador' : 
+                   activeTab === 'evolution' ? 'Evolução' : 
+                   activeTab === 'profile_edit' ? 'Editar Cadastro' :
+                   'Anamnese'}
+                </h2>
               </div>
               
               <div className="p-8 space-y-8">
@@ -771,6 +1061,127 @@ export default function AthletePage() {
                     </div>
                   );
                 })()}
+                {activeTab === 'profile_edit' && (
+                  <form onSubmit={handleUpdateProfile} className="space-y-6">
+                    <div className="bg-slate-900/60 p-6 rounded-[2rem] border border-slate-800 shadow-xl space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Input 
+                          label="E-mail de Login" 
+                          type="email"
+                          value={editProfileData.email} 
+                          onChange={() => {}} 
+                          disabled={true}
+                        />
+                        <div className="md:col-span-2 p-3 bg-slate-950/50 border border-slate-800 rounded-xl">
+                          <p className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-2">
+                             <Info className="w-3 h-3" /> O e-mail não pode ser alterado pois é utilizado para seu acesso ao sistema.
+                          </p>
+                        </div>
+                        <Input 
+                          label="Nome Completo" 
+                          type="text"
+                          value={editProfileData.full_name} 
+                          onChange={(v) => setEditProfileData({...editProfileData, full_name: v})} 
+                        />
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Gênero</label>
+                          <select 
+                            value={editProfileData.gender}
+                            onChange={(e) => setEditProfileData({...editProfileData, gender: e.target.value})}
+                            className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-xs font-bold text-white focus:border-blue-500 outline-none transition-colors"
+                          >
+                            <option value="">Selecione</option>
+                            <option value="Masculino">Masculino</option>
+                            <option value="Feminino">Feminino</option>
+                            <option value="Outro">Outro</option>
+                          </select>
+                        </div>
+                        <Input 
+                          label="Telefone" 
+                          type="text"
+                          placeholder="(00) 00000-0000"
+                          value={editProfileData.phone} 
+                          onChange={(v) => {
+                            const digits = v.replace(/\D/g, '').slice(0, 11);
+                            let formatted = digits;
+                            if (digits.length > 2) formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+                            if (digits.length > 7) formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+                            setEditProfileData({...editProfileData, phone: formatted});
+                          }} 
+                        />
+                        <Input 
+                          label="CPF / Documento" 
+                          type="text"
+                          placeholder="000.000.000-00"
+                          value={editProfileData.cpf} 
+                          onChange={(v) => {
+                            const digits = v.replace(/\D/g, '').slice(0, 11);
+                            let formatted = digits;
+                            if (digits.length > 3) formatted = `${digits.slice(0, 3)}.${digits.slice(3)}`;
+                            if (digits.length > 6) formatted = `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+                            if (digits.length > 9) formatted = `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+                            setEditProfileData({...editProfileData, cpf: formatted});
+                          }} 
+                        />
+                        <Input 
+                          label="Data de Nascimento" 
+                          type="date"
+                          value={editProfileData.birth_date} 
+                          onChange={(v) => setEditProfileData({...editProfileData, birth_date: v})} 
+                        />
+                        <div className="grid grid-cols-2 gap-4">
+                          <Input 
+                            label="Altura (m)" 
+                            type="number"
+                            value={editProfileData.height} 
+                            onChange={(v) => setEditProfileData({...editProfileData, height: v})} 
+                          />
+                          <Input 
+                            label="Peso (kg)" 
+                            type="number"
+                            value={editProfileData.weight} 
+                            onChange={(v) => setEditProfileData({...editProfileData, weight: v})} 
+                          />
+                        </div>
+                        <Input 
+                          label="Esporte" 
+                          type="text"
+                          value={editProfileData.sport} 
+                          onChange={(v) => setEditProfileData({...editProfileData, sport: v})} 
+                        />
+                        <Input 
+                          label="Objetivo" 
+                          type="text"
+                          value={editProfileData.goal} 
+                          onChange={(v) => setEditProfileData({...editProfileData, goal: v})} 
+                        />
+                      </div>
+                    </div>
+                    <SubmitButton loading={isSubmitting} color="bg-emerald-600 hover:bg-emerald-500" text="Salvar Alterações" />
+                  </form>
+                )}
+                {activeTab === 'menstrual' && user && (
+                  <MenstrualCycleModule 
+                    userId={user.id} 
+                    data={menstrualData} 
+                    currentPhase={currentPhase}
+                    onRefresh={fetchMenstrualData}
+                  />
+                )}
+                {activeTab === 'clinical_profile' && user && (
+                  <ClinicalProfileModule 
+                    userId={user.id} 
+                    profile={clinicalProfile} 
+                    onSave={() => { setActiveTab(null); fetchProfile(); }}
+                  />
+                )}
+                {activeTab === 'daily_health' && user && (
+                  <DailyHealthModule 
+                    userId={user.id} 
+                    profile={clinicalProfile} 
+                    onSave={() => { setActiveTab(null); fetchProfile(); }}
+                  />
+                )}
                 {activeTab === 'evolution' && user && (
                   <EvolutionModule 
                     athletes={profile ? [profile] : []} 
@@ -824,11 +1235,355 @@ function MenuCard({ title, sub, icon, onClick, color, accentColor }: { title: st
   );
 }
 
-function Input({ label, type, value, onChange }: { label: string, type: string, value: string, onChange: (val: string) => void }) {
+function MenstrualCycleModule({ userId, data, currentPhase, onRefresh }: { userId: string, data: any, currentPhase: any, onRefresh: () => void }) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [setupMode, setSetupMode] = useState(!data.cycle);
+  const [config, setConfig] = useState({
+    lastPeriodDate: data.cycle?.last_period_date || '',
+    cycleDuration: data.cycle?.cycle_duration || 28,
+    regular: data.cycle?.regular || true
+  });
+
+  const [symptoms, setSymptoms] = useState({
+    fatigue: 3,
+    pain: 1,
+    bloating: 1,
+    mood: 3,
+    readiness: 4,
+    notes: ''
+  });
+
+  const handleSaveConfig = async () => {
+    setIsSaving(true);
+    const res = await saveMenstrualCycle(userId, config);
+    if (res.success) {
+      setSetupMode(false);
+      onRefresh();
+    }
+    setIsSaving(false);
+  };
+
+  const handleLogSymptoms = async () => {
+    setIsSaving(true);
+    const res = await logMenstrualSymptoms(userId, symptoms);
+    if (res.success) {
+      alert('Sintomas registrados com sucesso!');
+      onRefresh();
+    }
+    setIsSaving(false);
+  };
+
+  if (setupMode) {
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-rose-500/20 shadow-2xl">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-rose-500/20 rounded-2xl">
+              <Calendar className="w-6 h-6 text-rose-500" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-white uppercase italic">Configurar Ciclo</h3>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Personalize seu monitoramento fisiológico</p>
+            </div>
+          </div>
+          
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSaveConfig();
+            }} 
+            className="space-y-4"
+          >
+            <Input 
+              label="Data da última menstruação" 
+              type="date" 
+              value={config.lastPeriodDate} 
+              onChange={(v) => setConfig({...config, lastPeriodDate: v})} 
+            />
+            <Input 
+              label="Duração média do ciclo (dias)" 
+              type="number" 
+              value={config.cycleDuration.toString()} 
+              onChange={(v) => setConfig({...config, cycleDuration: parseInt(v) || 28})} 
+            />
+            <ToggleItem 
+              label="Ciclo Regular?" 
+              active={config.regular} 
+              onToggle={(v) => setConfig({...config, regular: v})} 
+            />
+            <SubmitButton loading={isSaving} color="bg-rose-600 hover:bg-rose-500" text="Salvar Configuração" />
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* PHASE DASHBOARD */}
+      {currentPhase && (
+        <div className={`p-8 rounded-[3rem] border ${currentPhase.border} ${currentPhase.bg} relative overflow-hidden`}>
+          <div className="absolute top-0 right-0 p-8 opacity-10">
+            <Droplets className="w-32 h-32 text-rose-500" />
+          </div>
+          
+          <div className="relative z-10 space-y-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${currentPhase.color}`}>Fase Atual</span>
+                <h2 className="text-4xl font-black text-white uppercase italic leading-none mt-1">{currentPhase.name}</h2>
+                <p className="text-[10px] text-white/60 font-bold uppercase mt-2">Dia {currentPhase.day} de {data.cycle.cycle_duration}</p>
+              </div>
+              <div className="px-4 py-2 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
+                <span className="text-[9px] font-black text-white/40 uppercase block">Estratégia</span>
+                <span className={`text-xs font-black uppercase italic ${currentPhase.color}`}>{currentPhase.strategy}</span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-black/20 rounded-2xl border border-white/5">
+              <p className="text-xs text-white/90 font-medium leading-relaxed italic">
+                "{currentPhase.desc}"
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-3">
+                <Thermometer className="w-5 h-5 text-rose-400" />
+                <div>
+                  <p className="text-[8px] font-black text-white/30 uppercase">Temperatura</p>
+                  <p className="text-[10px] font-bold text-white uppercase">{currentPhase.name.includes('Lútea') ? '+0.5°C (Alta)' : 'Basal'}</p>
+                </div>
+              </div>
+              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-3">
+                <Zap className="w-5 h-5 text-emerald-400" />
+                <div>
+                  <p className="text-[8px] font-black text-white/30 uppercase">Prontidão</p>
+                  <p className="text-[10px] font-bold text-white uppercase">{currentPhase.strategy === 'Carga Máxima' ? 'Excelente' : 'Moderada'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SYMPTOM LOGGING */}
+      <form 
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleLogSymptoms();
+        }} 
+        className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-white/5 shadow-xl space-y-6"
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-black text-white uppercase italic">Registro Diário</h3>
+          <button type="button" onClick={() => setSetupMode(true)} className="text-[8px] font-black text-slate-500 uppercase hover:text-rose-400 transition-colors">Ajustar Ciclo</button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          <WellnessSlider 
+            label="Disposição para Treinar" 
+            value={symptoms.readiness} 
+            onChange={(v) => setSymptoms({...symptoms, readiness: v})} 
+            labels={['Exausta', 'Baixa', 'Normal', 'Boa', 'Invencível']}
+          />
+          <div className="grid grid-cols-2 gap-4">
+            <WellnessSlider 
+              label="Fadiga" 
+              value={symptoms.fatigue} 
+              onChange={(v) => setSymptoms({...symptoms, fatigue: v})} 
+              labels={['Nenhuma', 'Leve', 'Média', 'Alta', 'Extrema']}
+            />
+            <WellnessSlider 
+              label="Humor" 
+              value={symptoms.mood} 
+              onChange={(v) => setSymptoms({...symptoms, mood: v})} 
+              labels={['Péssimo', 'Irritada', 'Estável', 'Bem', 'Excelente']}
+            />
+          </div>
+        </div>
+        
+        <SubmitButton loading={isSaving} color="bg-rose-600 hover:bg-rose-500" text="Registrar Sintomas" />
+      </form>
+
+      {/* HISTORIC LIST */}
+      {data.symptoms.length > 0 && (
+        <div className="space-y-4">
+          <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Últimos Registros</h4>
+          <div className="space-y-3">
+            {data.symptoms.map((s: any) => (
+              <div key={s.id} className="p-4 bg-slate-900/40 rounded-2xl border border-white/5 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black text-white uppercase">{new Date(s.date).toLocaleDateString('pt-BR')}</p>
+                  <p className="text-[8px] text-slate-500 font-bold uppercase mt-0.5">Readiness: {s.readiness}/5</p>
+                </div>
+                <div className="flex gap-2">
+                   {s.fatigue >= 4 && <div className="p-1.5 bg-rose-500/10 rounded-lg"><Activity className="w-3 h-3 text-rose-500" /></div>}
+                   {s.mood >= 4 && <div className="p-1.5 bg-emerald-500/10 rounded-lg"><Smile className="w-3 h-3 text-emerald-500" /></div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ClinicalProfileModule({ userId, profile, onSave }: { userId: string, profile: any, onSave: () => void }) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [data, setData] = useState({
+    has_diabetes: profile?.has_diabetes || false,
+    has_hypertension: profile?.has_hypertension || false,
+    has_cardiac: profile?.has_cardiac || false,
+    has_orthopedic: profile?.has_orthopedic || false,
+    medications: profile?.medications || '',
+    notes: profile?.notes || ''
+  });
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    const res = await saveClinicalProfile(userId, data);
+    if (res.success) onSave();
+    setIsSaving(false);
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-cyan-500/20 shadow-2xl space-y-6">
+        <div className="flex items-center gap-4 mb-2">
+          <div className="p-3 bg-cyan-500/20 rounded-2xl">
+            <Shield className="w-6 h-6 text-cyan-500" />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-white uppercase italic">Perfil Clínico</h3>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Baseado em diretrizes ACSM</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          <ToggleItem label="Diabetes (Tipo 1 ou 2)" active={data.has_diabetes} onToggle={(v) => setData({...data, has_diabetes: v})} />
+          <ToggleItem label="Hipertensão Arterial" active={data.has_hypertension} onToggle={(v) => setData({...data, has_hypertension: v})} />
+          <ToggleItem label="Doença Cardíaca" active={data.has_cardiac} onToggle={(v) => setData({...data, has_cardiac: v})} />
+          <ToggleItem label="Limitações Ortopédicas" active={data.has_orthopedic} onToggle={(v) => setData({...data, has_orthopedic: v})} />
+        </div>
+
+        <div className="space-y-4">
+          <label className="text-[10px] font-black text-slate-500 uppercase italic">Medicações em Uso (Nome e Dosagem)</label>
+          <textarea 
+            value={data.medications}
+            onChange={(e) => setData({...data, medications: e.target.value})}
+            placeholder="Ex: Metformina 850mg (08h / 20h)"
+            className="w-full h-32 bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-cyan-500 transition-colors resize-none"
+          />
+        </div>
+
+        <SubmitButton loading={isSaving} color="bg-cyan-600 hover:bg-cyan-500" text="Salvar Perfil Clínico" />
+      </div>
+    </div>
+  );
+}
+
+function DailyHealthModule({ userId, profile, onSave }: { userId: string, profile: any, onSave: () => void }) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [data, setData] = useState({
+    glucose_jejum: '',
+    glucose_pre: '',
+    glucose_post: '',
+    bp_sys: '',
+    bp_dia: '',
+    medication_taken: true,
+    clinical_notes: ''
+  });
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    const res = await logClinicalData(userId, {
+      glucose_jejum: Number(data.glucose_jejum) || null,
+      glucose_pre: Number(data.glucose_pre) || null,
+      glucose_post: Number(data.glucose_post) || null,
+      bp_sys: Number(data.bp_sys) || null,
+      bp_dia: Number(data.bp_dia) || null,
+      medication_taken: data.medication_taken,
+      notes: data.clinical_notes
+    });
+    if (res.success) onSave();
+    setIsSaving(false);
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-emerald-500/20 shadow-2xl space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-500/20 rounded-2xl">
+              <Activity className="w-6 h-6 text-emerald-500" />
+            </div>
+            <div>
+              <h3 className="text-xl font-black text-white uppercase italic">Monitoramento Diário</h3>
+              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Segurança Clínica Hoje</p>
+            </div>
+          </div>
+          <button onClick={() => onSave()} className="text-[8px] font-black text-slate-500 uppercase hover:text-cyan-400 transition-colors underline">Ajustar Perfil</button>
+        </div>
+
+        {profile?.has_diabetes && (
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black text-cyan-500 uppercase tracking-widest">Glicemia (mg/dL)</h4>
+            <div className="grid grid-cols-3 gap-3">
+              <Input label="Jejum" type="number" value={data.glucose_jejum} onChange={(v) => setData({...data, glucose_jejum: v})} />
+              <Input label="Pré-Treino" type="number" value={data.glucose_pre} onChange={(v) => setData({...data, glucose_pre: v})} />
+              <Input label="Pós-Treino" type="number" value={data.glucose_post} onChange={(v) => setData({...data, glucose_post: v})} />
+            </div>
+          </div>
+        )}
+
+        {profile?.has_hypertension && (
+          <div className="space-y-4">
+            <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Pressão Arterial (mmHg)</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <Input label="Sistólica (Máx)" type="number" value={data.bp_sys} onChange={(v) => setData({...data, bp_sys: v})} />
+              <Input label="Diastólica (Mín)" type="number" value={data.bp_dia} onChange={(v) => setData({...data, bp_dia: v})} />
+            </div>
+          </div>
+        )}
+
+        {profile?.medications && (
+          <ToggleItem label="Tomou as medicações hoje?" active={data.medication_taken} onToggle={(v) => setData({...data, medication_taken: v})} />
+        )}
+
+        <div className="space-y-4">
+          <label className="text-[10px] font-black text-slate-500 uppercase italic">Observações / Sintomas Clínicos</label>
+          <textarea 
+            value={data.clinical_notes}
+            onChange={(e) => setData({...data, clinical_notes: e.target.value})}
+            placeholder="Ex: Senti leve tontura após o treino."
+            className="w-full h-24 bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-emerald-500 transition-colors resize-none"
+          />
+        </div>
+
+        <SubmitButton 
+          onClick={handleSave} 
+          loading={isSaving} 
+          color="bg-emerald-600 hover:bg-emerald-500" 
+          text="Salvar Dados de Saúde" 
+        />
+      </div>
+    </div>
+  );
+}
+
+function Input({ label, type, value, onChange, disabled, placeholder }: { label: string, type: string, value: string, onChange: (val: string) => void, disabled?: boolean, placeholder?: string }) {
   return (
     <div className="space-y-2">
       <label className="text-[10px] font-black text-slate-500 uppercase italic">{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold outline-none focus:ring-1 focus:ring-blue-500" />
+      <input 
+        type={type} 
+        value={value} 
+        onChange={e => onChange(e.target.value)} 
+        disabled={disabled}
+        placeholder={placeholder}
+        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-950" 
+      />
     </div>
   );
 }
@@ -919,10 +1674,17 @@ function ToggleItem({ label, active, onToggle }: { label: string, active: boolea
   );
 }
 
-function SubmitButton({ loading, color = 'bg-blue-600 hover:bg-blue-500' }: { loading: boolean, color?: string }) {
+function SubmitButton({ loading, color = 'bg-blue-600 hover:bg-blue-500', text = 'Finalizar e Enviar', onClick }: { loading: boolean, color?: string, text?: string, onClick?: () => void }) {
   return (
-    <button type="submit" disabled={loading} className={`w-full py-5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 italic text-white transition-all ${color} disabled:bg-slate-700`}>
-      <Save className="w-5 h-5" /> {loading ? 'Enviando...' : 'Finalizar e Enviar'}
+    <button 
+      type={onClick ? "button" : "submit"} 
+      onClick={onClick}
+      disabled={loading} 
+      className={`w-full py-5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 italic text-white transition-all ${color} disabled:bg-slate-700`}
+    >
+      <Save className="w-5 h-5" /> {loading ? 'Enviando...' : text}
     </button>
   );
 }
+
+export default dynamic(() => Promise.resolve(AthletePage), { ssr: false });

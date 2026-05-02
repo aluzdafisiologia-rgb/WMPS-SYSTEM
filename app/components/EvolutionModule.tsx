@@ -34,11 +34,12 @@ export default function EvolutionModule({ athletes, onBack, initialAthleteId, hi
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
   const reportRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (initialAthleteId) {
-      setSelectedAthleteId(initialAthleteId);
-    }
-  }, [initialAthleteId]);
+  // Sincronização de props com estado (React 18+ recommended pattern)
+  const [prevInitialId, setPrevInitialId] = useState(initialAthleteId);
+  if (initialAthleteId !== prevInitialId) {
+    setSelectedAthleteId(initialAthleteId || '');
+    setPrevInitialId(initialAthleteId);
+  }
 
   useEffect(() => {
     if (selectedAthleteId) {
@@ -438,7 +439,7 @@ export default function EvolutionModule({ athletes, onBack, initialAthleteId, hi
                     <Send className="w-5 h-5 text-emerald-500" />
                   </div>
                   <div className="text-left">
-                    <h4 className="text-[11px] font-black text-white uppercase italic">Enviar para Aluno</h4>
+                    <h4 className="text-[11px] font-black text-white uppercase italic">Enviar para Atleta</h4>
                     <p className="text-[9px] text-slate-500 font-bold uppercase">Disponível no app do atleta</p>
                   </div>
                 </div>

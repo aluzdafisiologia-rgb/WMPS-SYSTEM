@@ -25,14 +25,14 @@ export async function getPendingRequests() {
 export async function getAllUsers() {
   if (!supabase) return [];
   const { data } = await supabase
-    .from('profiles')
+    .from('atletas')
     .select('*')
     .order('full_name', { ascending: true });
   return data || [];
 }
 
 // Aprovar Cadastro
-export async function approveRegistration(request: any) {
+export async function adminApproveRegistration(request: any) {
   if (!supabase) return { success: false, error: 'Sem conexão' };
 
   try {
@@ -81,7 +81,7 @@ export async function approveRegistration(request: any) {
       must_change_password: true
     };
 
-    const { error: profError } = await supabase.from('profiles').upsert([profileData]);
+    const { error: profError } = await supabase.from('atletas').upsert([profileData]);
     if (profError) {
       return { success: false, error: 'Erro ao criar perfil: ' + profError.message };
     }
@@ -109,7 +109,7 @@ export async function changeUserRole(userId: string, newRole: string) {
   if (!supabase) return { success: false };
   
   // Update Profile Role
-  const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+  const { error } = await supabase.from('atletas').update({ role: newRole }).eq('id', userId);
   
   // Se for block, tentar dar ban no Auth
   if (newRole === 'blocked') {
@@ -136,7 +136,7 @@ export async function resetUserPassword(userId: string) {
     });
     if (authError) return { success: false, error: 'Erro ao resetar no Auth: ' + authError.message };
     
-    const { error: profError } = await supabase.from('profiles').update({ must_change_password: true }).eq('id', userId);
+    const { error: profError } = await supabase.from('atletas').update({ must_change_password: true }).eq('id', userId);
     if (profError) return { success: false, error: 'Erro ao atualizar perfil: ' + profError.message };
     
     return { success: true, tempPassword };

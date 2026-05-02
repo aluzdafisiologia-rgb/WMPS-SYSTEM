@@ -50,7 +50,7 @@ export default function PeriodizationWizard({ athlete, sessions, onClose, onSave
 
   const generatedPlan = useMemo(() => {
     return generateFullPlan(athlete, selectedGoals, durationWeeks, intensityMeta);
-  }, [selectedGoals, durationWeeks, intensityMeta]);
+  }, [athlete, selectedGoals, durationWeeks, intensityMeta]);
 
   const handleSave = async () => {
     setIsSaving(true);
