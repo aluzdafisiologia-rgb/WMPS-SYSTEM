@@ -130,7 +130,10 @@ export async function resetUserPassword(userId: string) {
   try {
     const tempPassword = Math.random().toString(36).slice(-8) + 'WMPS!';
     
-    const { error: authError } = await supabase.auth.admin.updateUserById(userId, { password: tempPassword });
+    const { error: authError } = await supabase.auth.admin.updateUserById(userId, { 
+      password: tempPassword,
+      ban_duration: 'none'
+    });
     if (authError) return { success: false, error: 'Erro ao resetar no Auth: ' + authError.message };
     
     const { error: profError } = await supabase.from('profiles').update({ must_change_password: true }).eq('id', userId);
