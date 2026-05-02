@@ -127,15 +127,13 @@ export default function CoachPage() {
     initAuth();
 
     async function loadData() {
-      const [s, w, reqs, aths] = await Promise.all([
+      const [s, w, aths] = await Promise.all([
         getSessions(),
         getWellness(),
-        getRegistrationRequests(),
         getAthletes()
       ]);
       setSessions(s);
       setWellness(w);
-      setRequests(reqs);
       setAthletes(aths);
       setLoading(false);
     }
@@ -357,13 +355,7 @@ export default function CoachPage() {
               icon={<FileText className="w-8 h-8 text-purple-500" />} 
               onClick={() => setActiveModule('prescription')} 
             />
-            <MenuButton 
-              title="Solicitações" 
-              subtitle={`${requests.length} pendente${requests.length !== 1 ? 's' : ''}`} 
-              icon={<UserPlus className="w-8 h-8 text-rose-500" />} 
-              onClick={() => setActiveModule('requests')} 
-              badge={requests.length}
-            />
+
             <MenuButton 
               title="Alunos" 
               subtitle="Gestão de Atletas" 
@@ -926,21 +918,7 @@ export default function CoachPage() {
             
             <PrescriptionModule coachId={user?.id} />
           </div>
-        ) : activeModule === 'requests' ? (
-          <div className="space-y-8">
-            <button 
-              onClick={() => setActiveModule('menu')}
-              className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all group"
-            >
-              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-              Voltar ao Menu
-            </button>
-            
-            <RequestsModule
-              requests={requests}
-              onApproved={(updatedReqs) => setRequests(updatedReqs)}
-            />
-          </div>
+
         ) : activeModule === 'athletes' ? (
           <div className="space-y-8">
             <button 
