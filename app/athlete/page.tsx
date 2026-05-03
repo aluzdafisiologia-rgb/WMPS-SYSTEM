@@ -470,7 +470,21 @@ function AthletePage() {
               <p className="text-[6px] text-emerald-500 uppercase tracking-[0.3em] font-black -mt-0.5">Performance System</p>
             </div>
           </div>
-          <div className="w-10"></div>
+          <button
+            onClick={async () => {
+              if (supabase) await supabase.auth.signOut();
+              window.location.href = '/';
+            }}
+            title="Sair do sistema"
+            className="p-2 -mr-2 text-slate-500 hover:text-rose-500 transition-all hover:scale-110 group relative"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span className="absolute -bottom-7 right-0 text-[8px] font-black text-rose-500 uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">Sair</span>
+          </button>
         </div>
       </header>
 
