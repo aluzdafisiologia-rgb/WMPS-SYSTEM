@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic';
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowLeft, Clock, Zap, CheckCircle2, Save, FileText, User, Dumbbell, Activity, Timer, MoveHorizontal, Footprints, Camera, Edit2, Check, TrendingUp, AlertTriangle, Info, Calendar, Droplets, Thermometer, Brain, Smile, Heart, Shield } from 'lucide-react';
+import { ArrowLeft, Clock, Zap, CheckCircle2, Save, FileText, User, Dumbbell, Activity, Timer, MoveHorizontal, Footprints, Camera, Edit2, Check, TrendingUp, AlertTriangle, Info, Calendar, Droplets, Thermometer, Brain, Smile, Heart, Shield, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { logWorkout, logWellness, logAnamnesis, getUserRole, getActivePrescription, completeTraining, updateProfilePhoto, getAthleteProfile, updateAthleteProfile, saveMenstrualCycle, logMenstrualSymptoms, getMenstrualData, saveReadinessScore, getReadinessHistory, saveClinicalProfile, logClinicalData, getClinicalData, getLatestWellness } from '../actions';
@@ -85,7 +85,8 @@ function AthletePage() {
     diabetes: false,
     obesity: false,
     previousInjuries: '',
-    details: ''
+    details: '',
+    medications: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -117,54 +118,58 @@ function AthletePage() {
 
   const fetchProfile = async () => {
     if (!user) return;
-    const profileData = await getAthleteProfile(user.id);
-    if (profileData) {
-      setProfile(profileData);
-      // Carregar histórico de prontidão
-      const history = await getReadinessHistory(user.id);
-      setReadinessHistory(history);
-      if (history.length > 0) {
-        const last = history[0];
-        let classification = "";
-        let color = "";
-        let recommendation = "";
-        const score = last.score;
-        if (score >= 85) { classification = "Alta Prontidão"; color = "text-emerald-500"; recommendation = "Dia excelente para quebrar recordes e treinar pesado!"; }
-        else if (score >= 70) { classification = "Boa Prontidão"; color = "text-blue-500"; recommendation = "Ótimo dia para seguir a planilha com intensidade."; }
-        else if (score >= 50) { classification = "Moderada"; color = "text-amber-500"; recommendation = "Escute seu corpo. Talvez reduzir 10-15% da carga seja prudente."; }
-        else if (score >= 30) { classification = "Baixa"; color = "text-orange-500"; recommendation = "Reduza volume e foque em técnica ou flexibilidade."; }
-        else { classification = "Muito Baixa"; color = "text-rose-500"; recommendation = "Priorize a recuperação total hoje. Sono e hidratação."; }
-        setReadinessScore({ score, class: classification, color, recommendation });
-      }
-      const clinical = await getClinicalData(user.id);
-      setClinicalProfile(clinical.profile);
-      setClinicalLogs(clinical.logs);
+    try {
+      const profileData = await getAthleteProfile(user.id);
+      if (profileData) {
+        setProfile(profileData);
+        // Carregar histórico de prontidão
+        const history = await getReadinessHistory(user.id);
+        setReadinessHistory(history);
+        if (history.length > 0) {
+          const last = history[0];
+          let classification = "";
+          let color = "";
+          let recommendation = "";
+          const score = last.score;
+          if (score >= 85) { classification = "Alta Prontidão"; color = "text-emerald-500"; recommendation = "Dia excelente para quebrar recordes e treinar pesado!"; }
+          else if (score >= 70) { classification = "Boa Prontidão"; color = "text-blue-500"; recommendation = "Ótimo dia para seguir a planilha com intensidade."; }
+          else if (score >= 50) { classification = "Moderada"; color = "text-amber-500"; recommendation = "Escute seu corpo. Talvez reduzir 10-15% da carga seja prudente."; }
+          else if (score >= 30) { classification = "Baixa"; color = "text-orange-500"; recommendation = "Reduza volume e foque em técnica ou flexibilidade."; }
+          else { classification = "Muito Baixa"; color = "text-rose-500"; recommendation = "Priorize a recuperação total hoje. Sono e hidratação."; }
+          setReadinessScore({ score, class: classification, color, recommendation });
+        }
+        const clinical = await getClinicalData(user.id);
+        setClinicalProfile(clinical.profile);
+        setClinicalLogs(clinical.logs);
 
-      const latestWell = await getLatestWellness(user.id);
-      if (latestWell) {
-        setWellnessData({
-          recovery: latestWell.recovery || 14,
-          sleep: latestWell.sleep || 3,
-          stress: latestWell.stress || 3,
-          fatigue: latestWell.fatigue || 3,
-          soreness: latestWell.soreness || 3,
+        const latestWell = await getLatestWellness(user.id);
+        if (latestWell) {
+          setWellnessData({
+            recovery: latestWell.recovery || 14,
+            sleep: latestWell.sleep || 3,
+            stress: latestWell.stress || 3,
+            fatigue: latestWell.fatigue || 3,
+            soreness: latestWell.soreness || 3,
+          });
+        }
+
+        // ... restante da lógica de profile
+        setFormData(prev => ({ ...prev, athleteName: profileData.full_name }));
+        setEditProfileData({
+          full_name: profileData.full_name || '',
+          email: profileData.email || '',
+          gender: profileData.gender || '',
+          phone: profileData.phone || '',
+          cpf: profileData.cpf || '',
+          birth_date: profileData.birth_date || '',
+          height: profileData.height?.toString() || '',
+          weight: profileData.weight?.toString() || '',
+          sport: profileData.sport || '',
+          goal: profileData.goal || '',
         });
       }
-
-      // ... restante da lógica de profile
-      setFormData(prev => ({ ...prev, athleteName: profileData.full_name }));
-      setEditProfileData({
-        full_name: profileData.full_name || '',
-        email: profileData.email || '',
-        gender: profileData.gender || '',
-        phone: profileData.phone || '',
-        cpf: profileData.cpf || '',
-        birth_date: profileData.birth_date || '',
-        height: profileData.height?.toString() || '',
-        weight: profileData.weight?.toString() || '',
-        sport: profileData.sport || '',
-        goal: profileData.goal || '',
-      });
+    } catch (error) {
+      console.error('Error fetching profile:', error);
     }
   };
 
@@ -345,6 +350,15 @@ function AthletePage() {
         athleteName: formData.athleteName,
         ...anamnesisData
       });
+      const newClinicalProfile = {
+        has_diabetes: anamnesisData.diabetes,
+        has_hypertension: anamnesisData.hypertension,
+        has_cardiac: anamnesisData.hasKnownDisease || anamnesisData.q1,
+        has_orthopedic: anamnesisData.q6,
+        medications: anamnesisData.medications || ''
+      };
+      await saveClinicalProfile(user.id, newClinicalProfile);
+      setClinicalProfile(newClinicalProfile);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
@@ -499,7 +513,6 @@ function AthletePage() {
                 className="hidden"
               />
             </div>
-
             <div className="space-y-3">
               <h2 className="text-3xl font-black text-white uppercase italic tracking-tight">{profile?.full_name || 'Carregando...'}</h2>
               <div className="flex flex-col items-center gap-3">
@@ -571,56 +584,34 @@ function AthletePage() {
           </div>
         )}
         
-        {/* READINESS SCORE CARD */}
-        {!activeTab && readinessScore && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="p-8 bg-slate-900/60 rounded-[3rem] border border-white/5 shadow-2xl relative overflow-hidden group"
-          >
-            <div className={`absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000`}></div>
-            
-            <div className="relative z-10 flex flex-col items-center text-center space-y-4">
-              <div className="relative">
-                <svg className="w-32 h-32 transform -rotate-90">
-                  <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800" />
-                  <motion.circle 
-                    cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" 
-                    strokeDasharray={364.4}
-                    initial={{ strokeDashoffset: 364.4 }}
-                    animate={{ strokeDashoffset: 364.4 - (364.4 * readinessScore.score) / 100 }}
-                    transition={{ duration: 2, ease: "easeOut" }}
-                    className={readinessScore.color}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-4xl font-black text-white leading-none">{readinessScore.score}</span>
-                  <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Score</span>
-                </div>
-              </div>
 
-              <div>
-                <h3 className={`text-xl font-black uppercase italic ${readinessScore.color}`}>{readinessScore.class}</h3>
-                <p className="text-xs text-white/70 font-medium leading-relaxed italic mt-2 px-4">
-                  "{readinessScore.recommendation}"
-                </p>
-              </div>
-
-              {currentPhase && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
-                  <Droplets className="w-3 h-3 text-rose-500" />
-                  <span className="text-[9px] font-black text-white/60 uppercase tracking-widest">
-                    Fase {currentPhase.name}
-                  </span>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
 
         {!activeTab ? (
           <div className="grid grid-cols-1 gap-6 py-8">
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+              <MenuCard 
+                title="ANAMNESE" 
+                sub="Histórico e Saúde" 
+                icon={<ClipboardList className="w-10 h-10 text-cyan-400" />} 
+                onClick={() => setActiveTab('anamnesis')} 
+                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-cyan-500/30"
+                accentColor="from-cyan-500/20 to-transparent"
+              />
+            </div>
+
+            <div className="relative group">
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+              <MenuCard 
+                title="PRÉ-TREINO" 
+                sub="Prontidão & Recuperação" 
+                icon={<Activity className="w-10 h-10 text-blue-400" />} 
+                onClick={() => setActiveTab('wellness')} 
+                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-blue-500/30"
+                accentColor="from-blue-500/20 to-transparent"
+              />
+            </div>
+
             <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
               <MenuCard 
@@ -634,26 +625,14 @@ function AthletePage() {
             </div>
 
             <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-orange-500 to-red-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
               <MenuCard 
-                title="BEM-ESTAR" 
-                sub="Prontidão & Recuperação" 
-                icon={<Activity className="w-10 h-10 text-blue-400" />} 
-                onClick={() => setActiveTab('wellness')} 
-                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-blue-500/30"
-                accentColor="from-blue-500/20 to-transparent"
-              />
-            </div>
-
-            <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-              <MenuCard 
-                title="SAÚDE CLÍNICA" 
-                sub="Monitoramento & Medicina" 
-                icon={<Heart className="w-10 h-10 text-cyan-400" />} 
-                onClick={() => clinicalProfile ? setActiveTab('daily_health') : setActiveTab('clinical_profile')} 
-                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-cyan-500/30"
-                accentColor="from-cyan-500/20 to-transparent"
+                title="PÓS-TREINO" 
+                sub="Registro de Carga e PSE" 
+                icon={<Timer className="w-10 h-10 text-orange-400" />} 
+                onClick={() => setActiveTab('workout')} 
+                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-orange-500/30"
+                accentColor="from-orange-500/20 to-transparent"
               />
             </div>
 
@@ -671,18 +650,6 @@ function AthletePage() {
               </div>
             )}
 
-            <div className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-blue-500 rounded-[2rem] blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-              <MenuCard 
-                title="EVOLUÇÃO" 
-                sub="Metas & Histórico" 
-                icon={<TrendingUp className="w-10 h-10 text-purple-400" />} 
-                onClick={() => setActiveTab('evolution')} 
-                color="bg-slate-800/80 hover:bg-slate-800 border-white/5 hover:border-purple-500/30"
-                accentColor="from-purple-500/20 to-transparent"
-              />
-            </div>
-
             {/* RELATÓRIO PROFISSIONAL */}
             <AthleteReportModule 
               data={{
@@ -698,14 +665,20 @@ function AthletePage() {
           <div className="space-y-6">
             <div className="bento-card bg-slate-800 border-slate-700 shadow-xl overflow-hidden p-0">
               <div className={`px-8 py-4 ${activeTab === 'workout' ? 'bg-blue-600' : activeTab === 'wellness' ? 'bg-emerald-600' : activeTab === 'training' ? 'bg-yellow-600' : activeTab === 'profile_edit' ? 'bg-emerald-500' : 'bg-purple-600'}`}>
-                <h2 className="text-sm font-black text-white uppercase italic">
-                  {activeTab === 'workout' ? 'Pós-Treino' : 
-                   activeTab === 'wellness' ? 'Pré-Treino' : 
-                   activeTab === 'training' ? 'Prescrição do Treinador' : 
-                   activeTab === 'evolution' ? 'Evolução' : 
-                   activeTab === 'profile_edit' ? 'Editar Cadastro' :
-                   'Anamnese'}
-                </h2>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-black text-white uppercase italic tracking-widest">
+                    {activeTab === 'workout' ? 'Pós-Treino' : 
+                     activeTab === 'wellness' ? 'Pré-Treino' : 
+                     activeTab === 'training' ? 'Prescrição do Treinador' : 
+                     activeTab === 'evolution' ? 'Evolução' : 
+                     activeTab === 'profile_edit' ? 'Editar Cadastro' : 
+                     activeTab === 'menstrual' ? 'Ciclo Menstrual' : 
+                     'Anamnese'}
+                  </h3>
+                  <button onClick={() => setActiveTab(null)} className="p-2 bg-white/10 rounded-xl hover:bg-white/20 transition-all">
+                    <ArrowLeft className="w-5 h-5 text-white" />
+                  </button>
+                </div>
               </div>
               
               <div className="p-8 space-y-8">
@@ -733,79 +706,7 @@ function AthletePage() {
                   </form>
                 )}
 
-                {activeTab === 'anamnesis' && (
-                  <form onSubmit={handleSubmitAnamnesis} className="space-y-8">
-                    {/* Bloco PAR-Q+ */}
-                    <div className="bg-slate-900/60 p-6 rounded-[2rem] border border-slate-800 shadow-xl space-y-6">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-2xl bg-purple-500/10 flex items-center justify-center border border-purple-500/30">
-                          <FileText className="w-5 h-5 text-purple-400" />
-                        </div>
-                        <h3 className="text-sm font-black text-white uppercase italic tracking-widest">PAR-Q+ 2014</h3>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        {[
-                          { id: 'q1', text: 'Problema de coração ou pressão alta?' },
-                          { id: 'q2', text: 'Dor no peito em repouso ou esforço?' },
-                          { id: 'q3', text: 'Tontura ou perda de consciência?' },
-                          { id: 'q4', text: 'Outra condição crônica diagnosticada?' },
-                          { id: 'q5', text: 'Toma remédio para condição crônica?' },
-                          { id: 'q6', text: 'Problema ósseo/articular que piora com exercício?' },
-                          { id: 'q7', text: 'Remédio para coração ou pressão?' },
-                        ].map(q => (
-                          <div key={q.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-950/50 border border-slate-800/80 rounded-2xl gap-4 hover:border-purple-500/30 transition-colors">
-                            <span className="text-[11px] font-bold text-slate-300 uppercase leading-relaxed">{q.text}</span>
-                            <div className="flex-shrink-0 self-start sm:self-auto">
-                              <BinaryToggle active={anamnesisData[q.id as keyof typeof anamnesisData] as boolean} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, [q.id]: v})} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
 
-                    {/* Bloco Fatores de Risco */}
-                    <div className="bg-slate-900/60 p-6 rounded-[2rem] border border-slate-800 shadow-xl space-y-6">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/30">
-                          <Activity className="w-5 h-5 text-blue-400" />
-                        </div>
-                        <h3 className="text-sm font-black text-white uppercase italic tracking-widest">Fatores de Risco</h3>
-                      </div>
-
-                      <div className="space-y-3">
-                        <ToggleItem label="Ativo regular? (3x/sem, 30min, 3m)" active={anamnesisData.isPhysicallyActive} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, isPhysicallyActive: v})} />
-                        <ToggleItem label="Doença CV, Metabólica ou Renal?" active={anamnesisData.hasKnownDisease} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hasKnownDisease: v})} />
-                        <ToggleItem label="Sintomas (Dor, Falta de ar, Tontura)?" active={anamnesisData.hasSymptoms} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hasSymptoms: v})} />
-                        <ToggleItem label="Histórico Familiar (Infarto/Morte Súbita)?" active={anamnesisData.familyHistory} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, familyHistory: v})} />
-                        <ToggleItem label="Fumante (ou parou há < 6 meses)?" active={anamnesisData.smoking} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, smoking: v})} />
-                        <ToggleItem label="Hipertensão (>= 140/90 ou remédio)?" active={anamnesisData.hypertension} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, hypertension: v})} />
-                        <ToggleItem label="Diabetes ou Glicose Elevada?" active={anamnesisData.diabetes} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, diabetes: v})} />
-                        <ToggleItem label="Obesidade (IMC > 30 ou Cintura Larga)?" active={anamnesisData.obesity} onToggle={(v: boolean) => setAnamnesisData({...anamnesisData, obesity: v})} />
-                      </div>
-                      
-                      <div className="pt-4 space-y-2">
-                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Histórico de Lesões</label>
-                        <textarea 
-                          value={anamnesisData.previousInjuries}
-                          onChange={(e) => setAnamnesisData({...anamnesisData, previousInjuries: e.target.value})}
-                          placeholder="Ossos, músculos, articulações ou cirurgias..."
-                          className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-xs font-bold text-white focus:border-blue-500 outline-none h-32 transition-colors resize-none"
-                        />
-                      </div>
-
-                      <div className="pt-4 space-y-3">
-                        <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Intensidade Desejada</p>
-                        <div className="grid grid-cols-2 gap-3">
-                          <button type="button" onClick={() => setAnamnesisData({...anamnesisData, desiredIntensity: 'moderate'})} className={`py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all border-2 ${anamnesisData.desiredIntensity === 'moderate' ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-500/20 scale-[1.02]' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'}`}>Moderada</button>
-                          <button type="button" onClick={() => setAnamnesisData({...anamnesisData, desiredIntensity: 'vigorous'})} className={`py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all border-2 ${anamnesisData.desiredIntensity === 'vigorous' ? 'bg-purple-600 border-purple-400 text-white shadow-lg shadow-purple-500/20 scale-[1.02]' : 'bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700'}`}>Vigorosa</button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <SubmitButton loading={isSubmitting} color="bg-purple-600 hover:bg-purple-500" />
-                  </form>
-                )}
 
                 {activeTab === 'training' && activePrescription && (() => {
                   const prescKeys = getPrescriptionKeys(activePrescription.data);
@@ -1056,7 +957,7 @@ function AthletePage() {
                       </motion.button>
 
                       <p className="text-center text-[9px] text-slate-600 font-bold uppercase italic">
-                        Após confirmar, registre o PSE e duração real na aba "Carga Treino"
+                        Após confirmar, registre o PSE e duração real na aba "Pós-Treino"
                       </p>
                     </div>
                   );
@@ -1168,17 +1069,11 @@ function AthletePage() {
                     onRefresh={fetchMenstrualData}
                   />
                 )}
-                {activeTab === 'clinical_profile' && user && (
-                  <ClinicalProfileModule 
+                {activeTab === 'anamnesis' && user && (
+                  <AnamnesisModule 
                     userId={user.id} 
-                    profile={clinicalProfile} 
-                    onSave={() => { setActiveTab(null); fetchProfile(); }}
-                  />
-                )}
-                {activeTab === 'daily_health' && user && (
-                  <DailyHealthModule 
-                    userId={user.id} 
-                    profile={clinicalProfile} 
+                    athleteName={profile?.full_name || ''}
+                    clinicalProfile={clinicalProfile} 
                     onSave={() => { setActiveTab(null); fetchProfile(); }}
                   />
                 )}
@@ -1286,33 +1181,19 @@ function MenstrualCycleModule({ userId, data, currentPhase, onRefresh }: { userI
               <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Personalize seu monitoramento fisiológico</p>
             </div>
           </div>
-          
-          <form 
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSaveConfig();
-            }} 
-            className="space-y-4"
-          >
-            <Input 
-              label="Data da última menstruação" 
-              type="date" 
-              value={config.lastPeriodDate} 
-              onChange={(v) => setConfig({...config, lastPeriodDate: v})} 
-            />
-            <Input 
-              label="Duração média do ciclo (dias)" 
-              type="number" 
-              value={config.cycleDuration.toString()} 
-              onChange={(v) => setConfig({...config, cycleDuration: parseInt(v) || 28})} 
-            />
-            <ToggleItem 
-              label="Ciclo Regular?" 
-              active={config.regular} 
-              onToggle={(v) => setConfig({...config, regular: v})} 
-            />
-            <SubmitButton loading={isSaving} color="bg-rose-600 hover:bg-rose-500" text="Salvar Configuração" />
-          </form>
+
+          <div className="space-y-6">
+            <Input label="Data da Última Menstruação" type="date" value={config.lastPeriodDate} onChange={(v: string) => setConfig({...config, lastPeriodDate: v})} />
+            <Input label="Duração Média do Ciclo (dias)" type="number" value={config.cycleDuration.toString()} onChange={(v: string) => setConfig({...config, cycleDuration: parseInt(v) || 28})} />
+            <div className="flex items-center justify-between p-4 bg-slate-950/50 rounded-2xl border border-slate-800">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ciclo Regular?</span>
+              <BinaryToggle active={config.regular} onToggle={(v: boolean) => setConfig({...config, regular: v})} />
+            </div>
+          </div>
+
+          <div className="mt-8">
+            <SubmitButton loading={isSaving} text="Salvar Configuração" onClick={handleSaveConfig} color="bg-rose-600 hover:bg-rose-500" />
+          </div>
         </div>
       </div>
     );
@@ -1320,262 +1201,281 @@ function MenstrualCycleModule({ userId, data, currentPhase, onRefresh }: { userI
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
-      {/* PHASE DASHBOARD */}
-      {currentPhase && (
-        <div className={`p-8 rounded-[3rem] border ${currentPhase.border} ${currentPhase.bg} relative overflow-hidden`}>
-          <div className="absolute top-0 right-0 p-8 opacity-10">
-            <Droplets className="w-32 h-32 text-rose-500" />
-          </div>
-          
-          <div className="relative z-10 space-y-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${currentPhase.color}`}>Fase Atual</span>
-                <h2 className="text-4xl font-black text-white uppercase italic leading-none mt-1">{currentPhase.name}</h2>
-                <p className="text-[10px] text-white/60 font-bold uppercase mt-2">Dia {currentPhase.day} de {data.cycle.cycle_duration}</p>
-              </div>
-              <div className="px-4 py-2 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
-                <span className="text-[9px] font-black text-white/40 uppercase block">Estratégia</span>
-                <span className={`text-xs font-black uppercase italic ${currentPhase.color}`}>{currentPhase.strategy}</span>
-              </div>
-            </div>
-
-            <div className="p-4 bg-black/20 rounded-2xl border border-white/5">
-              <p className="text-xs text-white/90 font-medium leading-relaxed italic">
-                "{currentPhase.desc}"
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-3">
-                <Thermometer className="w-5 h-5 text-rose-400" />
-                <div>
-                  <p className="text-[8px] font-black text-white/30 uppercase">Temperatura</p>
-                  <p className="text-[10px] font-bold text-white uppercase">{currentPhase.name.includes('Lútea') ? '+0.5°C (Alta)' : 'Basal'}</p>
-                </div>
-              </div>
-              <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center gap-3">
-                <Zap className="w-5 h-5 text-emerald-400" />
-                <div>
-                  <p className="text-[8px] font-black text-white/30 uppercase">Prontidão</p>
-                  <p className="text-[10px] font-bold text-white uppercase">{currentPhase.strategy === 'Carga Máxima' ? 'Excelente' : 'Moderada'}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* SYMPTOM LOGGING */}
-      <form 
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleLogSymptoms();
-        }} 
-        className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-white/5 shadow-xl space-y-6"
-      >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-black text-white uppercase italic">Registro Diário</h3>
-          <button type="button" onClick={() => setSetupMode(true)} className="text-[8px] font-black text-slate-500 uppercase hover:text-rose-400 transition-colors">Ajustar Ciclo</button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4">
-          <WellnessSlider 
-            label="Disposição para Treinar" 
-            value={symptoms.readiness} 
-            onChange={(v) => setSymptoms({...symptoms, readiness: v})} 
-            labels={['Exausta', 'Baixa', 'Normal', 'Boa', 'Invencível']}
-          />
-          <div className="grid grid-cols-2 gap-4">
-            <WellnessSlider 
-              label="Fadiga" 
-              value={symptoms.fatigue} 
-              onChange={(v) => setSymptoms({...symptoms, fatigue: v})} 
-              labels={['Nenhuma', 'Leve', 'Média', 'Alta', 'Extrema']}
-            />
-            <WellnessSlider 
-              label="Humor" 
-              value={symptoms.mood} 
-              onChange={(v) => setSymptoms({...symptoms, mood: v})} 
-              labels={['Péssimo', 'Irritada', 'Estável', 'Bem', 'Excelente']}
-            />
-          </div>
-        </div>
-        
-        <SubmitButton loading={isSaving} color="bg-rose-600 hover:bg-rose-500" text="Registrar Sintomas" />
-      </form>
-
-      {/* HISTORIC LIST */}
-      {data.symptoms.length > 0 && (
-        <div className="space-y-4">
-          <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-4">Últimos Registros</h4>
-          <div className="space-y-3">
-            {data.symptoms.map((s: any) => (
-              <div key={s.id} className="p-4 bg-slate-900/40 rounded-2xl border border-white/5 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black text-white uppercase">{new Date(s.date).toLocaleDateString('pt-BR')}</p>
-                  <p className="text-[8px] text-slate-500 font-bold uppercase mt-0.5">Readiness: {s.readiness}/5</p>
-                </div>
-                <div className="flex gap-2">
-                   {s.fatigue >= 4 && <div className="p-1.5 bg-rose-500/10 rounded-lg"><Activity className="w-3 h-3 text-rose-500" /></div>}
-                   {s.mood >= 4 && <div className="p-1.5 bg-emerald-500/10 rounded-lg"><Smile className="w-3 h-3 text-emerald-500" /></div>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ClinicalProfileModule({ userId, profile, onSave }: { userId: string, profile: any, onSave: () => void }) {
-  const [isSaving, setIsSaving] = useState(false);
-  const [data, setData] = useState({
-    has_diabetes: profile?.has_diabetes || false,
-    has_hypertension: profile?.has_hypertension || false,
-    has_cardiac: profile?.has_cardiac || false,
-    has_orthopedic: profile?.has_orthopedic || false,
-    medications: profile?.medications || '',
-    notes: profile?.notes || ''
-  });
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    const res = await saveClinicalProfile(userId, data);
-    if (res.success) onSave();
-    setIsSaving(false);
-  };
-
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-cyan-500/20 shadow-2xl space-y-6">
-        <div className="flex items-center gap-4 mb-2">
-          <div className="p-3 bg-cyan-500/20 rounded-2xl">
-            <Shield className="w-6 h-6 text-cyan-500" />
+      {/* Status da Fase Atual */}
+      <div className={`p-8 rounded-[2.5rem] border-2 shadow-2xl relative overflow-hidden ${currentPhase?.bg} ${currentPhase?.border}`}>
+        <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+          <div className="p-4 bg-white/5 rounded-full backdrop-blur-md">
+            <Droplets className={`w-8 h-8 ${currentPhase?.color}`} />
           </div>
           <div>
-            <h3 className="text-xl font-black text-white uppercase italic">Perfil Clínico</h3>
-            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Baseado em diretrizes ACSM</p>
+            <span className={`text-[10px] font-black uppercase tracking-[0.2em] opacity-60 ${currentPhase?.color}`}>Dia {currentPhase?.day} do Ciclo</span>
+            <h3 className={`text-3xl font-black uppercase italic tracking-tight mt-1 ${currentPhase?.color}`}>{currentPhase?.name}</h3>
           </div>
+          <div className="bg-white/5 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/5">
+            <p className="text-xs font-bold text-white uppercase italic tracking-widest">Estratégia: {currentPhase?.strategy}</p>
+          </div>
+          <p className="text-xs text-slate-400 font-medium max-w-[250px] leading-relaxed italic">
+            "{currentPhase?.desc}"
+          </p>
+        </div>
+      </div>
+
+      {/* Registro de Sintomas Diários */}
+      <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl space-y-8">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-rose-500/10 rounded-2xl border border-rose-500/20">
+            <Thermometer className="w-6 h-6 text-rose-500" />
+          </div>
+          <h4 className="text-sm font-black text-white uppercase italic tracking-widest">Sintomas Diários</h4>
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
-          <ToggleItem label="Diabetes (Tipo 1 ou 2)" active={data.has_diabetes} onToggle={(v) => setData({...data, has_diabetes: v})} />
-          <ToggleItem label="Hipertensão Arterial" active={data.has_hypertension} onToggle={(v) => setData({...data, has_hypertension: v})} />
-          <ToggleItem label="Doença Cardíaca" active={data.has_cardiac} onToggle={(v) => setData({...data, has_cardiac: v})} />
-          <ToggleItem label="Limitações Ortopédicas" active={data.has_orthopedic} onToggle={(v) => setData({...data, has_orthopedic: v})} />
+        <div className="grid grid-cols-1 gap-6">
+          <WellnessSlider label="Nível de Fadiga" value={symptoms.fatigue} onChange={(v: number) => setSymptoms({...symptoms, fatigue: v})} labels={['Disposta', 'Normal', 'Cansada', 'Fadigada', 'Exausta']} />
+          <WellnessSlider label="Dores / Cólicas" value={symptoms.pain} onChange={(v: number) => setSymptoms({...symptoms, pain: v})} labels={['Nenhuma', 'Leve', 'Moderada', 'Forte', 'Insuportável']} />
+          <WellnessSlider label="Inchaço" value={symptoms.bloating} onChange={(v: number) => setSymptoms({...symptoms, bloating: v})} labels={['Nenhum', 'Leve', 'Moderado', 'Visível', 'Incomoda']} />
+          <WellnessSlider label="Humor / Disposição" value={symptoms.mood} onChange={(v: number) => setSymptoms({...symptoms, mood: v})} labels={['Excelente', 'Bom', 'Oscilante', 'Irritada', 'Triste']} />
         </div>
 
-        <div className="space-y-4">
-          <label className="text-[10px] font-black text-slate-500 uppercase italic">Medicações em Uso (Nome e Dosagem)</label>
+        <div className="space-y-3">
+          <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Notas Adicionais</label>
           <textarea 
-            value={data.medications}
-            onChange={(e) => setData({...data, medications: e.target.value})}
-            placeholder="Ex: Metformina 850mg (08h / 20h)"
-            className="w-full h-32 bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-cyan-500 transition-colors resize-none"
+            value={symptoms.notes}
+            onChange={(e) => setSymptoms({...symptoms, notes: e.target.value})}
+            placeholder="Como você está se sentindo hoje?..."
+            className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-xs font-bold text-white focus:border-rose-500 outline-none h-24 transition-colors resize-none"
           />
         </div>
 
-        <SubmitButton loading={isSaving} color="bg-cyan-600 hover:bg-cyan-500" text="Salvar Perfil Clínico" />
+        <SubmitButton loading={isSaving} text="Registrar Sintomas" onClick={handleLogSymptoms} color="bg-rose-600 hover:bg-rose-500" />
       </div>
+
+      <button onClick={() => setSetupMode(true)} className="w-full py-4 text-[9px] font-black text-slate-600 uppercase tracking-[0.2em] hover:text-rose-400 transition-colors">
+        Redefinir Configurações do Ciclo
+      </button>
     </div>
   );
 }
 
-function DailyHealthModule({ userId, profile, onSave }: { userId: string, profile: any, onSave: () => void }) {
-  const [isSaving, setIsSaving] = useState(false);
+function AnamnesisModule({ userId, athleteName, clinicalProfile, onSave }: { userId: string, athleteName: string, clinicalProfile: any, onSave: () => void }) {
   const [data, setData] = useState({
-    glucose_jejum: '',
+    has_diabetes: clinicalProfile?.has_diabetes || false,
+    has_hypertension: clinicalProfile?.has_hypertension || false,
+    has_cardiac: clinicalProfile?.has_cardiac || false,
+    has_orthopedic: clinicalProfile?.has_orthopedic || false,
+    medications: clinicalProfile?.medications || '',
     glucose_pre: '',
     glucose_post: '',
     bp_sys: '',
     bp_dia: '',
-    medication_taken: true,
-    clinical_notes: ''
+    notes: '',
+    // PAR-Q States
+    q1: false, q2: false, q3: false, q4: false, q5: false, q6: false, q7: false,
+    isPhysicallyActive: false,
+    hasKnownDisease: false,
+    hasSymptoms: false,
+    familyHistory: false,
+    smoking: false,
+    diabetes: false,
+    obesity: false,
+    athleteName: athleteName,
+    previousInjuries: '',
+    desiredIntensity: 'moderate' as 'moderate' | 'vigorous'
   });
+  const [loading, setLoading] = useState(false);
+  const [view, setView] = useState<'profile' | 'daily'>(clinicalProfile ? 'daily' : 'profile');
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    const res = await logClinicalData(userId, {
-      glucose_jejum: Number(data.glucose_jejum) || null,
-      glucose_pre: Number(data.glucose_pre) || null,
-      glucose_post: Number(data.glucose_post) || null,
-      bp_sys: Number(data.bp_sys) || null,
-      bp_dia: Number(data.bp_dia) || null,
-      medication_taken: data.medication_taken,
-      notes: data.clinical_notes
-    });
-    if (res.success) onSave();
-    setIsSaving(false);
+  const handleSaveProfile = async () => {
+    setLoading(true);
+    try {
+      await saveClinicalProfile(userId, {
+        has_diabetes: data.has_diabetes || data.q6 || false,
+        has_hypertension: data.has_hypertension || false,
+        has_cardiac: data.has_cardiac || data.q1 || false,
+        has_orthopedic: data.has_orthopedic || data.q5 || false,
+        medications: data.medications
+      });
+      await logAnamnesis(userId, data);
+      alert('Anamnese e Perfil Clínico atualizados!');
+      setView('daily');
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      alert('Erro ao salvar anamnese. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveDaily = async () => {
+    setLoading(true);
+    try {
+      await logClinicalData(userId, {
+        glucose_pre: parseFloat(data.glucose_pre) || null,
+        glucose_post: parseFloat(data.glucose_post) || null,
+        bp_sys: parseFloat(data.bp_sys) || null,
+        bp_dia: parseFloat(data.bp_dia) || null,
+        notes: data.notes
+      });
+      alert('Medições registradas com sucesso!');
+      onSave();
+    } catch (error) {
+      console.error('Error saving daily data:', error);
+      alert('Erro ao salvar medições.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-emerald-500/20 shadow-2xl space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-emerald-500/20 rounded-2xl">
-              <Activity className="w-6 h-6 text-emerald-500" />
-            </div>
-            <div>
-              <h3 className="text-xl font-black text-white uppercase italic">Monitoramento Diário</h3>
-              <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Segurança Clínica Hoje</p>
-            </div>
-          </div>
-          <button onClick={() => onSave()} className="text-[8px] font-black text-slate-500 uppercase hover:text-cyan-400 transition-colors underline">Ajustar Perfil</button>
-        </div>
-
-        {profile?.has_diabetes && (
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-black text-cyan-500 uppercase tracking-widest">Glicemia (mg/dL)</h4>
-            <div className="grid grid-cols-3 gap-3">
-              <Input label="Jejum" type="number" value={data.glucose_jejum} onChange={(v) => setData({...data, glucose_jejum: v})} />
-              <Input label="Pré-Treino" type="number" value={data.glucose_pre} onChange={(v) => setData({...data, glucose_pre: v})} />
-              <Input label="Pós-Treino" type="number" value={data.glucose_post} onChange={(v) => setData({...data, glucose_post: v})} />
-            </div>
-          </div>
-        )}
-
-        {profile?.has_hypertension && (
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-widest">Pressão Arterial (mmHg)</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <Input label="Sistólica (Máx)" type="number" value={data.bp_sys} onChange={(v) => setData({...data, bp_sys: v})} />
-              <Input label="Diastólica (Mín)" type="number" value={data.bp_dia} onChange={(v) => setData({...data, bp_dia: v})} />
-            </div>
-          </div>
-        )}
-
-        {profile?.medications && (
-          <ToggleItem label="Tomou as medicações hoje?" active={data.medication_taken} onToggle={(v) => setData({...data, medication_taken: v})} />
-        )}
-
-        <div className="space-y-4">
-          <label className="text-[10px] font-black text-slate-500 uppercase italic">Observações / Sintomas Clínicos</label>
-          <textarea 
-            value={data.clinical_notes}
-            onChange={(e) => setData({...data, clinical_notes: e.target.value})}
-            placeholder="Ex: Senti leve tontura após o treino."
-            className="w-full h-24 bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-emerald-500 transition-colors resize-none"
-          />
-        </div>
-
-        <SubmitButton 
-          onClick={handleSave} 
-          loading={isSaving} 
-          color="bg-emerald-600 hover:bg-emerald-500" 
-          text="Salvar Dados de Saúde" 
-        />
+    <div className="space-y-6">
+      {/* View Selector */}
+      <div className="flex gap-2 p-1 bg-slate-950 rounded-2xl border border-slate-800">
+        <button 
+          onClick={() => setView('profile')}
+          className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === 'profile' ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-500 hover:text-slate-400'}`}
+        >
+          Histórico & PAR-Q
+        </button>
+        <button 
+          onClick={() => setView('daily')}
+          className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${view === 'daily' ? 'bg-slate-700 text-white shadow-lg' : 'text-slate-500 hover:text-slate-400'}`}
+        >
+          Medições Diárias
+        </button>
       </div>
+
+      {view === 'profile' ? (
+        <div className="space-y-6 animate-in fade-in slide-in-from-left-4 pb-8">
+          {/* PAR-Q Section */}
+          <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-slate-800 shadow-xl space-y-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-500/20">
+                <Shield className="w-6 h-6 text-purple-400" />
+              </div>
+              <h3 className="text-xl font-black text-white uppercase italic tracking-tight">Questionário PAR-Q</h3>
+            </div>
+            
+            <div className="space-y-4">
+              {[
+                { id: 'q1', text: 'Problema cardíaco e recomendação médica?' },
+                { id: 'q2', text: 'Dor no peito durante atividade física?' },
+                { id: 'q3', text: 'Dor no peito em repouso no último mês?' },
+                { id: 'q4', text: 'Tontura ou perda de consciência?' },
+                { id: 'q5', text: 'Problema ósseo ou articular limitante?' },
+                { id: 'q6', text: 'Uso de remédios para pressão ou coração?' },
+                { id: 'q7', text: 'Outra razão médica para não treinar?' }
+              ].map(q => (
+                <ToggleItem key={q.id} label={q.text} active={data[q.id as keyof typeof data] as boolean} onToggle={(v) => setData({...data, [q.id]: v})} />
+              ))}
+            </div>
+          </div>
+
+          {/* Risk Factors Section */}
+          <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-slate-800 shadow-xl space-y-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                <Activity className="w-6 h-6 text-blue-400" />
+              </div>
+              <h3 className="text-xl font-black text-white uppercase italic tracking-tight">Fatores de Risco</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4">
+              <ToggleItem label="Fumante (ou parou há < 6 meses)" active={data.smoking} onToggle={(v) => setData({...data, smoking: v})} />
+              <ToggleItem label="Diabetes ou Glicose Elevada" active={data.has_diabetes} onToggle={(v) => setData({...data, has_diabetes: v})} />
+              <ToggleItem label="Hipertensão" active={data.has_hypertension} onToggle={(v) => setData({...data, has_hypertension: v})} />
+              <ToggleItem label="Histórico Familiar (Infarto/Morte Súbita)" active={data.familyHistory} onToggle={(v) => setData({...data, familyHistory: v})} />
+              <ToggleItem label="Obesidade (IMC > 30)" active={data.obesity} onToggle={(v) => setData({...data, obesity: v})} />
+              <ToggleItem label="Ativo regular (3x/sem)" active={data.isPhysicallyActive} onToggle={(v) => setData({...data, isPhysicallyActive: v})} />
+            </div>
+            
+            <div className="pt-4 space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Lesões Prévias</label>
+              <textarea 
+                value={data.previousInjuries}
+                onChange={(e) => setData({...data, previousInjuries: e.target.value})}
+                placeholder="Ossos, músculos, articulações ou cirurgias..."
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-xs font-bold text-white focus:border-blue-500 outline-none h-24 transition-colors resize-none"
+              />
+            </div>
+
+            <div className="pt-4 space-y-2">
+              <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Medicações em Uso</label>
+              <textarea 
+                value={data.medications}
+                onChange={(e) => setData({...data, medications: e.target.value})}
+                placeholder="Ex: Metformina 850mg (08h / 20h)..."
+                className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-xs font-bold text-white focus:border-cyan-500 outline-none h-24 transition-colors resize-none"
+              />
+            </div>
+
+            <div className="pt-4 space-y-3">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Intensidade Desejada</p>
+              <div className="grid grid-cols-2 gap-3">
+                <button type="button" onClick={() => setData({...data, desiredIntensity: 'moderate'})} className={`py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${data.desiredIntensity === 'moderate' ? 'bg-blue-600 border-blue-400 text-white shadow-lg' : 'bg-slate-950 border-slate-800 text-slate-500'}`}>Moderada</button>
+                <button type="button" onClick={() => setData({...data, desiredIntensity: 'vigorous'})} className={`py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${data.desiredIntensity === 'vigorous' ? 'bg-purple-600 border-purple-400 text-white shadow-lg' : 'bg-slate-950 border-slate-800 text-slate-500'}`}>Vigorosa</button>
+              </div>
+            </div>
+            
+            <SubmitButton loading={loading} onClick={handleSaveProfile} text="Finalizar e Salvar Anamnese" color="bg-purple-600 hover:bg-purple-500" />
+          </div>
+        </div>
+      ) : (
+        <div className="bg-slate-900/60 p-8 rounded-[2.5rem] border border-slate-800 shadow-xl space-y-8 animate-in fade-in slide-in-from-right-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-emerald-500/10 rounded-2xl border border-emerald-500/20">
+              <Thermometer className="w-6 h-6 text-emerald-400" />
+            </div>
+            <h3 className="text-xl font-black text-white uppercase italic tracking-tight">Medições Clínicas</h3>
+          </div>
+          
+          {(data.has_diabetes) ? (
+            <div className="space-y-4">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Monitoramento de Glicemia</p>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Pré-Treino (mg/dL)" type="number" value={data.glucose_pre} onChange={(v) => setData({...data, glucose_pre: v})} />
+                <Input label="Pós-Treino (mg/dL)" type="number" value={data.glucose_post} onChange={(v) => setData({...data, glucose_post: v})} />
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800/50 text-center">
+              <p className="text-[10px] font-black text-slate-600 uppercase italic">Glicemia não habilitada no perfil clínico.</p>
+            </div>
+          )}
+
+          {(data.has_hypertension) ? (
+            <div className="space-y-4">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Monitoramento de Pressão Arterial</p>
+              <div className="grid grid-cols-2 gap-4">
+                <Input label="Sistólica (PAS)" type="number" placeholder="120" value={data.bp_sys} onChange={(v) => setData({...data, bp_sys: v})} />
+                <Input label="Diastólica (PAD)" type="number" placeholder="80" value={data.bp_dia} onChange={(v) => setData({...data, bp_dia: v})} />
+              </div>
+            </div>
+          ) : (
+             <div className="p-4 bg-slate-950/50 rounded-2xl border border-slate-800/50 text-center">
+              <p className="text-[10px] font-black text-slate-600 uppercase italic">Pressão Arterial não habilitada no perfil clínico.</p>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Observações do Dia</label>
+            <textarea 
+              value={data.notes}
+              onChange={(e) => setData({...data, notes: e.target.value})}
+              placeholder="Como você se sente clinicamente hoje?..."
+              className="w-full bg-slate-950 border border-slate-800 rounded-2xl px-5 py-4 text-xs font-bold text-white focus:border-emerald-500 outline-none h-24 transition-colors resize-none"
+            />
+          </div>
+
+          <SubmitButton loading={loading} onClick={handleSaveDaily} text="Salvar Medições" color="bg-emerald-600 hover:bg-emerald-500" />
+        </div>
+      )}
     </div>
   );
 }
 
-function Input({ label, type, value, onChange, disabled, placeholder }: { label: string, type: string, value: string, onChange: (val: string) => void, disabled?: boolean, placeholder?: string }) {
+function Input({ label, type, value, onChange, disabled = false, placeholder = '' }: { label: string, type: string, value: string, onChange: (val: string) => void, disabled?: boolean, placeholder?: string }) {
   return (
     <div className="space-y-2">
-      <label className="text-[10px] font-black text-slate-500 uppercase italic">{label}</label>
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
       <input 
         type={type} 
         value={value} 

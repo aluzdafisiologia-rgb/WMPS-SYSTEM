@@ -34,13 +34,16 @@ import {
   X,
   Users,
   Phone,
+  Droplets,
   ChevronRight,
   Check,
   BrainCircuit
 } from 'lucide-react';
 import Link from 'next/link';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { supabase } from '@/lib/supabase';
-import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis, getAthletes, saveTrainingPrescription, approveAthleteRegistration, getAthletePrescriptions, getAllPrescriptions, deleteRegistrationRequest, updateProfilePhoto, saveAssessment, updateAthleteProfile, createAthlete } from '../actions';
+import { getSessions, getWellness, getRegistrationRequests, getUserRole, getAnamnesis, getAthletes, saveTrainingPrescription, approveAthleteRegistration, getAthletePrescriptions, getAllPrescriptions, deleteRegistrationRequest, updateProfilePhoto, saveAssessment, updateAthleteProfile, createAthlete, getReadinessHistory, getMenstrualData } from '../actions';
 import ForcePasswordReset from '../components/ForcePasswordReset';
 import { Session, WellnessEntry } from '@/lib/db';
 import { calculateACWR, calculateMonotony, calculateRiskScore } from '@/lib/periodization-engine';
@@ -89,7 +92,7 @@ function CoachPage() {
   const [wellness, setWellness] = useState<WellnessEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'evolution' | 'forecast' | 'periodization' | 'prescription' | 'requests' | 'athletes' | 'teams' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'assessment_anamnesis' | 'force_manifestations'>('menu');
+  const [activeModule, setActiveModule] = useState<'menu' | 'dashboard' | 'assessment' | 'evolution' | 'forecast' | 'periodization' | 'prescription' | 'requests' | 'athletes' | 'teams' | 'assessment_strength' | 'assessment_power' | 'assessment_endurance' | 'assessment_flexibility' | 'assessment_agility' | 'assessment_anthropometric' | 'assessment_anamnesis' | 'force_manifestations' | 'data_analysis'>('menu');
   const [requests, setRequests] = useState<any[]>([]);
   const [athletes, setAthletes] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
@@ -98,6 +101,7 @@ function CoachPage() {
   const [wizardAthlete, setWizardAthlete] = useState<any>(null);
   const [showWhatIf, setShowWhatIf] = useState(false);
   const [whatIfAthlete, setWhatIfAthlete] = useState<any>(null);
+  const [showEvolutionModal, setShowEvolutionModal] = useState(false);
 
   const handleAssessmentSave = async (athleteId: string, name: string, type: string, data: any) => {
     const res = await saveAssessment({
@@ -386,6 +390,12 @@ function CoachPage() {
               subtitle="Forecast e Metas" 
               icon={<BrainCircuit className="w-8 h-8 text-indigo-400" />} 
               onClick={() => setActiveModule('forecast')} 
+            />
+            <MenuButton 
+              title="Análise de Dados" 
+              subtitle="BI & Ciência do Esporte" 
+              icon={<BarChart className="w-8 h-8 text-emerald-500" />} 
+              onClick={() => setActiveModule('data_analysis')} 
             />
           </div>
 
@@ -948,6 +958,8 @@ function CoachPage() {
           <EvolutionModule athletes={athletes} onBack={() => setActiveModule('menu')} />
         ) : activeModule === 'forecast' ? (
           <ForecastModule athletes={athletes} onBack={() => setActiveModule('menu')} />
+        ) : activeModule === 'data_analysis' ? (
+          <DataAnalysisModule athletes={athletes} onBack={() => setActiveModule('menu')} />
         ) : activeModule === 'force_manifestations' ? (
           <ForceManifestationsModule onBack={() => setActiveModule('menu')} />
         ) : (
@@ -4591,6 +4603,7 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [searchAthlete, setSearchAthlete] = useState('');
+  const [showEvolutionModal, setShowEvolutionModal] = useState(false);
   const [sending, setSending] = useState(false);
   const [prescription, setPrescription] = useState({
     strength: [{ name: '', intensity: '', sets: '4', reps: '10', rest: '90s', weight: '', volumePercent: '100' }],
@@ -4763,6 +4776,49 @@ function PrescriptionModule({ coachId }: { coachId?: string }) {
                 <MetricBox label="% FCmax" value="92%" subValue="Esforço" color="text-orange-500" />
                 <MetricBox label="% FCres" value="80%" subValue="Reserva" color="text-emerald-500" />
               </div>
+
+              {/* BOTÃO E MODAL DA EVOLUÇÃO DO ATLETA */}
+              <button
+                onClick={() => setShowEvolutionModal(true)}
+                className="w-full relative group rounded-3xl p-6 bg-slate-900 border border-slate-800 hover:border-purple-500/50 transition-all text-left flex items-center justify-between overflow-hidden mt-8 mb-4"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="flex flex-col">
+                   <h3 className="text-2xl font-black text-white italic uppercase drop-shadow-md">Evolução</h3>
+                   <p className="text-sm font-black text-slate-400 uppercase tracking-widest mt-1">Metas & Histórico</p>
+                </div>
+                <div className="w-14 h-14 rounded-2xl bg-slate-800/80 border border-white/5 flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg shadow-purple-500/20">
+                   <TrendingUp className="w-7 h-7 text-purple-400" />
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {showEvolutionModal && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 50 }}
+                    className="fixed inset-0 z-[100] bg-slate-950/95 backdrop-blur-xl overflow-y-auto"
+                  >
+                    <div className="min-h-screen relative p-4 md:p-8">
+                      <button 
+                        onClick={() => setShowEvolutionModal(false)}
+                        className="fixed top-6 right-6 z-[200] p-4 bg-slate-900 text-white hover:bg-red-500 hover:text-white rounded-2xl transition-colors border border-slate-700 shadow-2xl"
+                      >
+                        <X className="w-6 h-6" />
+                      </button>
+                      
+                      <div className="pt-2">
+                        <EvolutionModule 
+                          athletes={athletes} 
+                          initialAthleteId={selectedAthlete.id}
+                          hideSelector={true} 
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Prescription Forms */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -5387,6 +5443,8 @@ function AthleteProfileModal({ athlete, onClose }: { athlete: any, onClose: () =
   const [injuryDesc, setInjuryDesc] = useState(athlete.injury_description || '');
   const [isUpdatingDM, setIsUpdatingDM] = useState(false);
   const [wellnessData, setWellnessData] = useState<any[]>([]);
+  const [readinessScore, setReadinessScore] = useState<any>(null);
+  const [currentPhase, setCurrentPhase] = useState<any>(null);
 
   useEffect(() => {
     async function loadSessions() {
@@ -5397,9 +5455,48 @@ function AthleteProfileModal({ athlete, onClose }: { athlete: any, onClose: () =
       const allWellness = await getWellness();
       const athleteWellness = allWellness.filter((w: any) => w.athlete_id === athlete.id);
       setWellnessData(athleteWellness);
+
+      // Fetch Readiness
+      const history = await getReadinessHistory(athlete.id);
+      if (history.length > 0) {
+        const last = history[0];
+        let classification = "";
+        let color = "";
+        let recommendation = "";
+        const score = last.score;
+        if (score >= 85) { classification = "Alta Prontidão"; color = "text-emerald-500"; recommendation = "Dia excelente para quebrar recordes e treinar pesado!"; }
+        else if (score >= 70) { classification = "Boa Prontidão"; color = "text-blue-500"; recommendation = "Ótimo dia para seguir a planilha com intensidade."; }
+        else if (score >= 50) { classification = "Moderada"; color = "text-amber-500"; recommendation = "Escute seu corpo. Talvez reduzir 10-15% da carga seja prudente."; }
+        else if (score >= 30) { classification = "Baixa"; color = "text-orange-500"; recommendation = "Reduza volume e foque em técnica ou flexibilidade."; }
+        else { classification = "Muito Baixa"; color = "text-rose-500"; recommendation = "Priorize a recuperação total hoje. Sono e hidratação."; }
+        setReadinessScore({ score, class: classification, color, recommendation });
+      }
+
+      // Fetch Menstrual if female
+      if (athlete.gender === 'Feminino') {
+        const mens = await getMenstrualData(athlete.id);
+        if (mens.cycle) {
+          const phase = calculateCyclePhase(mens.cycle.last_period_date, mens.cycle.cycle_duration);
+          setCurrentPhase(phase);
+        }
+      }
     }
     loadSessions();
   }, [athlete.id]);
+
+  const calculateCyclePhase = (lastDate: string, duration: number) => {
+    if (!lastDate) return null;
+    const start = new Date(lastDate);
+    const today = new Date();
+    const diffDays = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) % duration;
+    const day = diffDays + 1;
+
+    if (day <= 5) return { name: 'Menstrual', day, color: 'text-rose-500', bg: 'bg-rose-500/10', border: 'border-rose-500/30', desc: 'Hormônios em nível basal. Foco em recuperação.', strategy: 'Recuperação Ativa' };
+    if (day <= 12) return { name: 'Folicular', day, color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', desc: 'Janela anabólica (estrógeno alto). Foco em força.', strategy: 'Carga Máxima' };
+    if (day <= 15) return { name: 'Ovulatória', day, color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/30', desc: 'Pico de desempenho. Atenção a risco de lesão.', strategy: 'Performance' };
+    if (day <= 22) return { name: 'Lútea Inicial', day, color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/30', desc: 'Aumento da temperatura e FC basal.', strategy: 'Resistência' };
+    return { name: 'Lútea Tardia (TPM)', day, color: 'text-purple-500', bg: 'bg-purple-500/10', border: 'border-purple-500/30', desc: 'Queda hormonal. Reduzir volume.', strategy: 'Regenerativo' };
+  };
 
   const riskReport = useMemo(() => {
     const acwrData = calculateACWR(sessions);
@@ -5601,6 +5698,54 @@ function AthleteProfileModal({ athlete, onClose }: { athlete: any, onClose: () =
 
           {/* Main Content - Prontuário */}
           <div className="lg:col-span-8 p-10 space-y-10">
+            {/* READINESS SCORE CARD - EXCLUSIVE FOR COACH */}
+            {readinessScore && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="p-8 bg-slate-900/60 rounded-[3rem] border border-white/5 shadow-2xl relative overflow-hidden group mb-6"
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000`}></div>
+                
+                <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+                  <div className="relative">
+                    <svg className="w-32 h-32 transform -rotate-90">
+                      <circle cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-800" />
+                      <motion.circle 
+                        cx="64" cy="64" r="58" stroke="currentColor" strokeWidth="8" fill="transparent" 
+                        strokeDasharray={364.4}
+                        initial={{ strokeDashoffset: 364.4 }}
+                        animate={{ strokeDashoffset: 364.4 - (364.4 * readinessScore.score) / 100 }}
+                        transition={{ duration: 2, ease: "easeOut" }}
+                        className={readinessScore.color}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-4xl font-black text-white leading-none">{readinessScore.score}</span>
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Score</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className={`text-xl font-black uppercase italic ${readinessScore.color}`}>{readinessScore.class}</h3>
+                    <p className="text-xs text-white/70 font-medium leading-relaxed italic mt-2 px-4">
+                      "{readinessScore.recommendation}"
+                    </p>
+                  </div>
+
+                  {currentPhase && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10">
+                      <Droplets className="w-3 h-3 text-rose-500" />
+                      <span className="text-[9px] font-black text-white/60 uppercase tracking-widest">
+                        Fase {currentPhase.name}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
             {/* Risk Score Widget */}
             <div className={`p-8 rounded-[2rem] border relative overflow-hidden transition-all duration-500 ${
               riskReport.classification === 'Crítico' ? 'bg-red-950/40 border-red-500/50 shadow-[0_0_50px_-12px_rgba(239,68,68,0.4)]' :
@@ -6490,6 +6635,393 @@ function ForceManifestationsModule({ onBack }: { onBack: () => void }) {
            </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function DataAnalysisModule({ athletes, onBack }: { athletes: any[], onBack: () => void }) {
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
+  const [selectedVariables, setSelectedVariables] = useState<string[]>(['readiness', 'load']);
+  const [period, setPeriod] = useState<'today' | '7days' | '30days' | 'custom'>('7days');
+  const [customRange, setCustomRange] = useState({ start: '', end: '' });
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<any[]>([]);
+  const [insights, setInsights] = useState<string[]>([]);
+  const [clinicalProfile, setClinicalProfile] = useState<any>(null);
+
+  const VARIABLES = [
+    { id: 'readiness', label: 'Score de Prontidão', color: '#10b981', unit: '' },
+    { id: 'load', label: 'Carga de Treino', color: '#3b82f6', unit: 'AU' },
+    { id: 'sleep', label: 'Qualidade do Sono', color: '#6366f1', unit: '/5' },
+    { id: 'fatigue', label: 'Fadiga', color: '#f59e0b', unit: '/5' },
+    { id: 'soreness', label: 'Dor Muscular', color: '#ef4444', unit: '/5' },
+    { id: 'stress', label: 'Estresse', color: '#ec4899', unit: '/5' },
+    { id: 'volume', label: 'Volume (Tonelagem)', color: '#8b5cf6', unit: 'kg' },
+    { id: 'intensity', label: 'Intensidade (PSE)', color: '#f97316', unit: '' },
+    { id: 'glucose_pre', label: 'Glicemia Pré', color: '#06b6d4', unit: 'mg/dL' },
+    { id: 'glucose_post', label: 'Glicemia Pós', color: '#0891b2', unit: 'mg/dL' },
+    { id: 'bp_sys', label: 'PA Sistólica', color: '#ef4444', unit: 'mmHg' },
+    { id: 'bp_dia', label: 'PA Diastólica', color: '#f43f5e', unit: 'mmHg' },
+    { id: 'weight', label: 'Peso Corporal', color: '#14b8a6', unit: 'kg' },
+  ];
+
+  const fetchData = async () => {
+    if (!selectedAthleteId) return;
+    setLoading(true);
+    try {
+      const { data: sessionsData } = await supabase
+        .from('treinos_atleta')
+        .select('*')
+        .eq('athlete_id', selectedAthleteId)
+        .order('date', { ascending: true });
+
+      const { data: wellnessData } = await supabase
+        .from('wellness_logs')
+        .select('*')
+        .eq('athlete_id', selectedAthleteId)
+        .order('date', { ascending: true });
+
+      const { data: clinicalData } = await supabase
+        .from('registros_clinicos')
+        .select('*')
+        .eq('athlete_id', selectedAthleteId)
+        .order('date', { ascending: true });
+      
+      const { data: profile } = await supabase
+        .from('comorbidades')
+        .select('*')
+        .eq('athlete_id', selectedAthleteId)
+        .single();
+      
+      setClinicalProfile(profile);
+
+      // Merge and filter data by period
+      const merged = mergeAthleteData(sessionsData || [], wellnessData || [], clinicalData || []);
+      const filtered = filterByPeriod(merged, period, customRange);
+      setData(filtered);
+      
+      // Generate AI Insights
+      generateInsights(filtered, profile);
+    } catch (error) {
+      console.error('Error fetching analysis data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mergeAthleteData = (sessions: any[], wellness: any[], clinical: any[]) => {
+    const dates = Array.from(new Set([
+      ...sessions.map(s => s.date),
+      ...wellness.map(w => w.date),
+      ...clinical.map(c => c.date)
+    ])).sort();
+
+    return dates.map(date => {
+      const s = sessions.find(x => x.date === date);
+      const w = wellness.find(x => x.date === date);
+      const c = clinical.find(x => x.date === date);
+
+      return {
+        date: format(parseISO(date), 'dd/MM'),
+        fullDate: date,
+        load: s?.load || 0,
+        volume: s?.volume || 0,
+        intensity: s?.rpe || 0,
+        readiness: w?.score || 0,
+        sleep: w?.sleep || 0,
+        fatigue: w?.fatigue || 0,
+        soreness: w?.soreness || 0,
+        stress: w?.stress || 0,
+        glucose_pre: c?.glucose_pre || null,
+        glucose_post: c?.glucose_post || null,
+        bp_sys: c?.bp_sys || null,
+        bp_dia: c?.bp_dia || null,
+        weight: c?.weight || null,
+      };
+    });
+  };
+
+  const filterByPeriod = (data: any[], p: string, range: any) => {
+    const today = startOfDay(new Date());
+    let start: Date;
+    if (p === 'today') start = today;
+    else if (p === '7days') start = subDays(today, 7);
+    else if (p === '30days') start = subDays(today, 30);
+    else if (p === 'custom' && range.start) start = parseISO(range.start);
+    else start = subDays(today, 7);
+
+    return data.filter(d => isAfter(parseISO(d.fullDate), start) || isSameDay(parseISO(d.fullDate), start));
+  };
+
+  const generateInsights = (currentData: any[], profile: any) => {
+    const newInsights: string[] = [];
+    if (currentData.length < 2) return;
+
+    // Load vs Readiness
+    const avgLoad = currentData.reduce((acc, d) => acc + d.load, 0) / currentData.length;
+    const avgReadiness = currentData.reduce((acc, d) => acc + d.readiness, 0) / currentData.length;
+    
+    if (avgLoad > 500 && avgReadiness < 60) {
+      newInsights.push("⚠️ ALERTA: Carga elevada associada a baixa prontidão. Risco de overreaching aumentado.");
+    }
+
+    // Sleep Correlation
+    const lowSleepDays = currentData.filter(d => d.sleep <= 2);
+    if (lowSleepDays.length > 2) {
+      newInsights.push("📉 INSIGHT: Qualidade do sono crítica nos últimos dias. Impacto direto na recuperação autonômica.");
+    }
+
+    // Clinical Alerts
+    if (profile?.has_diabetes) {
+      const highGlucose = currentData.filter(d => d.glucose_pre > 180);
+      if (highGlucose.length > 0) newInsights.push("🚨 CLÍNICO: Episódios de hiperglicemia detectados. Ajustar intensidade do treino.");
+    }
+
+    if (profile?.has_hypertension) {
+      const highBP = currentData.filter(d => d.bp_sys > 150);
+      if (highBP.length > 0) newInsights.push("🚨 CLÍNICO: Picos de pressão arterial sistólica acima do limite de segurança.");
+    }
+
+    setInsights(newInsights);
+  };
+
+  const exportPDF = async () => {
+    const element = document.getElementById('analysis-report');
+    if (!element) return;
+    
+    const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#0f172a' });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+    
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`Relatorio_Analise_${selectedAthleteId}.pdf`);
+  };
+
+  const calculateACWRLocal = () => {
+    if (data.length < 14) return 'Dados insuficientes';
+    const acute = data.slice(-7).reduce((acc, d) => acc + d.load, 0) / 7;
+    const chronic = data.reduce((acc, d) => acc + d.load, 0) / data.length;
+    const ratio = acute / (chronic || 1);
+    return ratio.toFixed(2);
+  };
+
+  useEffect(() => {
+    if (selectedAthleteId) fetchData();
+  }, [selectedAthleteId, period]);
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900/50 p-8 rounded-[2.5rem] border border-slate-800 backdrop-blur-md">
+        <div className="flex items-center gap-6">
+          <button onClick={onBack} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl text-slate-400 transition-all">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Análise de Dados</h2>
+            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mt-1">Business Intelligence & Performance</p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-4 w-full md:w-auto">
+          <select 
+            value={selectedAthleteId} 
+            onChange={(e) => setSelectedAthleteId(e.target.value)}
+            className="flex-1 md:w-64 bg-slate-950 border border-slate-800 rounded-2xl px-6 py-3 text-xs font-black text-white outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
+          >
+            <option value="">Selecionar Atleta...</option>
+            {athletes.map(a => <option key={a.id} value={a.id}>{a.full_name}</option>)}
+          </select>
+
+          <button 
+            onClick={exportPDF}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20"
+          >
+            <Download className="w-4 h-4" />
+            Exportar PDF
+          </button>
+        </div>
+      </div>
+
+      {!selectedAthleteId ? (
+        <div className="py-32 flex flex-col items-center justify-center text-center space-y-6 bg-slate-900/20 rounded-[3rem] border border-dashed border-slate-800">
+          <div className="p-6 bg-slate-900 rounded-full border border-slate-800">
+            <BarChart className="w-12 h-12 text-slate-700" />
+          </div>
+          <div className="max-w-xs">
+            <h3 className="text-xl font-black text-white uppercase italic">Aguardando Seleção</h3>
+            <p className="text-slate-500 text-xs font-bold uppercase mt-2">Selecione um atleta acima para iniciar a análise profunda de dados.</p>
+          </div>
+        </div>
+      ) : (
+        <div id="analysis-report" className="grid grid-cols-12 gap-8">
+          {/* Main Controls & Filters */}
+          <div className="col-span-12 lg:col-span-3 space-y-6">
+            <div className="bento-card bg-slate-950/40 border-slate-800 p-6 space-y-6">
+              <div className="space-y-4">
+                <p className="label-caps italic text-slate-500">Período de Análise</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['7days', '30days'] as const).map(p => (
+                    <button 
+                      key={p}
+                      onClick={() => setPeriod(p)}
+                      className={`py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${period === p ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-500'}`}
+                    >
+                      {p === '7days' ? '7 Dias' : '30 Dias'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <p className="label-caps italic text-slate-500">Variáveis Monitoradas</p>
+                <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                  {VARIABLES.map(v => (
+                    <button 
+                      key={v.id}
+                      onClick={() => {
+                        if (selectedVariables.includes(v.id)) setSelectedVariables(selectedVariables.filter(x => x !== v.id));
+                        else setSelectedVariables([...selectedVariables, v.id]);
+                      }}
+                      className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedVariables.includes(v.id) ? 'bg-slate-800 border-emerald-500/50' : 'bg-slate-900 border-slate-800 opacity-60'}`}
+                    >
+                      <span className="text-[10px] font-black text-white uppercase italic">{v.label}</span>
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: v.color }}></div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Scientific Metrics Summary */}
+            <div className="bento-card bg-slate-900/80 border-emerald-500/20 p-6 space-y-4">
+              <h4 className="text-[10px] font-black text-emerald-500 uppercase italic tracking-widest">Métricas Científicas</h4>
+              <div className="space-y-4">
+                <div className="flex justify-between items-baseline">
+                  <span className="text-[9px] font-black text-slate-500 uppercase">ACWR (Carga)</span>
+                  <span className={`text-xl font-black italic ${Number(calculateACWRLocal()) > 1.5 ? 'text-red-500' : 'text-emerald-500'}`}>
+                    {calculateACWRLocal()}
+                  </span>
+                </div>
+                <p className="text-[8px] text-slate-600 font-bold leading-relaxed">
+                  Relação Carga Aguda/Crônica baseada no modelo de Banister adaptado por Gabbett.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Visualization Area */}
+          <div className="col-span-12 lg:col-span-9 space-y-8">
+            <div className="bento-card bg-slate-900/40 p-8 min-h-[500px]">
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-xl font-black text-white uppercase italic">Evolução e Tendências</h3>
+                <div className="flex gap-4">
+                  {selectedVariables.map(vId => {
+                    const v = VARIABLES.find(x => x.id === vId);
+                    return v ? (
+                      <div key={vId} className="flex items-center gap-2">
+                        <div className="w-3 h-1 rounded-full" style={{ backgroundColor: v.color }}></div>
+                        <span className="text-[9px] font-black text-slate-500 uppercase">{v.label}</span>
+                      </div>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+
+              <div className="h-[400px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data}>
+                    <defs>
+                      {selectedVariables.map(vId => {
+                        const v = VARIABLES.find(x => x.id === vId);
+                        return v ? (
+                          <linearGradient key={vId} id={`color${vId}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={v.color} stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor={v.color} stopOpacity={0}/>
+                          </linearGradient>
+                        ) : null;
+                      })}
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
+                    <XAxis dataKey="date" stroke="#475569" fontSize={10} fontWeight={900} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#475569" fontSize={10} fontWeight={900} tickLine={false} axisLine={false} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '12px' }}
+                      itemStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic' }}
+                    />
+                    {selectedVariables.map(vId => {
+                      const v = VARIABLES.find(x => x.id === vId);
+                      return v ? (
+                        <Area 
+                          key={vId}
+                          type="monotone" 
+                          dataKey={vId} 
+                          stroke={v.color} 
+                          strokeWidth={3}
+                          fillOpacity={1} 
+                          fill={`url(#color${vId})`} 
+                          animationDuration={1500}
+                        />
+                      ) : null;
+                    })}
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* AI Insights & Alerts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bento-card bg-blue-600/5 border-blue-500/20 p-8 space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-500/20 rounded-xl">
+                    <BrainCircuit className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <h4 className="text-sm font-black text-white uppercase italic tracking-widest">Interpretação Baseada em Dados (IA)</h4>
+                </div>
+                <div className="space-y-4">
+                  {insights.length > 0 ? insights.map((insight, idx) => (
+                    <motion.div 
+                      initial={{ x: -20, opacity: 0 }} 
+                      animate={{ x: 0, opacity: 1 }} 
+                      transition={{ delay: idx * 0.1 }}
+                      key={idx} 
+                      className="p-4 bg-slate-900/60 rounded-2xl border border-white/5 text-[11px] font-bold text-slate-300 italic leading-relaxed"
+                    >
+                      {insight}
+                    </motion.div>
+                  )) : (
+                    <p className="text-[10px] text-slate-600 font-black uppercase italic">Nenhuma anomalia detectada no período.</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="bento-card bg-rose-600/5 border-rose-500/20 p-8 space-y-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-rose-500/20 rounded-xl">
+                    <AlertTriangle className="w-5 h-5 text-rose-400" />
+                  </div>
+                  <h4 className="text-sm font-black text-white uppercase italic tracking-widest">Encaminhamento & Conduta</h4>
+                </div>
+                <div className="space-y-6">
+                  <p className="text-[11px] text-slate-400 font-medium leading-relaxed italic">
+                    Baseado nas diretrizes do ACSM, se os marcadores clínicos ou de carga excederem os limites de segurança, recomenda-se:
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <button className="w-full py-3 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-500/30 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">
+                      Gerar Encaminhamento Médico
+                    </button>
+                    <button className="w-full py-3 bg-blue-600/10 hover:bg-blue-600 text-blue-500 hover:text-white border border-blue-500/30 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">
+                      Enviar Alerta ao Atleta
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

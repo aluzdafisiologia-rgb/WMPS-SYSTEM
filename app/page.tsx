@@ -59,21 +59,14 @@ function Home() {
         return;
       }
 
-      // Buscar o papel do usuário via Server Action (bypassing RLS client-side)
       const role = await getUserRole(data.user.id);
-
 
       if (role === 'admin') {
         if (typeof window !== 'undefined') window.location.href = '/admin';
       } else if (role === 'coach') {
         if (typeof window !== 'undefined') window.location.href = '/coach';
       } else {
-        setError(`Acesso negado: Seu cargo atual é "${role}". Contate o administrador.`);
-        setLoading(false);
-        // Opcional: redirecionar após alguns segundos ou deixar o usuário ver o erro
-        setTimeout(() => { 
-          if (typeof window !== 'undefined') window.location.href = '/athlete'; 
-        }, 3000);
+        if (typeof window !== 'undefined') window.location.href = '/athlete';
       }
     } catch (err: any) {
       console.error('Erro inesperado:', err);
@@ -131,9 +124,18 @@ function Home() {
     setRegData(prev => ({ ...prev, [field]: value }));
   };
 
+  useEffect(() => {
+    async function checkAuth() {
+      if (supabase) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) setView('selection');
+      }
+    }
+    checkAuth();
+  }, []);
+
   return (
     <main className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-6 sm:p-12 font-sans relative overflow-hidden">
-      {/* Background Decorative Elements */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 blur-[120px] rounded-full" />
 
@@ -311,9 +313,7 @@ function Home() {
             animate={{ opacity: 1, y: 0 }}
             className="max-w-4xl w-full space-y-8 z-10"
           >
-            {/* Header Block */}
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-              <div className="flex flex-col items-center gap-1">
               <div className="flex flex-col items-center gap-1">
                 <div className="bg-black text-emerald-500 border-2 border-emerald-500 font-black px-5 py-1 rounded-lg text-2xl italic skew-x-[-15deg] shadow-[0_0_20px_rgba(16,185,129,0.3)] border-l-8">
                   WMPS
@@ -322,7 +322,6 @@ function Home() {
                   <h1 className="text-[10px] font-black leading-tight text-white uppercase italic tracking-[0.1em]">William Moreira</h1>
                   <p className="text-[8px] text-emerald-500 uppercase tracking-[0.3em] font-black -mt-0.5">Performance System</p>
                 </div>
-              </div>
               </div>
               <button 
                 onClick={async () => { 
@@ -335,10 +334,14 @@ function Home() {
               </button>
             </header>
 
-            {/* Bento Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Link href="/athlete" className="group">
-                <motion.div whileHover={{ scale: 1.02, borderColor: '#3b82f6' }} whileTap={{ scale: 0.98 }} className="bento-card h-[280px] flex flex-col justify-between group-hover:bg-slate-800/80 bg-slate-900/60 transition-all border-slate-800 p-8">
+                <motion.div 
+                  whileHover={{ scale: 1.02, borderColor: '#3b82f6' }} 
+                  whileTap={{ scale: 0.98 }} 
+                  style={{ borderColor: '#1e293b' }}
+                  className="bento-card h-[280px] flex flex-col justify-between group-hover:bg-slate-800/80 bg-slate-900/60 transition-all border-slate-800 p-8"
+                >
                   <div className="w-14 h-14 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 border border-blue-500/20 group-hover:scale-110 transition-transform"><User className="w-7 h-7" /></div>
                   <div className="space-y-3">
                     <h2 className="text-4xl font-black text-white uppercase italic">Área Atleta</h2>
@@ -349,7 +352,12 @@ function Home() {
               </Link>
 
               <Link href="/coach" className="group">
-                <motion.div whileHover={{ scale: 1.02, borderColor: '#10b981' }} whileTap={{ scale: 0.98 }} className="bento-card h-[280px] flex flex-col justify-between group-hover:bg-slate-800/80 bg-slate-900/60 transition-all border-slate-800 p-8">
+                <motion.div 
+                  whileHover={{ scale: 1.02, borderColor: '#10b981' }} 
+                  whileTap={{ scale: 0.98 }} 
+                  style={{ borderColor: '#1e293b' }}
+                  className="bento-card h-[280px] flex flex-col justify-between group-hover:bg-slate-800/80 bg-slate-900/60 transition-all border-slate-800 p-8"
+                >
                   <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20 group-hover:scale-110 transition-transform"><BarChart3 className="w-7 h-7" /></div>
                   <div className="space-y-3">
                     <h2 className="text-4xl font-black text-white uppercase italic">Professor</h2>
@@ -360,7 +368,6 @@ function Home() {
               </Link>
             </div>
 
-            {/* Info Block */}
             <div className="bento-card bg-slate-900/40 border-slate-800/50 flex flex-col sm:flex-row items-center justify-between gap-6 opacity-80 py-6 px-10 backdrop-blur-sm">
                <div className="flex items-center gap-4 text-center sm:text-left">
                  <div className="p-2 bg-slate-800 rounded-lg"><Activity className="w-5 h-5 text-emerald-500" /></div>
@@ -374,7 +381,5 @@ function Home() {
     </main>
   );
 }
-
-
 
 export default dynamic(() => Promise.resolve(Home), { ssr: false });

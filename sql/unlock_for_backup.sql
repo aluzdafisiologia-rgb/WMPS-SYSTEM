@@ -1,0 +1,14 @@
+-- 1. Desativar RLS temporariamente para backup completo de todas as tabelas existentes
+ALTER TABLE IF EXISTS sessoes_treino DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS bem_estar DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS treinos DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS anamnese DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS avaliacoes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS ciclo_menstrual DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS sintomas_menstruais DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS prontidao DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS comorbidades DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS registros_clinicos DISABLE ROW LEVEL SECURITY;
+
+-- 2. Conceder permissões totais para a role de serviço (backup)
+GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, service_role, authenticated, anon;

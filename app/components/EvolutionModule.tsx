@@ -224,8 +224,8 @@ export default function EvolutionModule({ athletes, onBack, initialAthleteId, hi
       ) : metrics ? (
         <div className="space-y-8" ref={reportRef}>
           
-          {/* QUICK SUMMARY CARDS */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* QUICK SUMMARY CARDS (Auto-Fit for Perfect Sizing) */}
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
             <SummaryCard 
               label="Evolução VO2máx" 
               value={metrics.trends.vo2 === 'up' ? '+7.4%' : metrics.trends.vo2 === 'down' ? '-3.2%' : 'Estável'}
@@ -234,7 +234,7 @@ export default function EvolutionModule({ athletes, onBack, initialAthleteId, hi
               color="emerald"
             />
             <SummaryCard 
-              label="Carga Acuda:Crônica" 
+              label="Carga Aguda:Crônica" 
               value={metrics.acwr.toFixed(2)}
               status={metrics.acwr > 1.3 ? 'down' : metrics.acwr < 0.8 ? 'up' : 'stable'}
               icon={<Activity className="w-5 h-5" />}
@@ -258,19 +258,62 @@ export default function EvolutionModule({ athletes, onBack, initialAthleteId, hi
             />
           </div>
 
-          {/* MAIN DASHBOARD CONTENT */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* AI INSIGHTS BANNER (Panoramic) */}
+          <div className="bento-card bg-slate-900/80 backdrop-blur-md border-slate-800 p-6 shadow-2xl relative overflow-hidden flex flex-col xl:flex-row items-start xl:items-center gap-6">
+            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+              <Brain className="w-32 h-32 text-blue-500" />
+            </div>
             
-            {/* NAVIGATION TABS (Mobile Friendly) */}
-            <div className="lg:col-span-12 flex overflow-x-auto gap-4 pb-2 no-scrollbar">
-              <TabButton active={activeTab === 'performance'} onClick={() => setActiveTab('performance')} icon={<Target />} label="Performance" />
-              <TabButton active={activeTab === 'load'} onClick={() => setActiveTab('load')} icon={<Activity />} label="Carga Interna" />
-              <TabButton active={activeTab === 'wellness'} onClick={() => setActiveTab('wellness')} icon={<Brain />} label="Bem-Estar" />
-              <TabButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<User />} label="Perfil Radar" />
+            <div className="flex-shrink-0 w-full xl:w-48">
+              <h3 className="text-sm font-black text-white uppercase italic flex items-center gap-2 mb-1">
+                <Brain className="w-5 h-5 text-blue-500" /> WMPS Intel
+              </h3>
+              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Análise em Tempo Real</p>
+            </div>
+            
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 w-full relative z-10">
+              <InsightItem 
+                title="Ajuste de Carga" 
+                desc="O ACWR está em 1.15. Zona de adaptação ideal. Mantenha a progressão de volume em +5-10% na próxima semana."
+                type="positive"
+              />
+              <InsightItem 
+                title="Alerta de Estagnação" 
+                desc="A potência não variou significativamente. Considere introduzir blocos de força máxima e LPO."
+                type="warning"
+              />
+              <InsightItem 
+                title="Monitoramento" 
+                desc="O escore de sono caiu 15% recentemente. Verifique fatores extra-campo antes de aumentar a intensidade."
+                type="neutral"
+              />
+            </div>
+          </div>
+
+          {/* MAIN DASHBOARD CONTENT (Full Width) */}
+          <div className="space-y-8">
+            
+            {/* NAVIGATION TABS & ACTIONS */}
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 border-b border-slate-800 pb-4">
+              <div className="flex overflow-x-auto gap-2 pb-2 xl:pb-0 w-full xl:w-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                <TabButton active={activeTab === 'performance'} onClick={() => setActiveTab('performance')} icon={<Target />} label="Performance" />
+                <TabButton active={activeTab === 'load'} onClick={() => setActiveTab('load')} icon={<Activity />} label="Carga Interna" />
+                <TabButton active={activeTab === 'wellness'} onClick={() => setActiveTab('wellness')} icon={<Brain />} label="Bem-Estar" />
+                <TabButton active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} icon={<User />} label="Perfil Radar" />
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0 w-full xl:w-auto overflow-x-auto pb-2 xl:pb-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                 <button onClick={exportPDF} className="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase italic transition-all shadow-lg shadow-blue-600/20 whitespace-nowrap">
+                    <FileDown className="w-4 h-4" /> Exportar Relatório PDF
+                 </button>
+                 <button className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-500 border border-emerald-500/20 rounded-xl text-[10px] font-black uppercase italic transition-all whitespace-nowrap">
+                    <Send className="w-4 h-4" /> Enviar p/ Atleta
+                 </button>
+              </div>
             </div>
 
-            {/* TAB CONTENT */}
-            <div className="lg:col-span-8 space-y-8">
+            {/* TAB CONTENT (Now takes 100% width) */}
+            <div className="w-full">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
@@ -391,63 +434,6 @@ export default function EvolutionModule({ athletes, onBack, initialAthleteId, hi
                 </motion.div>
               </AnimatePresence>
             </div>
-
-            {/* SIDEBAR: INSIGHTS & ACTIONS */}
-            <div className="lg:col-span-4 space-y-6">
-              
-              {/* AI INSIGHTS */}
-              <div className="bento-card bg-slate-900 border-slate-800 p-8 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4 opacity-10">
-                  <Brain className="w-12 h-12 text-blue-500" />
-                </div>
-                <h3 className="text-sm font-black text-white uppercase italic mb-6 flex items-center gap-2">
-                  <Brain className="w-4 h-4 text-blue-500" /> WMPS Intelligence
-                </h3>
-                
-                <div className="space-y-4">
-                  <InsightItem 
-                    title="Ajuste de Carga" 
-                    desc="O ACWR está em 1.15. Zona de adaptação ideal. Mantenha a progressão de volume em +5-10% na próxima semana."
-                    type="positive"
-                  />
-                  <InsightItem 
-                    title="Alerta de Estagnação" 
-                    desc="A potência de pico não variou significativamente nos últimos 30 dias. Considere introduzir blocos de força máxima."
-                    type="warning"
-                  />
-                  <InsightItem 
-                    title="Monitoramento" 
-                    desc="O escore de sono caiu 15% na última semana. Verifique fatores extra-campo antes de aumentar a intensidade."
-                    type="neutral"
-                  />
-                </div>
-              </div>
-
-              {/* EXPORT ACTIONS */}
-              <div className="bento-card bg-blue-600 p-8 shadow-xl hover:shadow-blue-600/20 transition-all cursor-pointer group" onClick={exportPDF}>
-                <div className="flex justify-between items-start mb-4">
-                  <FileDown className="w-8 h-8 text-white group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-black text-white/50 uppercase tracking-widest italic">PDF Report</span>
-                </div>
-                <h3 className="text-xl font-black text-white uppercase italic leading-none">Gerar Relatório de Performance</h3>
-                <p className="text-white/60 text-[10px] mt-2 font-bold uppercase tracking-widest italic">Exportação Completa (Gráficos + Análise)</p>
-              </div>
-
-              <button className="w-full bento-card bg-slate-900 border-slate-800 p-6 flex items-center justify-between group hover:border-emerald-500/50 transition-all">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-emerald-500/10 rounded-xl group-hover:bg-emerald-500/20 transition-colors">
-                    <Send className="w-5 h-5 text-emerald-500" />
-                  </div>
-                  <div className="text-left">
-                    <h4 className="text-[11px] font-black text-white uppercase italic">Enviar para Atleta</h4>
-                    <p className="text-[9px] text-slate-500 font-bold uppercase">Disponível no app do atleta</p>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-700 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-            </div>
-
           </div>
         </div>
       ) : null}
@@ -462,18 +448,18 @@ function SummaryCard({ label, value, status, icon, color, subtext }: { label: st
   const isDown = status === 'down';
   
   return (
-    <div className={`bento-card bg-slate-900 border-slate-800 p-6 flex flex-col justify-between group hover:border-blue-500/30 transition-all border-l-4 border-l-${color}-500`}>
-      <div className="flex justify-between items-start mb-4">
-        <div className={`p-2 rounded-lg bg-${color}-500/10 text-${color}-500`}>{icon}</div>
-        <div className={`flex items-center gap-1 text-[10px] font-black uppercase italic ${isUp ? 'text-emerald-500' : isDown ? 'text-rose-500' : 'text-slate-500'}`}>
+    <div className={`bento-card bg-slate-900 border-slate-800 p-4 lg:p-6 flex flex-col justify-between group hover:border-blue-500/30 transition-all border-l-4 border-l-${color}-500 overflow-hidden min-w-0`}>
+      <div className="flex justify-between items-start mb-4 gap-2">
+        <div className={`p-2 rounded-lg bg-${color}-500/10 text-${color}-500 shrink-0`}>{icon}</div>
+        <div className={`flex items-center gap-1 text-[9px] font-black uppercase italic shrink-0 text-right ${isUp ? 'text-emerald-500' : isDown ? 'text-rose-500' : 'text-slate-500'}`}>
           {isUp ? <TrendingUp className="w-3 h-3" /> : isDown ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
-          {isUp ? 'Melhora' : isDown ? 'Alerta' : 'Estável'}
+          <span className="hidden sm:inline">{isUp ? 'Melhora' : isDown ? 'Alerta' : 'Estável'}</span>
         </div>
       </div>
-      <div>
-        <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{label}</h4>
-        <p className="text-3xl font-black text-white italic tracking-tighter">{value}</p>
-        {subtext && <p className="text-[9px] font-bold text-slate-600 uppercase mt-1">{subtext}</p>}
+      <div className="min-w-0 overflow-hidden">
+        <h4 className="text-[9px] xl:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 truncate" title={label}>{label}</h4>
+        <p className="text-2xl xl:text-3xl font-black text-white italic tracking-tighter truncate" title={value}>{value}</p>
+        {subtext && <p className="text-[8px] font-bold text-slate-600 uppercase mt-1 truncate" title={subtext}>{subtext}</p>}
       </div>
     </div>
   );
