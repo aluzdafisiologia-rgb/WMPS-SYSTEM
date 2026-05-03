@@ -126,9 +126,19 @@ function Home() {
 
   useEffect(() => {
     async function checkAuth() {
-      if (supabase) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) setView('selection');
+      if (!supabase) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return; // não está logado, fica na tela de login
+
+      // Já está logado: redireciona pelo role diretamente
+      const role = await getUserRole(user.id);
+      if (role === 'admin') {
+        window.location.href = '/admin';
+      } else if (role === 'coach') {
+        window.location.href = '/coach';
+      } else {
+        // atleta vai direto pro dashboard, sem passar pela seleção
+        window.location.href = '/athlete';
       }
     }
     checkAuth();
@@ -334,6 +344,7 @@ function Home() {
               </button>
             </header>
 
+            {/* Tela de seleção apenas para coaches/admins — atletas são redirecionados no useEffect */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Link href="/athlete" className="group">
                 <motion.div 
