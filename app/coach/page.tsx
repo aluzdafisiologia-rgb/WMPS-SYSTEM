@@ -6641,28 +6641,27 @@ function ForceManifestationsModule({ onBack }: { onBack: () => void }) {
 
 function DataAnalysisModule({ athletes, onBack }: { athletes: any[], onBack: () => void }) {
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
-  const [selectedVariables, setSelectedVariables] = useState<string[]>(['readiness', 'load']);
-  const [period, setPeriod] = useState<'today' | '7days' | '30days' | 'custom'>('7days');
+  const [selectedVariables, setSelectedVariables] = useState<string[]>(['readiness', 'load', 'acwr']);
+  const [period, setPeriod] = useState<'7days' | '30days' | 'custom'>('7days');
   const [customRange, setCustomRange] = useState({ start: '', end: '' });
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any[]>([]);
-  const [insights, setInsights] = useState<string[]>([]);
+  const [insights, setInsights] = useState<{ type: 'risk' | 'info' | 'success', msg: string }[]>([]);
   const [clinicalProfile, setClinicalProfile] = useState<any>(null);
+  const [metrics, setMetrics] = useState<any>({ acwr: 0, monotony: 0, strain: 0, trimp: 0, status: 'Analisando...' });
 
   const VARIABLES = [
     { id: 'readiness', label: 'Score de Prontidão', color: '#10b981', unit: '' },
-    { id: 'load', label: 'Carga de Treino', color: '#3b82f6', unit: 'AU' },
+    { id: 'load', label: 'Carga Interna (sRPE)', color: '#3b82f6', unit: 'AU' },
+    { id: 'acwr', label: 'ACWR (Relação Aguda/Crônica)', color: '#f59e0b', unit: '' },
     { id: 'sleep', label: 'Qualidade do Sono', color: '#6366f1', unit: '/5' },
-    { id: 'fatigue', label: 'Fadiga', color: '#f59e0b', unit: '/5' },
-    { id: 'soreness', label: 'Dor Muscular', color: '#ef4444', unit: '/5' },
-    { id: 'stress', label: 'Estresse', color: '#ec4899', unit: '/5' },
-    { id: 'volume', label: 'Volume (Tonelagem)', color: '#8b5cf6', unit: 'kg' },
-    { id: 'intensity', label: 'Intensidade (PSE)', color: '#f97316', unit: '' },
+    { id: 'hr_avg', label: 'FC Média', color: '#ef4444', unit: 'bpm' },
+    { id: 'hrv', label: 'HRV (Variabilidade)', color: '#ec4899', unit: 'ms' },
+    { id: 'monotony', label: 'Monotonia (Foster)', color: '#8b5cf6', unit: '' },
+    { id: 'strain', label: 'Strain (Tensão)', color: '#f43f5e', unit: '' },
+    { id: 'volume', label: 'Volume Total', color: '#14b8a6', unit: 'kg' },
     { id: 'glucose_pre', label: 'Glicemia Pré', color: '#06b6d4', unit: 'mg/dL' },
-    { id: 'glucose_post', label: 'Glicemia Pós', color: '#0891b2', unit: 'mg/dL' },
     { id: 'bp_sys', label: 'PA Sistólica', color: '#ef4444', unit: 'mmHg' },
-    { id: 'bp_dia', label: 'PA Diastólica', color: '#f43f5e', unit: 'mmHg' },
-    { id: 'weight', label: 'Peso Corporal', color: '#14b8a6', unit: 'kg' },
   ];
 
   const fetchData = async () => {
@@ -6670,13 +6669,13 @@ function DataAnalysisModule({ athletes, onBack }: { athletes: any[], onBack: () 
     setLoading(true);
     try {
       const { data: sessionsData } = await supabase
-        .from('treinos_atleta')
+        .from('sessoes_treino')
         .select('*')
         .eq('athlete_id', selectedAthleteId)
         .order('date', { ascending: true });
 
       const { data: wellnessData } = await supabase
-        .from('wellness_logs')
+        .from('bem_estar')
         .select('*')
         .eq('athlete_id', selectedAthleteId)
         .order('date', { ascending: true });
@@ -6695,18 +6694,84 @@ function DataAnalysisModule({ athletes, onBack }: { athletes: any[], onBack: () 
       
       setClinicalProfile(profile);
 
-      // Merge and filter data by period
       const merged = mergeAthleteData(sessionsData || [], wellnessData || [], clinicalData || []);
       const filtered = filterByPeriod(merged, period, customRange);
       setData(filtered);
       
-      // Generate AI Insights
-      generateInsights(filtered, profile);
+      // Calculate Elite Metrics (Layer 3)
+      const eliteMetrics = calculateEliteMetrics(merged);
+      setMetrics(eliteMetrics);
+      
+      // Generate AI Interpretation (Layer 4)
+      generateEliteInsights(filtered, eliteMetrics, profile);
     } catch (error) {
       console.error('Error fetching analysis data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateEliteMetrics = (allData: any[]) => {
+    if (allData.length < 7) return { acwr: 0, monotony: 0, strain: 0, status: 'Dados Insuficientes' };
+
+    // ACWR (Acute:Chronic)
+    const acuteLoad = allData.slice(-7).reduce((acc, d) => acc + d.load, 0) / 7;
+    const chronicLoad = allData.slice(-28).reduce((acc, d) => acc + d.load, 0) / Math.min(allData.length, 28);
+    const acwr = acuteLoad / (chronicLoad || 1);
+
+    // Monotony (Mean / StdDev of last 7 days)
+    const last7Days = allData.slice(-7);
+    const meanLoad = last7Days.reduce((acc, d) => acc + d.load, 0) / 7;
+    const stdDev = Math.sqrt(last7Days.reduce((acc, d) => acc + Math.pow(d.load - meanLoad, 2), 0) / 7) || 1;
+    const monotony = meanLoad / stdDev;
+
+    // Strain (Weekly Load * Monotony)
+    const weeklyLoad = last7Days.reduce((acc, d) => acc + d.load, 0);
+    const strain = weeklyLoad * monotony;
+
+    // Status Determination
+    const lastReadiness = allData.slice(-1)[0]?.readiness || 0;
+    let status = 'Em Adaptação';
+    if (acwr > 1.5 || strain > 3000) status = 'Em Risco';
+    else if (acwr < 0.8) status = 'Subestimulado';
+    else if (acwr >= 0.8 && acwr <= 1.3 && lastReadiness > 70) status = 'Pronto p/ Performance';
+
+    return { acwr, monotony, strain, status };
+  };
+
+  const generateEliteInsights = (currentData: any[], m: any, profile: any) => {
+    const newInsights: { type: 'risk' | 'info' | 'success', msg: string }[] = [];
+
+    if (currentData.length < 3) {
+      newInsights.push({ type: 'info', msg: "[DADOS] Volume de dados insuficiente para gerar correlações precisas. Continue registrando os treinos." });
+      setInsights(newInsights);
+      return;
+    }
+
+    // ACWR Interpretation
+    if (m.acwr > 1.5) {
+      newInsights.push({ type: 'risk', msg: "[RISCO] ACWR ELEVADO: Carga aguda 1.5x maior que a crônica. Risco iminente de lesão tecidual (Gabbett, 2016)." });
+    } else if (m.acwr >= 0.8 && m.acwr <= 1.3) {
+      newInsights.push({ type: 'success', msg: "[SUCESSO] SWEET SPOT: Carga em zona ideal de adaptação. Mantenha a progressão atual." });
+    }
+
+    // Monotony Alert
+    if (m.monotony > 2.0) {
+      newInsights.push({ type: 'risk', msg: "[ALERTA] MONOTONIA ALTA: Falta de variabilidade no estímulo. Risco de overtraining e queda de imunidade." });
+    }
+
+    // Readiness & Load
+    const avgReadiness = currentData.reduce((acc, d) => acc + d.readiness, 0) / currentData.length;
+    if (avgReadiness < 50 && m.acwr > 1.2) {
+      newInsights.push({ type: 'risk', msg: "[TENDÊNCIA] RECUPERAÇÃO FALHA: Prontidão baixa associada a carga crescente. Recomenda-se sessão regenerativa (Deload)." });
+    }
+
+    // Clinical Context
+    if (profile?.has_diabetes && currentData.some(d => (d.glucose_pre || 0) > 180)) {
+      newInsights.push({ type: 'risk', msg: "[CLÍNICO] Hiperglicemia detectada. Monitore a intensidade para evitar cetoacidose em treinos vigorosos." });
+    }
+
+    setInsights(newInsights);
   };
 
   const mergeAthleteData = (sessions: any[], wellness: any[], clinical: any[]) => {
@@ -6716,27 +6781,33 @@ function DataAnalysisModule({ athletes, onBack }: { athletes: any[], onBack: () 
       ...clinical.map(c => c.date)
     ])).sort();
 
-    return dates.map(date => {
+    // To calculate ACWR properly, we need the rolling average
+    return dates.map((date, idx) => {
       const s = sessions.find(x => x.date === date);
       const w = wellness.find(x => x.date === date);
       const c = clinical.find(x => x.date === date);
 
+      const load = s?.load || 0;
+      
+      // Simple rolling ACWR calculation for the chart
+      const window = dates.slice(Math.max(0, idx - 28), idx + 1);
+      const windowSessions = sessions.filter(x => window.includes(x.date));
+      const acute = windowSessions.slice(-7).reduce((acc, x) => acc + x.load, 0) / 7;
+      const chronic = windowSessions.reduce((acc, x) => acc + x.load, 0) / Math.max(windowSessions.length, 1);
+      const acwr = acute / (chronic || 1);
+
       return {
         date: format(parseISO(date), 'dd/MM'),
         fullDate: date,
-        load: s?.load || 0,
+        load,
+        acwr: Number(acwr.toFixed(2)),
         volume: s?.volume || 0,
-        intensity: s?.rpe || 0,
         readiness: w?.score || 0,
         sleep: w?.sleep || 0,
-        fatigue: w?.fatigue || 0,
-        soreness: w?.soreness || 0,
-        stress: w?.stress || 0,
+        hr_avg: c?.hr_avg || 0,
+        hrv: c?.hrv || 0,
         glucose_pre: c?.glucose_pre || null,
-        glucose_post: c?.glucose_post || null,
         bp_sys: c?.bp_sys || null,
-        bp_dia: c?.bp_dia || null,
-        weight: c?.weight || null,
       };
     });
   };
@@ -6744,8 +6815,7 @@ function DataAnalysisModule({ athletes, onBack }: { athletes: any[], onBack: () 
   const filterByPeriod = (data: any[], p: string, range: any) => {
     const today = startOfDay(new Date());
     let start: Date;
-    if (p === 'today') start = today;
-    else if (p === '7days') start = subDays(today, 7);
+    if (p === '7days') start = subDays(today, 7);
     else if (p === '30days') start = subDays(today, 30);
     else if (p === 'custom' && range.start) start = parseISO(range.start);
     else start = subDays(today, 7);
@@ -6753,59 +6823,18 @@ function DataAnalysisModule({ athletes, onBack }: { athletes: any[], onBack: () 
     return data.filter(d => isAfter(parseISO(d.fullDate), start) || isSameDay(parseISO(d.fullDate), start));
   };
 
-  const generateInsights = (currentData: any[], profile: any) => {
-    const newInsights: string[] = [];
-    if (currentData.length < 2) return;
-
-    // Load vs Readiness
-    const avgLoad = currentData.reduce((acc, d) => acc + d.load, 0) / currentData.length;
-    const avgReadiness = currentData.reduce((acc, d) => acc + d.readiness, 0) / currentData.length;
-    
-    if (avgLoad > 500 && avgReadiness < 60) {
-      newInsights.push("⚠️ ALERTA: Carga elevada associada a baixa prontidão. Risco de overreaching aumentado.");
-    }
-
-    // Sleep Correlation
-    const lowSleepDays = currentData.filter(d => d.sleep <= 2);
-    if (lowSleepDays.length > 2) {
-      newInsights.push("📉 INSIGHT: Qualidade do sono crítica nos últimos dias. Impacto direto na recuperação autonômica.");
-    }
-
-    // Clinical Alerts
-    if (profile?.has_diabetes) {
-      const highGlucose = currentData.filter(d => d.glucose_pre > 180);
-      if (highGlucose.length > 0) newInsights.push("🚨 CLÍNICO: Episódios de hiperglicemia detectados. Ajustar intensidade do treino.");
-    }
-
-    if (profile?.has_hypertension) {
-      const highBP = currentData.filter(d => d.bp_sys > 150);
-      if (highBP.length > 0) newInsights.push("🚨 CLÍNICO: Picos de pressão arterial sistólica acima do limite de segurança.");
-    }
-
-    setInsights(newInsights);
-  };
-
   const exportPDF = async () => {
     const element = document.getElementById('analysis-report');
     if (!element) return;
-    
-    const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#0f172a' });
+    setLoading(true);
+    const canvas = await html2canvas(element, { scale: 2, backgroundColor: '#0f172a', useCORS: true });
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgProps = pdf.getImageProperties(imgData);
     const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
     pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Relatorio_Analise_${selectedAthleteId}.pdf`);
-  };
-
-  const calculateACWRLocal = () => {
-    if (data.length < 14) return 'Dados insuficientes';
-    const acute = data.slice(-7).reduce((acc, d) => acc + d.load, 0) / 7;
-    const chronic = data.reduce((acc, d) => acc + d.load, 0) / data.length;
-    const ratio = acute / (chronic || 1);
-    return ratio.toFixed(2);
+    pdf.save(`WMPS_Elite_Report_${selectedAthleteId}.pdf`);
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -6814,14 +6843,15 @@ function DataAnalysisModule({ athletes, onBack }: { athletes: any[], onBack: () 
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
+      {/* Layer 0: Header & Filter */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-slate-900/50 p-8 rounded-[2.5rem] border border-slate-800 backdrop-blur-md">
         <div className="flex items-center gap-6">
           <button onClick={onBack} className="p-3 bg-slate-800 hover:bg-slate-700 rounded-2xl text-slate-400 transition-all">
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Análise de Dados</h2>
-            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mt-1">Business Intelligence & Performance</p>
+            <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter">Performance BI</h2>
+            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mt-1">Nível Elite - Monitoramento 4 Camadas</p>
           </div>
         </div>
 
@@ -6837,184 +6867,218 @@ function DataAnalysisModule({ athletes, onBack }: { athletes: any[], onBack: () 
 
           <button 
             onClick={exportPDF}
-            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20"
+            disabled={loading || !selectedAthleteId}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-600/20"
           >
             <Download className="w-4 h-4" />
-            Exportar PDF
+            {loading ? 'Processando...' : 'Exportar Relatório'}
           </button>
         </div>
       </div>
 
       {!selectedAthleteId ? (
         <div className="py-32 flex flex-col items-center justify-center text-center space-y-6 bg-slate-900/20 rounded-[3rem] border border-dashed border-slate-800">
-          <div className="p-6 bg-slate-900 rounded-full border border-slate-800">
-            <BarChart className="w-12 h-12 text-slate-700" />
-          </div>
+          <BarChart className="w-12 h-12 text-slate-700" />
           <div className="max-w-xs">
             <h3 className="text-xl font-black text-white uppercase italic">Aguardando Seleção</h3>
-            <p className="text-slate-500 text-xs font-bold uppercase mt-2">Selecione um atleta acima para iniciar a análise profunda de dados.</p>
+            <p className="text-slate-500 text-xs font-bold uppercase mt-2">Escolha um atleta para processar as modelagens de carga aguda/crônica.</p>
           </div>
         </div>
       ) : (
-        <div id="analysis-report" className="grid grid-cols-12 gap-8">
-          {/* Main Controls & Filters */}
-          <div className="col-span-12 lg:col-span-3 space-y-6">
-            <div className="bento-card bg-slate-950/40 border-slate-800 p-6 space-y-6">
-              <div className="space-y-4">
-                <p className="label-caps italic text-slate-500">Período de Análise</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['7days', '30days'] as const).map(p => (
-                    <button 
-                      key={p}
-                      onClick={() => setPeriod(p)}
-                      className={`py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${period === p ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-500'}`}
-                    >
-                      {p === '7days' ? '7 Dias' : '30 Dias'}
-                    </button>
-                  ))}
+        <div id="analysis-report" className="space-y-8">
+          {/* Layer 3: Scientific Scorecards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+             <div className="bento-card bg-slate-900 border-slate-800 p-6">
+                <p className="label-caps italic text-slate-500 mb-1">Status de Carga</p>
+                <h4 className={`text-xl font-black uppercase italic ${metrics.status === 'Em Risco' ? 'text-rose-500' : 'text-emerald-500'}`}>{metrics.status}</h4>
+                <div className="mt-4 h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                   <div className="h-full bg-emerald-500" style={{ width: `${Math.min(metrics.acwr * 60, 100)}%` }}></div>
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <p className="label-caps italic text-slate-500">Variáveis Monitoradas</p>
-                <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
-                  {VARIABLES.map(v => (
-                    <button 
-                      key={v.id}
-                      onClick={() => {
-                        if (selectedVariables.includes(v.id)) setSelectedVariables(selectedVariables.filter(x => x !== v.id));
-                        else setSelectedVariables([...selectedVariables, v.id]);
-                      }}
-                      className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedVariables.includes(v.id) ? 'bg-slate-800 border-emerald-500/50' : 'bg-slate-900 border-slate-800 opacity-60'}`}
-                    >
-                      <span className="text-[10px] font-black text-white uppercase italic">{v.label}</span>
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: v.color }}></div>
-                    </button>
-                  ))}
+             </div>
+             <div className="bento-card bg-slate-900 border-slate-800 p-6">
+                <p className="label-caps italic text-slate-500 mb-1">ACWR (Aguda/Crônica)</p>
+                <div className="flex items-baseline gap-2">
+                   <h4 className="text-3xl font-black text-white italic">{metrics.acwr.toFixed(2)}</h4>
+                   <span className="text-[10px] font-black text-slate-600 uppercase">Ratio</span>
                 </div>
-              </div>
-            </div>
-
-            {/* Scientific Metrics Summary */}
-            <div className="bento-card bg-slate-900/80 border-emerald-500/20 p-6 space-y-4">
-              <h4 className="text-[10px] font-black text-emerald-500 uppercase italic tracking-widest">Métricas Científicas</h4>
-              <div className="space-y-4">
-                <div className="flex justify-between items-baseline">
-                  <span className="text-[9px] font-black text-slate-500 uppercase">ACWR (Carga)</span>
-                  <span className={`text-xl font-black italic ${Number(calculateACWRLocal()) > 1.5 ? 'text-red-500' : 'text-emerald-500'}`}>
-                    {calculateACWRLocal()}
-                  </span>
+                <p className="text-[8px] text-slate-500 font-bold uppercase mt-2">Zona Ideal: 0.8 - 1.3</p>
+             </div>
+             <div className="bento-card bg-slate-900 border-slate-800 p-6">
+                <p className="label-caps italic text-slate-500 mb-1">Monotonia (Foster)</p>
+                <div className="flex items-baseline gap-2">
+                   <h4 className="text-3xl font-black text-white italic">{metrics.monotony.toFixed(2)}</h4>
                 </div>
-                <p className="text-[8px] text-slate-600 font-bold leading-relaxed">
-                  Relação Carga Aguda/Crônica baseada no modelo de Banister adaptado por Gabbett.
-                </p>
-              </div>
-            </div>
+                <p className="text-[8px] text-slate-500 font-bold uppercase mt-2">Alerta: &gt; 2.0 (Risco Doença)</p>
+             </div>
+             <div className="bento-card bg-slate-900 border-slate-800 p-6">
+                <p className="label-caps italic text-slate-500 mb-1">Strain (Tensão)</p>
+                <div className="flex items-baseline gap-2">
+                   <h4 className="text-3xl font-black text-white italic">{Math.round(metrics.strain)}</h4>
+                </div>
+                <p className="text-[8px] text-slate-500 font-bold uppercase mt-2">Limite: ~3000 AU/Semana</p>
+             </div>
           </div>
 
-          {/* Visualization Area */}
-          <div className="col-span-12 lg:col-span-9 space-y-8">
-            <div className="bento-card bg-slate-900/40 p-8 min-h-[500px]">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-xl font-black text-white uppercase italic">Evolução e Tendências</h3>
-                <div className="flex gap-4">
-                  {selectedVariables.map(vId => {
-                    const v = VARIABLES.find(x => x.id === vId);
-                    return v ? (
-                      <div key={vId} className="flex items-center gap-2">
-                        <div className="w-3 h-1 rounded-full" style={{ backgroundColor: v.color }}></div>
-                        <span className="text-[9px] font-black text-slate-500 uppercase">{v.label}</span>
-                      </div>
-                    ) : null;
-                  })}
+          <div className="grid grid-cols-12 gap-8">
+            {/* Sidebar: Filters (Layer 1 & 2 Selector) */}
+            <div className="col-span-12 lg:col-span-3 space-y-6">
+              <div className="bento-card bg-slate-950/40 border-slate-800 p-6 space-y-6">
+                <div className="space-y-4">
+                  <p className="label-caps italic text-slate-500">Período de Análise</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['7days', '30days'] as const).map(p => (
+                      <button 
+                        key={p}
+                        onClick={() => setPeriod(p)}
+                        className={`py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${period === p ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-900 border-slate-800 text-slate-500'}`}
+                      >
+                        {p === '7days' ? '7 Dias' : '30 Dias'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="label-caps italic text-slate-500">Variáveis Monitoradas</p>
+                  <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+                    {VARIABLES.map(v => (
+                      <button 
+                        key={v.id}
+                        onClick={() => {
+                          if (selectedVariables.includes(v.id)) setSelectedVariables(selectedVariables.filter(x => x !== v.id));
+                          else setSelectedVariables([...selectedVariables, v.id]);
+                        }}
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedVariables.includes(v.id) ? 'bg-slate-800 border-emerald-500/50' : 'bg-slate-900 border-slate-800 opacity-60'}`}
+                      >
+                        <span className="text-[10px] font-black text-white uppercase italic">{v.label}</span>
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: v.color }}></div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div className="h-[400px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={data}>
-                    <defs>
-                      {selectedVariables.map(vId => {
-                        const v = VARIABLES.find(x => x.id === vId);
-                        return v ? (
-                          <linearGradient key={vId} id={`color${vId}`} x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={v.color} stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor={v.color} stopOpacity={0}/>
-                          </linearGradient>
-                        ) : null;
-                      })}
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                    <XAxis dataKey="date" stroke="#475569" fontSize={10} fontWeight={900} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#475569" fontSize={10} fontWeight={900} tickLine={false} axisLine={false} />
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '12px' }}
-                      itemStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic' }}
-                    />
+            {/* Layer 3 & 4 Visualization & AI */}
+            <div className="col-span-12 lg:col-span-9 space-y-8">
+              <div className="bento-card bg-slate-900/40 p-8 min-h-[500px]">
+                <div className="flex justify-between items-center mb-8">
+                  <h3 className="text-xl font-black text-white uppercase italic">Análise de Tendências Elites</h3>
+                  <div className="flex gap-4 flex-wrap justify-end">
                     {selectedVariables.map(vId => {
                       const v = VARIABLES.find(x => x.id === vId);
                       return v ? (
-                        <Area 
-                          key={vId}
-                          type="monotone" 
-                          dataKey={vId} 
-                          stroke={v.color} 
-                          strokeWidth={3}
-                          fillOpacity={1} 
-                          fill={`url(#color${vId})`} 
-                          animationDuration={1500}
-                        />
+                        <div key={vId} className="flex items-center gap-2">
+                          <div className="w-3 h-1 rounded-full" style={{ backgroundColor: v.color }}></div>
+                          <span className="text-[8px] font-black text-slate-500 uppercase">{v.label}</span>
+                        </div>
                       ) : null;
                     })}
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* AI Insights & Alerts */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bento-card bg-blue-600/5 border-blue-500/20 p-8 space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-500/20 rounded-xl">
-                    <BrainCircuit className="w-5 h-5 text-blue-400" />
                   </div>
-                  <h4 className="text-sm font-black text-white uppercase italic tracking-widest">Interpretação Baseada em Dados (IA)</h4>
                 </div>
-                <div className="space-y-4">
-                  {insights.length > 0 ? insights.map((insight, idx) => (
-                    <motion.div 
-                      initial={{ x: -20, opacity: 0 }} 
-                      animate={{ x: 0, opacity: 1 }} 
-                      transition={{ delay: idx * 0.1 }}
-                      key={idx} 
-                      className="p-4 bg-slate-900/60 rounded-2xl border border-white/5 text-[11px] font-bold text-slate-300 italic leading-relaxed"
-                    >
-                      {insight}
-                    </motion.div>
-                  )) : (
-                    <p className="text-[10px] text-slate-600 font-black uppercase italic">Nenhuma anomalia detectada no período.</p>
-                  )}
+
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data}>
+                      <defs>
+                        {selectedVariables.map(vId => {
+                          const v = VARIABLES.find(x => x.id === vId);
+                          return v ? (
+                            <linearGradient key={vId} id={`color${vId}`} x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={v.color} stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor={v.color} stopOpacity={0}/>
+                            </linearGradient>
+                          ) : null;
+                        })}
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
+                      <XAxis dataKey="date" stroke="#475569" fontSize={10} fontWeight={900} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#475569" fontSize={10} fontWeight={900} tickLine={false} axisLine={false} />
+                      <Tooltip 
+                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '12px', padding: '12px' }}
+                        itemStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', fontStyle: 'italic' }}
+                      />
+                      {selectedVariables.map(vId => {
+                        const v = VARIABLES.find(x => x.id === vId);
+                        return v ? (
+                          <Area 
+                            key={vId}
+                            type="monotone" 
+                            dataKey={vId} 
+                            stroke={v.color} 
+                            strokeWidth={3}
+                            fillOpacity={1} 
+                            fill={`url(#color${vId})`} 
+                            animationDuration={1500}
+                          />
+                        ) : null;
+                      })}
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
 
-              <div className="bento-card bg-rose-600/5 border-rose-500/20 p-8 space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-rose-500/20 rounded-xl">
-                    <AlertTriangle className="w-5 h-5 text-rose-400" />
+              {/* Layer 4: Interpretation Insights */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="bento-card bg-blue-600/5 border-blue-500/20 p-8 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/20 rounded-xl">
+                      <BrainCircuit className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <h4 className="text-sm font-black text-white uppercase italic tracking-widest">Diagnóstico Camada 4</h4>
                   </div>
-                  <h4 className="text-sm font-black text-white uppercase italic tracking-widest">Encaminhamento & Conduta</h4>
+                  <div className="space-y-4">
+                    {insights.length > 0 ? insights.map((insight, idx) => (
+                      <motion.div 
+                        initial={{ x: -20, opacity: 0 }} 
+                        animate={{ x: 0, opacity: 1 }} 
+                        transition={{ delay: idx * 0.1 }}
+                        key={idx} 
+                        className={`p-4 rounded-2xl border text-[11px] font-bold italic leading-relaxed ${
+                          insight.type === 'risk' ? 'bg-rose-950/20 border-rose-500/20 text-rose-400' :
+                          insight.type === 'success' ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-400' :
+                          'bg-slate-900/60 border-white/5 text-slate-300'
+                        }`}
+                      >
+                        {insight.msg}
+                      </motion.div>
+                    )) : (
+                      <p className="text-[10px] text-slate-600 font-black uppercase italic">Nenhuma anomalia detectada. Atleta em equilíbrio homeostático.</p>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-6">
-                  <p className="text-[11px] text-slate-400 font-medium leading-relaxed italic">
-                    Baseado nas diretrizes do ACSM, se os marcadores clínicos ou de carga excederem os limites de segurança, recomenda-se:
-                  </p>
-                  <div className="flex flex-col gap-3">
-                    <button className="w-full py-3 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white border border-rose-500/30 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">
-                      Gerar Encaminhamento Médico
-                    </button>
-                    <button className="w-full py-3 bg-blue-600/10 hover:bg-blue-600 text-blue-500 hover:text-white border border-blue-500/30 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">
-                      Enviar Alerta ao Atleta
-                    </button>
+
+                <div className="bento-card bg-rose-600/5 border-rose-500/20 p-8 space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-rose-500/20 rounded-xl">
+                      <Zap className="w-5 h-5 text-rose-400" />
+                    </div>
+                    <h4 className="text-sm font-black text-white uppercase italic tracking-widest">Sugestões de Conduta</h4>
+                  </div>
+                  <div className="space-y-4">
+                    {metrics.status === 'Em Risco' && (
+                       <div className="p-4 bg-rose-600/10 rounded-2xl border border-rose-500/30">
+                          <p className="text-[10px] font-black text-rose-500 uppercase mb-2">Ação Recomendada:</p>
+                          <p className="text-[12px] font-bold text-white italic">REDUZIR CARGA (DELOAD). Focar em recuperação ativa e sono. Evitar sessões de alta intensidade nas próximas 48h.</p>
+                       </div>
+                    )}
+                    {metrics.status === 'Pronto p/ Performance' && (
+                       <div className="p-4 bg-emerald-600/10 rounded-2xl border border-emerald-500/30">
+                          <p className="text-[10px] font-black text-emerald-500 uppercase mb-2">Ação Recomendada:</p>
+                          <p className="text-[12px] font-bold text-white italic">MANTER PROGRESSÃO. Atleta em fase de supercompensação. Momento ideal para testes de carga máxima.</p>
+                       </div>
+                    )}
+                    {metrics.status === 'Subestimulado' && (
+                       <div className="p-4 bg-blue-600/10 rounded-2xl border border-blue-500/30">
+                          <p className="text-[10px] font-black text-blue-500 uppercase mb-2">Ação Recomendada:</p>
+                          <p className="text-[12px] font-bold text-white italic">AUMENTAR INTENSIDADE. Carga crônica está superando o estímulo agudo. Risco de platô de performance.</p>
+                       </div>
+                    )}
+                    <div className="flex flex-col gap-2 pt-4">
+                      <button className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">
+                        Notificar Atleta via WhatsApp
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -7027,4 +7091,5 @@ function DataAnalysisModule({ athletes, onBack }: { athletes: any[], onBack: () 
 }
 
 export default dynamic(() => Promise.resolve(CoachPage), { ssr: false });
+
 
