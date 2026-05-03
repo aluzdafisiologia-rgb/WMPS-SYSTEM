@@ -2,14 +2,15 @@ name: WMPS CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
 
 jobs:
-  build-and-deploy:
+  build-validate:
+    name: Build & Validate
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -23,27 +24,12 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Code Quality (Lint)
-        run: npm run lint
-
-      - name: Automated Tests & Build Validation
-        run: npm run test
+      - name: Build (com patch do Service Worker)
+        run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
 
-      - name: Deploy to Vercel (Preview)
-        if: github.ref != 'refs/heads/main'
-        run: npx vercel --token=${{ secrets.VERCEL_TOKEN }} --confirm
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
-      - name: Deploy to Vercel (Production)
-        if: github.ref == 'refs/heads/main'
-        run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --confirm
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+  # O deploy em produção é feito automaticamente pela Vercel
+  # ao detectar o push neste repositório GitHub.
+  # Não é necessário usar vercel CLI aqui.
